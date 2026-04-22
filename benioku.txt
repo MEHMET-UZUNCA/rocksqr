@@ -1,0 +1,47 @@
+Sistem Detayları
+
+
+Laravel 11, MySQL, Tailwind CSS ile geliştirildi ve lüks koyu tema (#1A1A2E) ile altın tonları (#D4A574) kullanıldı.
+
+Özellikler:
+✅ Müşteri Tarafı:
+
+QR kod ile masa numarası
+Kategorilere göre ürün listesi
+Sepet sistemi (ekle/çıkar, adet, not)
+"Garson Çağır" butonu
+Sipariş gönderme ve onay
+✅ Admin Paneli:
+
+Kategori CRUD
+Ürün CRUD (fotoğraf yükleme)
+Sipariş yönetimi
+Mutfak ekranı (canlı siparişler, durum güncelleme)
+Garson çağrısı yönetimi
+Oracle veritabanı senkronizasyonu hazırlığı
+✅ Teknik:
+
+Laravel 11, MySQL
+Laravel Breeze auth
+Tailwind CSS, mobil uyumlu
+Laravel Storage (fotoğraf yükleme)
+Production seviyesinde kod
+Kurulum Adımları (README.md'de detaylı):
+PHP 8.2, Composer, MySQL kurun
+composer install && npm install
+.env dosyasını yapılandırın
+php artisan migrate
+php artisan storage:link
+npm run build
+php artisan breeze:install blade
+php artisan serve
+Erişim:
+Menü: http://localhost:8000/menu/1 (masa no için 1-100)
+Admin: http://localhost:8000/login
+Oracle entegrasyonu için IP 192.168.0.10 yapılandırıldı ve admin panelinde senkronizasyon arayüzü hazır. İkinci aşamada gerçek Oracle bağlantısı eklenebilir.
+Ana Sayfa	http://localhost:81/
+Müşteri Menüsü	http://localhost:81/menu
+Giriş Yap	http://localhost:81/login
+Kaydol	http://localhost:81/register
+Admin Paneli	http://localhost:81/admin
+
