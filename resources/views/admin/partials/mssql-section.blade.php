@@ -61,30 +61,41 @@
     @php
         // Product uses legacy 'mssql_income_center_filter', KDS/BDS use prefix-based field
         $rvcFieldName = $rvcField ?? ($prefix . '_rvc_filter');
+        $rvcLabelText = $rvcLabel ?? 'RVC / Gelir Merkezi Filtresi';
+        $rvcPlaceholderText = $rvcPlaceholder ?? 'Boş = filtre yok';
+        $rvcHintHtml = $rvcHint ?? null;
     @endphp
     <hr class="my-5 border-gray-200">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
             <label for="{{ $rvcFieldName }}" class="block text-sm font-semibold text-gray-700 mb-2">
-                <i class="fas fa-filter mr-1 text-emerald-600"></i>RVC / Gelir Merkezi Filtresi
+                <i class="fas fa-filter mr-1 text-emerald-600"></i>{{ $rvcLabelText }}
                 <span class="ml-1 text-xs font-normal text-gray-400">(opsiyonel)</span>
             </label>
             <input type="text" name="{{ $rvcFieldName }}" id="{{ $rvcFieldName }}"
                 value="{{ old($rvcFieldName, $settings[$rvcFieldName] ?? '') }}"
                 class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold"
-                placeholder="Boş = filtre yok">
-            <p class="text-xs text-gray-500 mt-1">
-                <strong>Boş bırakırsanız</strong> filtre çalışmaz, tüm RVC'ler getirilir.<br>
-                <strong>Yazarsanız</strong> sadece eşleşen RVC değerine sahip ürünler getirilir.<br>
-                <span class="text-emerald-700">Joker karakter:</span>
-                <code class="bg-gray-100 px-1 rounded">POOL*</code>,
-                <code class="bg-gray-100 px-1 rounded">*BAR</code>,
-                <code class="bg-gray-100 px-1 rounded">*POOL*</code>
-            </p>
+                placeholder="{{ $rvcPlaceholderText }}">
+            @if($rvcHintHtml)
+                <p class="text-xs text-gray-600 mt-1">{!! $rvcHintHtml !!}</p>
+            @else
+                <p class="text-xs text-gray-500 mt-1">
+                    <strong>Boş bırakırsanız</strong> filtre çalışmaz, tüm RVC'ler getirilir.<br>
+                    <strong>Yazarsanız</strong> sadece eşleşen RVC değerine sahip ürünler getirilir.<br>
+                    <span class="text-emerald-700">Joker karakter:</span>
+                    <code class="bg-gray-100 px-1 rounded">POOL*</code>,
+                    <code class="bg-gray-100 px-1 rounded">*BAR</code>,
+                    <code class="bg-gray-100 px-1 rounded">*POOL*</code>
+                </p>
+            @endif
         </div>
         <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
             <p class="text-sm text-emerald-800 font-semibold mb-1"><i class="fas fa-lightbulb mr-1"></i>İpucu</p>
-            <p class="text-xs text-emerald-700">Tüm ürün/fiyat/grup verisi aşağıdaki <strong>Özel SQL Sorgusu</strong> ile çekilir.</p>
+            @if($rvcHintHtml)
+                <p class="text-xs text-emerald-700">SQL sorgusunda <code class="bg-white px-1 rounded font-mono">&#123;&#123;RVC&#125;&#125;</code> yazar, RVC alanına sadece sayıyı (örn: <strong>43</strong>) girersiniz. Sistem çalışma anında değeri yerine koyar.</p>
+            @else
+                <p class="text-xs text-emerald-700">Tüm ürün/fiyat/grup verisi aşağıdaki <strong>Özel SQL Sorgusu</strong> ile çekilir.</p>
+            @endif
         </div>
     </div>
 @endif

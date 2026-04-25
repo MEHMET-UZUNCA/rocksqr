@@ -94,7 +94,10 @@
                             'color'      => 'teal',
                             'showRvc'    => true,
                             'rvcField'   => 'mssql_akds_rvc_filter',
-                            'queryHint'  => "Ana mutfak ekranı için ayrı veritabanından sipariş listesini döndüren SQL sorgusu. Ekran sadece görüntüleme yapar, onaylama/buton yoktur.",
+                            'rvcLabel'   => 'RVC ID (Gelir Merkezi Numarası)',
+                            'rvcPlaceholder' => 'Örn: 43',
+                            'rvcHint'    => 'SQL sorgusundaki <code class="bg-gray-100 px-1 rounded">{{RVC}}</code> placeholder\'ı bu değerle değiştirilir. <strong>Sadece sayı girin</strong> (örn: <code class="bg-gray-100 px-1 rounded">43</code>).',
+                            'queryHint'  => "SQL sorgusunda RVC değeri {{RVC}} placeholder'ı ile belirtilir. Örnek: WHERE chk.Rvc = {{RVC}} — Ekranın üstündeki RVC Filtresi alanına girilen sayı çalışma anında buraya yerleştirilir.",
                             'aliasList'  => false,
                             'settings'   => $settings,
                         ])

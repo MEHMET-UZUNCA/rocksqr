@@ -965,6 +965,7 @@ class KitchenController extends Controller
         $username = (string) Setting::get('mssql_akds_username', '');
         $password = (string) Setting::get('mssql_akds_password', '');
         $query    = trim((string) Setting::get('mssql_akds_query', ''));
+        $rvcFilter = trim((string) Setting::get('mssql_akds_rvc_filter', ''));
 
         if ($query === '' || !$host || !$database || !$username) {
             return response()->json([
@@ -972,6 +973,26 @@ class KitchenController extends Controller
                 'message' => 'Ana Mutfak (AKDS) MSSQL ayarları/sorgusu eksik. Admin → MSSQL Ayarları → Ana Mutfak (AKDS) sekmesinden tanımlayın.',
                 'orders'  => [],
             ], 200);
+        }
+
+        // {{RVC}} placeholder'ı RVC filtre değeriyle değiştir
+        if (str_contains($query, '{{RVC}}')) {
+            if ($rvcFilter === '') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'SQL sorgusunda {{RVC}} placeholder var ama RVC Filtresi boş. Admin → MSSQL Ayarları → Ana Mutfak (AKDS) → RVC Filtresi alanını doldurun.',
+                    'orders'  => [],
+                ], 200);
+            }
+            // Sadece tam sayı kabul et (güvenlik: SQL injection engeli)
+            if (!preg_match('/^\d+$/', $rvcFilter)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'RVC Filtresi sadece sayısal değer olabilir (örn: 43).',
+                    'orders'  => [],
+                ], 200);
+            }
+            $query = str_replace('{{RVC}}', $rvcFilter, $query);
         }
 
         try {
