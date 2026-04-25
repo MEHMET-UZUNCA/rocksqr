@@ -81,23 +81,6 @@
     </div>
 
     <main class="p-4">
-        <!-- Symphony BDS canlı siparişler (read-only, sadece bilgi) -->
-        <div id="symphony-section" class="hidden mb-6">
-            <h2 class="text-lg font-semibold text-blue-300 mb-3 flex items-center gap-2">
-                <i class="fas fa-server"></i>
-                Symphony POS Siparişleri
-                <span id="symphony-count" class="text-xs bg-blue-700/50 px-2 py-0.5 rounded-full text-blue-200"></span>
-                <span class="text-xs text-gray-400 font-normal">(POS'tan canlı, otomatik güncellenir)</span>
-            </h2>
-            <div id="symphony-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"></div>
-        </div>
-
-        <!-- QR Menu yeni siparişler (onay gerekir) -->
-        <h2 class="text-lg font-semibold text-purple-300 mb-3 flex items-center gap-2 hidden" id="qr-section-title">
-            <i class="fas fa-qrcode"></i>
-            QR Menu Siparişleri
-            <span class="text-xs text-gray-400 font-normal">(Onayla → Symphony'e işle)</span>
-        </h2>
         <div id="orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
         <div id="no-orders" class="hidden text-center py-20">
             <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
@@ -354,6 +337,7 @@
             if (orders.length === 0) {
                 grid.classList.add('hidden');
                 noOrders.classList.remove('hidden');
+                document.getElementById('order-count').textContent = 0;
                 return;
             }
 
@@ -362,58 +346,92 @@
             document.getElementById('order-count').textContent = orders.length;
 
             grid.innerHTML = orders.map(order => {
-                const isNew = order.bar_status === 'new';
-                const borderClass = isNew ? 'new-order border-gold' : 'border-green-500';
-                const statusBg = isNew ? 'bg-yellow-500' : 'bg-blue-500';
-                const statusText = isNew ? 'YENI' : 'ONAYLANDI';
-                const totalSecs = order.seconds_ago;
+                const isSymphony = order.source === 'symphony';
+                const isNew = !isSymphony && order.bar_status === 'new';
+
+                // Symphony'ler her zaman onaylı sayılır (POS'a girilmiş)
+                let borderClass, statusBg, statusText, sourceBadge;
+                if (isSymphony) {
+                    borderClass = 'border-blue-500';
+                    statusBg = 'bg-blue-600';
+                    statusText = 'POS';
+                    sourceBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYMPHONY</span>`;
+                } else {
+                    borderClass = isNew ? 'new-order border-gold' : 'border-green-500';
+                    statusBg = isNew ? 'bg-yellow-500' : 'bg-blue-500';
+                    statusText = isNew ? 'YENI' : 'ONAYLANDI';
+                    sourceBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-700 text-purple-100"><i class="fas fa-mobile-screen mr-0.5"></i>QR</span>`;
+                }
+
+                const totalSecs = order.seconds_ago || 0;
                 const hrs = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
                 const mins = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
                 const secs = String(totalSecs % 60).padStart(2, '0');
                 const timeStr = hrs + ':' + mins + ':' + secs;
                 const minTotal = Math.floor(totalSecs / 60);
-                const timeBg = minTotal > 15 ? 'bg-red-600' : minTotal > 10 ? 'bg-yellow-600' : 'bg-green-600';
+                // Symphony için bar eşikleri (5/10 dk), QR için eski eşikler (10/15 dk)
+                const timeBg = isSymphony
+                    ? (minTotal >= 10 ? 'bg-red-600' : minTotal >= 5 ? 'bg-yellow-600' : 'bg-green-600')
+                    : (minTotal > 15 ? 'bg-red-600' : minTotal > 10 ? 'bg-yellow-600' : 'bg-green-600');
 
                 let items = [];
-                try {
-                    items = Array.isArray(order.items) ? order.items : JSON.parse(order.items);
-                } catch(e) { items = []; }
+                try { items = Array.isArray(order.items) ? order.items : JSON.parse(order.items); }
+                catch(e) { items = []; }
 
-                const itemsHtml = items.map(item =>
-                    `<div class="flex justify-between py-1 border-b border-gray-700">
-                        <span>${getProductName(item.id)}</span>
-                        <span class="font-bold text-gold">x${item.quantity}</span>
-                    </div>`
-                ).join('');
+                const itemsHtml = items.map(item => {
+                    const name = item.name || (item.id ? getProductName(item.id) : '');
+                    const qty  = item.quantity || item.qty || 1;
+                    const note = item.note || '';
+                    return `<div class="flex justify-between py-1 border-b border-gray-700">
+                        <span class="truncate pr-2">${name}${note ? ` <span class="text-yellow-400 text-xs">(${note})</span>` : ''}</span>
+                        <span class="font-bold text-gold shrink-0">x${qty}</span>
+                    </div>`;
+                }).join('');
+
+                const checkLabel = isSymphony && order.check_number ? `<span class="text-xs text-gray-400">#${order.check_number}</span>` : (isSymphony ? '' : `<span class="text-xs text-gray-400">#${order.id}</span>`);
+
+                let footer;
+                if (isSymphony) {
+                    footer = `<div class="px-4 py-2 border-t border-gray-700">
+                        <div class="w-full py-2 bg-blue-600/30 border border-blue-500 rounded-lg text-sm font-bold text-center text-blue-200 flex items-center justify-center gap-2">
+                            <i class="fas fa-server"></i> POS'ta
+                        </div>
+                    </div>`;
+                } else {
+                    const priceLine = order.total_price ? `<div class="px-4 py-2 border-t border-gray-700 flex justify-between items-center">
+                        <span class="font-bold text-gold">${parseFloat(order.total_price).toFixed(2)} TL</span>
+                    </div>` : '';
+                    const btn = isNew
+                        ? `<button onclick="confirmOrder(${order.id})" class="w-full py-2 bg-gold hover:bg-yellow-600 text-primary rounded-lg text-sm font-bold transition flex items-center justify-center gap-2">
+                                <i class="fas fa-check-circle"></i> Onayla
+                            </button>`
+                        : `<div class="w-full py-2 bg-green-600 rounded-lg text-sm font-bold text-center flex items-center justify-center gap-2 text-white">
+                                <i class="fas fa-check-circle"></i> Onaylandi
+                            </div>`;
+                    footer = `${priceLine}<div class="px-4 py-2 border-t border-gray-700">${btn}</div>`;
+                }
 
                 return `
                 <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden">
                     <div class="flex items-center justify-between px-4 py-2 bg-gray-750">
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            ${sourceBadge}
                             <span class="text-2xl font-bold text-gold">
                                 ${order.table_no ? 'Masa ' + order.table_no : 'Paket'}
                             </span>
+                            ${checkLabel}
                             <span class="px-2 py-1 rounded text-xs font-bold ${statusBg}">${statusText}</span>
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="px-2 py-1 rounded text-xs ${timeBg}">${timeStr}</span>
-                            <span class="text-gray-400 text-sm">${order.created_at}</span>
+                            <span class="text-gray-400 text-sm">${order.created_at || ''}</span>
                         </div>
                     </div>
                     <div class="px-4 py-3 text-sm">
-                        ${itemsHtml}
+                        ${itemsHtml || '<div class="text-gray-500 text-center py-2">Urun yok</div>'}
                         ${order.order_note ? `<div class="mt-2 p-2 bg-yellow-900/30 rounded text-yellow-300 text-xs"><i class="fas fa-sticky-note mr-1"></i>${order.order_note}</div>` : ''}
                     </div>
-                    <div class="px-4 py-2 border-t border-gray-700 flex justify-between items-center">
-                        <span class="font-bold text-gold">${parseFloat(order.total_price).toFixed(2)} TL</span>
-                    </div>
-                    <div class="px-4 py-2 border-t border-gray-700">
-                        ${isNew ? `<button onclick="confirmOrder(${order.id})" class="w-full py-2 bg-gold hover:bg-yellow-600 text-primary rounded-lg text-sm font-bold transition flex items-center justify-center gap-2">
-                            <i class="fas fa-check-circle"></i> Onayla
-                        </button>` : `<div class="w-full py-2 bg-green-600 rounded-lg text-sm font-bold text-center flex items-center justify-center gap-2 text-white">
-                            <i class="fas fa-check-circle"></i> Onaylandi
-                        </div>`}
-                    </div>
+                    ${footer}
                 </div>`;
             }).join('');
         }
@@ -479,50 +497,7 @@
         }
 
         function renderSymphonyOrders(symphonyOrders) {
-            const section = document.getElementById('symphony-section');
-            const grid    = document.getElementById('symphony-grid');
-            const count   = document.getElementById('symphony-count');
-
-            if (!symphonyOrders || symphonyOrders.length === 0) {
-                section.classList.add('hidden');
-                return;
-            }
-            section.classList.remove('hidden');
-            count.textContent = symphonyOrders.length + ' adisyon';
-
-            grid.innerHTML = symphonyOrders.map(o => {
-                const secs = o.seconds_ago || 0;
-                const mins = Math.floor(secs / 60);
-                const timeStr = String(Math.floor(secs / 3600)).padStart(2,'0') + ':'
-                              + String(Math.floor((secs % 3600) / 60)).padStart(2,'0') + ':'
-                              + String(secs % 60).padStart(2,'0');
-                // Renk eşikleri: <5dk yeşil, 5-10dk sarı, 10+dk kırmızı
-                let cardCls, badgeCls;
-                if (mins >= 10)      { cardCls = 'bg-red-950/60 border-red-500';        badgeCls = 'bg-red-600'; }
-                else if (mins >= 5)  { cardCls = 'bg-yellow-900/40 border-yellow-500';  badgeCls = 'bg-yellow-600'; }
-                else                 { cardCls = 'bg-blue-950/40 border-blue-500';      badgeCls = 'bg-green-600'; }
-
-                const itemsHtml = (o.items || []).map(it =>
-                    `<div class="flex justify-between text-xs py-0.5 border-b border-gray-700/40">
-                        <span class="truncate pr-1">${it.name || ''}</span>
-                        <span class="font-bold text-blue-200 shrink-0">x${it.qty || 1}</span>
-                    </div>`
-                ).join('');
-                const checkLabel = o.check_number ? '#' + o.check_number : 'Adisyonsuz';
-
-                return `
-                <div class="rounded-lg border-2 p-3 ${cardCls}">
-                    <div class="flex items-center justify-between mb-1">
-                        <div class="flex items-center gap-1">
-                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYMPHONY</span>
-                            <span class="font-bold text-base text-white">${o.table_no ? 'M ' + o.table_no : '—'}</span>
-                            <span class="text-[10px] text-gray-400">${checkLabel}</span>
-                        </div>
-                        <span class="text-xs ${badgeCls} px-2 py-0.5 rounded text-white font-bold">${timeStr}</span>
-                    </div>
-                    <div class="text-xs">${itemsHtml}</div>
-                </div>`;
-            }).join('');
+            // Artık kullanılmıyor — Symphony siparişleri ana grid'de QR ile birlikte renderlanıyor.
         }
 
         function fetchData() {
@@ -531,8 +506,21 @@
                 fetch('/bar/api/symphony').then(r => r.json()).catch(() => null),
             ]).then(([data, sym]) => {
                 if (!data) return;
-                const currentOrderIds = data.orders.map(o => o.id);
-                const currentWaiterIds = data.waiter_calls.map(c => c.id);
+
+                // QR + Symphony tek listede birleştir, en yeni üstte
+                const qrOrders = (data.orders || []).map(o => ({ ...o, source: 'qr' }));
+                const symOrders = (sym && sym.orders ? sym.orders : []).map(o => ({
+                    ...o,
+                    source: 'symphony',
+                    bar_status: 'approved',
+                    created_at: o.order_time || '',
+                }));
+                const allOrders = [...qrOrders, ...symOrders].sort((a, b) => {
+                    return (a.seconds_ago || 0) - (b.seconds_ago || 0);
+                });
+
+                const currentOrderIds = qrOrders.map(o => o.id);
+                const currentWaiterIds = (data.waiter_calls || []).map(c => c.id);
 
                 if (!isFirstLoad) {
                     const newOrders = currentOrderIds.filter(id => !previousOrderIds.includes(id));
@@ -557,16 +545,10 @@
                 previousReadyIds  = currentReadyIds;
                 isFirstLoad = false;
 
-                renderOrders(data.orders);
+                renderOrders(allOrders);
                 renderReadyOrders(data.ready_orders || [], data.ready_orders_limit || null);
                 renderCompletedOrders(data.completed_orders || [], data.completed_orders_limit || null);
                 renderWaiterCalls(data.waiter_calls);
-
-                renderSymphonyOrders(sym && sym.orders ? sym.orders : []);
-
-                // QR başlığı sadece QR siparişi varsa görünsün
-                const qrTitle = document.getElementById('qr-section-title');
-                if (qrTitle) qrTitle.classList.toggle('hidden', (data.orders || []).length === 0);
             }).catch(err => console.error('Fetch error:', err));
         }
 
