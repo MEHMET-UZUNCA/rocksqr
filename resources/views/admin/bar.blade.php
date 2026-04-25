@@ -359,7 +359,7 @@
                 } else {
                     borderClass = isNew ? 'new-order border-gold' : 'border-green-500';
                     statusBg = isNew ? 'bg-yellow-500' : 'bg-blue-500';
-                    statusText = isNew ? 'YENI' : 'ONAYLANDI';
+                    statusText = isNew ? 'YENI' : 'MUTFAKTA';
                     sourceBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-700 text-purple-100"><i class="fas fa-mobile-screen mr-0.5"></i>QR</span>`;
                 }
 
@@ -405,8 +405,8 @@
                         ? `<button onclick="confirmOrder(${order.id})" class="w-full py-2 bg-gold hover:bg-yellow-600 text-primary rounded-lg text-sm font-bold transition flex items-center justify-center gap-2">
                                 <i class="fas fa-check-circle"></i> Onayla
                             </button>`
-                        : `<div class="w-full py-2 bg-green-600 rounded-lg text-sm font-bold text-center flex items-center justify-center gap-2 text-white">
-                                <i class="fas fa-check-circle"></i> Onaylandi
+                        : `<div class="w-full py-2 bg-blue-600/40 border border-blue-500 rounded-lg text-sm font-bold text-center flex items-center justify-center gap-2 text-blue-100">
+                                <i class="fas fa-utensils"></i> Mutfakta hazirlaniyor
                             </div>`;
                     footer = `${priceLine}<div class="px-4 py-2 border-t border-gray-700">${btn}</div>`;
                 }

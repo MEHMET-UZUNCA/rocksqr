@@ -103,7 +103,15 @@ class KitchenController extends Controller
     {
         $completedLimit = (int) Setting::get('bar_completed_display', 6);
 
-        $orders = Order::where('bar_status', 'new')
+        // Aktif grid: yeni gelenler + onaylanip mutfakta hazirlananlar
+        // (mutfak hazir/tamamlandi olunca asagidaki ready/completed bolumlerine gecer)
+        $orders = Order::where(function ($q) {
+                $q->where('bar_status', 'new')
+                  ->orWhere(function ($q2) {
+                      $q2->where('bar_status', 'approved')
+                         ->whereNotIn('kitchen_status', ['ready', 'completed']);
+                  });
+            })
             ->orderBy('created_at', 'asc')
             ->get()
             ->map(fn ($order) => $this->mapOrder($order));

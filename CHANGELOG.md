@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.19 - 2026-04-25
+
+### Düzeltildi
+- **Bar onayladıktan sonra sipariş kayboluyordu**: QR siparişi `Onayla`'ya basıldığında `bar_status='approved'` oluyordu ama API sadece `new` olanları getirdiği için kart anında ekrandan siliniyor, mutfak `ready` deyene kadar ortada görünmüyordu.
+- Artık onaylanmış siparişler grid'de **mavi `MUTFAKTA` rozeti** ve **"Mutfakta hazırlanıyor"** alt bilgisi ile kalmaya devam eder; mutfak siparişi hazır olarak işaretleyince yukarıdaki yeşil **"SERVİSE GÖTÜR"** şeridine geçer.
+
 ## v1.0.18 - 2026-04-25
 
 ### Düzeltildi
