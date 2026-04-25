@@ -1,5 +1,57 @@
 # Changelog
 
+---
+
+## Sistemin Çalışma Senaryosu
+
+RocksQR; **QR menü (müşteri)**, **Mutfak/Bar ekranları (personel)** ve **Symphony POS (mevcut sistem)** arasında köprü kuran hibrit bir akıştır. Üç ayrı MSSQL sorgusu vardır ve hepsi **tarayıcı polling** ile çalışır — sunucu tarafında cron/scheduler **yoktur**.
+
+### Veri kaynakları
+| Kaynak | Yön | Veritabanı | Kim sorgular | Sıklık |
+|---|---|---|---|---|
+| **Ürün senkronu** | MSSQL → MySQL (yazma) | Symphony.MI | Admin, manuel buton | İhtiyaç anında |
+| **KDS (Kitchen Display)** | MSSQL → ekran (okuma) | Symphony POS canlı | Mutfak ekranı tarayıcısı | 5 sn |
+| **BDS (Bar Display)** | MSSQL → ekran (okuma) | Symphony POS canlı | Bar ekranı tarayıcısı | 5 sn |
+| **QR Siparişler** | MySQL (`orders`) | Yerel | Bar/Mutfak ekranı | 5 sn |
+
+### Sipariş akışı — A) Müşteri QR'dan sipariş verir
+1. Müşteri telefonundan masaya yapıştırılmış QR kodu okutur, ürün seçer ve gönderir.
+2. Sipariş yerel **MySQL `orders`** tablosuna `bar_status='new'` olarak yazılır.
+3. **Bar ekranında** kart turuncu kenarlıkla **`POS BEKLENIYOR`** rozetiyle belirir; "Onayla" butonu pasiftir (kum saati animasyonu).
+4. **Garson** siparişi görüp Symphony POS terminaline aynı ürünleri girer ve adisyonu açar.
+5. Bar ekranı 5 sn sonra Symphony BDS sorgusu ile aynı masada açık adisyon görür → kart altın renge döner, **`YENI`** rozeti ve **"Onayla (POS'ta var)"** butonu aktif olur.
+6. Bar **Onayla**'ya basar → QR kartı kaybolur. Aynı masanın **mavi `SYMPHONY`** kartı POS'tan canlı görünmeye devam eder (artık tek doğru kaynak Symphony'dir).
+7. Mutfak hazırladığında KDS'den **`Onayla → Servis`** basar → kart bar ekranındaki yeşil **"SİPARİŞ HAZIR — SERVİSE GÖTÜR"** şeridine düşer.
+8. Bar **`Servis Edildi`** der → kart tamamen kalkar (`kitchen_pos_completions.delivered_at` set edilir).
+
+### Sipariş akışı — B) Garson doğrudan Symphony'ye girer (QR'sız)
+1. Garson masada sipariş alır, doğrudan Symphony POS'a girer.
+2. Bar ekranı 5 sn içinde mavi **`SYMPHONY`** kartı olarak gösterir (Onayla yok, sadece görsel takip — POS'ta zaten kayıt var).
+3. Mutfak ekranında aynı sipariş Symphony rozetli kartla belirir.
+4. Mutfak **`Onayla → Servis`** der → bar ekranındaki yeşil şeride düşer.
+5. Bar **`Servis Edildi`** der → kart kalkar.
+
+### Hibrit doğrulama mantığı (A senaryosu için)
+- Eşleşme **`table_no` üzerinden** yapılır.
+- Aynı masada hem bekleyen QR siparişi hem Symphony açık adisyonu varsa → eşleşir, Onayla aktifleşir.
+- Eşleşme yoksa → buton pasif kalır, **çift girişi engeller** (garson POS'a girmeden bar yanlışlıkla onaylayamaz).
+- Tüm karşılaştırma frontend'de yapılır → ekstra MSSQL sorgusu yok.
+
+### Renk ve süre eşikleri
+| Ekran | <5 dk | 5–10 dk | 10–15 dk | 15+ dk |
+|---|---|---|---|---|
+| Bar (Symphony) | Yeşil | Sarı | Kırmızı | Kırmızı |
+| Bar (QR) | Yeşil | Yeşil | Yeşil/Sarı | Sarı/Kırmızı |
+| Mutfak | Yeşil | Sarı | Kırmızı | Kırmızı |
+
+### Veri tabloları (yerel MySQL)
+- `orders` — QR siparişleri (`bar_status`, `kitchen_status`)
+- `kitchen_pos_completions` — Symphony siparişlerinin onay/servis takibi (`completed_at`, `delivered_at`)
+- `waiter_calls` — masa çağrıları
+- `settings` — MSSQL bağlantı/SQL ayarları (3 bölüm: Ürün, KDS, BDS)
+
+---
+
 ## v1.0.20 - 2026-04-25
 
 ### Eklenenler
