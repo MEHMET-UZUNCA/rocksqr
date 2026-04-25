@@ -26,6 +26,7 @@
     </style>
 </head>
 <body class="bg-gray-900 font-poppins text-white min-h-screen">
+    <div id="toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
     <header class="bg-primary border-b border-gold/30 px-6 py-3 flex items-center justify-between">
         <div class="flex items-center gap-4">
             <h1 class="text-2xl font-bold text-gold">
@@ -104,6 +105,26 @@
             return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         }
 
+        function showToast(message, type) {
+            const c = document.getElementById('toast-container');
+            if (!c) return;
+            const bg = type === 'error' ? 'bg-red-600 border-red-400'
+                     : type === 'success' ? 'bg-emerald-600 border-emerald-400'
+                     : 'bg-gray-700 border-gray-500';
+            const icon = type === 'error' ? 'fa-circle-exclamation'
+                       : type === 'success' ? 'fa-circle-check'
+                       : 'fa-circle-info';
+            const el = document.createElement('div');
+            el.className = `pointer-events-auto ${bg} text-white border-2 rounded-lg px-4 py-3 shadow-2xl flex items-center gap-3 min-w-[280px] max-w-md transform transition-all duration-300 translate-x-full opacity-0`;
+            el.innerHTML = `<i class="fas ${icon} text-xl"></i><span class="font-medium text-sm flex-1">${escapeHtml(message)}</span>`;
+            c.appendChild(el);
+            requestAnimationFrame(() => { el.classList.remove('translate-x-full', 'opacity-0'); });
+            setTimeout(() => {
+                el.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => el.remove(), 350);
+            }, 3500);
+        }
+
         function playOrderSound() {
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -169,19 +190,18 @@
             const _tableNo = order.table_no || '';
             const messagesHtml = (order.messages || []).length > 0 ? `
                 <div class="mx-4 mb-2 p-2 bg-yellow-900/40 border border-yellow-500/60 rounded-lg">
-                    <div class="text-xs text-yellow-400 font-bold uppercase mb-1">
+                    <div class="text-xs text-yellow-400 font-bold uppercase mb-2">
                         <i class="fas fa-bullhorn mr-1"></i>Mutfak Mesajlari
                     </div>
                     ${(order.messages || []).map(m => `
-                        <div class="flex items-center justify-between gap-2 py-1 border-b border-yellow-500/20 last:border-0">
-                            <div class="text-yellow-200 text-sm flex-1 min-w-0">
+                        <div class="py-2 border-b border-yellow-500/20 last:border-0">
+                            <div class="text-yellow-200 text-sm mb-2">
                                 <span class="text-yellow-400">${m.qty > 1 ? 'x'+m.qty+' ' : ''}</span>${escapeHtml(m.name)}
                                 ${m.note ? ` <span class="text-yellow-400/80">— ${escapeHtml(m.note)}</span>` : ''}
                             </div>
                             <button onclick='completeMessage(${JSON.stringify("M" + (m.item_id || ""))}, ${JSON.stringify(_checkNo)}, ${JSON.stringify(_tableNo)}, ${JSON.stringify(m.name || "")}, ${JSON.stringify(m.note || "")}, ${m.qty || 1})'
-                                    class="flex-shrink-0 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 rounded text-white text-xs font-bold"
-                                    title="Mesaji onayla / kaldir">
-                                <i class="fas fa-check mr-1"></i>Onayla
+                                    class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-bold text-white">
+                                <i class="fas fa-check-circle mr-1"></i>Onayla → Servis
                             </button>
                         </div>
                     `).join('')}
@@ -356,7 +376,7 @@
 
         function uncomplete(groupKey) {
             postJson('/kitchen-pos/uncomplete', { group_key: groupKey })
-                .then(d => { if (d && d.success === false) alert(d.message || 'Geri alınamadı.'); fetchOnce(); })
+                .then(d => { if (d && d.success === false) showToast(d.message || 'Geri alınamadı.', 'error'); fetchOnce(); })
                 .catch(e => console.error(e));
         }
 
@@ -367,7 +387,7 @@
 
         function undoQr(orderId) {
             postJson('/kitchen-pos/qr/' + orderId + '/undo', {}, 'PATCH')
-                .then(d => { if (d && d.success === false) alert(d.message || 'Geri alınamadı.'); fetchOnce(); })
+                .then(d => { if (d && d.success === false) showToast(d.message || 'Geri alınamadı.', 'error'); fetchOnce(); })
                 .catch(e => console.error(e));
         }
 
