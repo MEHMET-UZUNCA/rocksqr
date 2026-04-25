@@ -178,7 +178,7 @@
                                 <span class="text-yellow-400">${m.qty > 1 ? 'x'+m.qty+' ' : ''}</span>${escapeHtml(m.name)}
                                 ${m.note ? ` <span class="text-yellow-400/80">— ${escapeHtml(m.note)}</span>` : ''}
                             </div>
-                            <button onclick="completeOrder('checkless_msg', ${JSON.stringify('M' + (m.item_id || ''))}, ${JSON.stringify(_checkNo)}, ${JSON.stringify(_tableNo)})"
+                            <button onclick='completeMessage(${JSON.stringify("M" + (m.item_id || ""))}, ${JSON.stringify(_checkNo)}, ${JSON.stringify(_tableNo)}, ${JSON.stringify(m.name || "")}, ${JSON.stringify(m.note || "")}, ${m.qty || 1})'
                                     class="flex-shrink-0 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 rounded text-white text-xs font-bold"
                                     title="Mesaji onayla / kaldir">
                                 <i class="fas fa-check mr-1"></i>Onayla
@@ -255,6 +255,26 @@
         }
 
         function buildCompletedOrderCard(order) {
+            // Onaylanmis mutfak mesaji
+            if (order.is_message) {
+                return `
+                <div class="bg-yellow-900/30 rounded-lg border-2 border-yellow-600/60 p-3 text-xs">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-bold text-yellow-300">
+                            <i class="fas fa-bullhorn mr-1"></i>Mesaj
+                        </span>
+                        <span class="text-gray-500">Masa ${escapeHtml(order.table_no || '-')}</span>
+                    </div>
+                    <p class="text-yellow-100 truncate">
+                        ${order.qty > 1 ? `<span class="text-yellow-400">x${order.qty}</span> ` : ''}${escapeHtml(order.name || '—')}
+                        ${order.note ? ` <span class="text-yellow-400/80">— ${escapeHtml(order.note)}</span>` : ''}
+                    </p>
+                    <button onclick="uncomplete(${JSON.stringify(order.group_key)})"
+                            class="mt-2 w-full py-1 bg-amber-500 hover:bg-amber-600 rounded text-black font-bold text-xs">
+                        <i class="fas fa-undo mr-1"></i>Geri Al
+                    </button>
+                </div>`;
+            }
             const items = (order.items || []).map(i => `${i.name} x${i.qty}`).join(', ');
             return `
             <div class="bg-gray-800 rounded-lg border-2 border-emerald-700 p-3 text-xs">
@@ -310,6 +330,18 @@
         function completeOrder(kind, groupKey, checkNumber, tableNo) {
             postJson('/kitchen-pos/complete', {
                 kind, group_key: groupKey, check_number: checkNumber, table_no: tableNo,
+            }).then(() => fetchOnce()).catch(e => console.error(e));
+        }
+
+        function completeMessage(groupKey, checkNumber, tableNo, name, note, qty) {
+            postJson('/kitchen-pos/complete', {
+                kind: 'checkless_msg',
+                group_key: groupKey,
+                check_number: checkNumber,
+                table_no: tableNo,
+                name: name,
+                note: note,
+                qty: qty,
             }).then(() => fetchOnce()).catch(e => console.error(e));
         }
 

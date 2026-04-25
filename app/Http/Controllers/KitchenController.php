@@ -461,6 +461,25 @@ class KitchenController extends Controller
 
             $completedLimit = (int) Setting::get('kitchen_completed_display', 6);
 
+            // Onaylanmış mutfak mesajları (alt panelde "Tamamlananlar" gösterimi için)
+            $completedMsgs = DB::table('kitchen_pos_completions')
+                ->where('kind', 'checkless_msg')
+                ->where('completed_at', '>=', now()->subHours(12))
+                ->orderByDesc('completed_at')
+                ->limit($completedLimit)
+                ->get()
+                ->map(fn ($r) => [
+                    'is_message'   => true,
+                    'group_key'    => $r->group_key,
+                    'table_no'     => $r->table_no,
+                    'check_number' => $r->check_number,
+                    'name'         => $r->name,
+                    'note'         => $r->note,
+                    'qty'          => (int) ($r->qty ?? 1),
+                    'completed_at' => $r->completed_at,
+                ])
+                ->all();
+
             // QR tamamlananlar (kitchen_status=ready) — “servise götür” listesinin ön izlemesi
             $qrCompleted = Order::whereIn('kitchen_status', ['ready', 'completed'])
                 ->where('bar_status', 'approved')
@@ -498,7 +517,7 @@ class KitchenController extends Controller
                 'orders'          => $activeOrders,
                 'messages'        => $activeMessages,
                 'completed'       => $qrCompleted,
-                'completed_msgs'  => [],
+                'completed_msgs'  => $completedMsgs,
                 'completed_limit' => $completedLimit,
                 'fetched_at'      => now()->format('H:i:s'),
                 'count'           => count($activeOrders),
@@ -525,6 +544,9 @@ class KitchenController extends Controller
             'group_key'    => 'required|string|max:64',
             'check_number' => 'nullable|string|max:64',
             'table_no'     => 'nullable|string|max:32',
+            'name'         => 'nullable|string|max:255',
+            'note'         => 'nullable|string|max:255',
+            'qty'          => 'nullable|integer|min:1|max:999',
         ]);
 
         DB::table('kitchen_pos_completions')->updateOrInsert(
@@ -533,6 +555,9 @@ class KitchenController extends Controller
                 'kind'         => $validated['kind'],
                 'check_number' => $validated['check_number'] ?? null,
                 'table_no'     => $validated['table_no'] ?? null,
+                'name'         => $validated['name'] ?? null,
+                'note'         => $validated['note'] ?? null,
+                'qty'          => $validated['qty'] ?? 1,
                 'completed_at' => now(),
             ]
         );
