@@ -112,7 +112,58 @@ class KitchenController extends Controller
             ->orderBy('kitchen_ready_at', 'desc')
             ->limit($completedLimit)
             ->get()
-            ->map(fn ($order) => $this->mapOrder($order));
+            ->map(fn ($order) => $this->mapOrder($order))
+            ->values()
+            ->all();
+
+        // Symphony POS / KDS mesaj onayları (delivered_at IS NULL) bar ekranında da görünsün
+        $undoWindowSeconds = (int) Setting::get('ready_undo_seconds', 30);
+        $symphonyReady = DB::table('kitchen_pos_completions')
+            ->whereNull('delivered_at')
+            ->orderByDesc('completed_at')
+            ->limit($completedLimit)
+            ->get();
+
+        foreach ($symphonyReady as $row) {
+            $completedAt = \Carbon\Carbon::parse($row->completed_at);
+            $readySinceSeconds = (int) $completedAt->diffInSeconds(now());
+            $undoRemaining = max(0, $undoWindowSeconds - $readySinceSeconds);
+            $itemName = trim((string) ($row->name ?? ''));
+            $qty = (int) ($row->qty ?? 1);
+
+            if ($row->kind === 'check') {
+                $itemsArr = [['id' => null, 'name' => 'Hesap onaylandı (Adisyon #' . ($row->check_number ?: '-') . ')', 'quantity' => 1]];
+            } else {
+                $itemsArr = [['id' => null, 'name' => $itemName !== '' ? $itemName : 'Mutfak mesajı', 'quantity' => max(1, $qty)]];
+            }
+
+            $readyOrders[] = [
+                'id' => 0,
+                'source' => 'symphony',
+                'group_key' => $row->group_key,
+                'kind' => $row->kind,
+                'table_no' => $row->table_no,
+                'items' => $itemsArr,
+                'total_price' => 0,
+                'order_note' => $itemName !== '' && $row->kind !== 'check' ? trim((string) ($row->note ?? '')) : null,
+                'status' => 'ready',
+                'bar_status' => 'approved',
+                'kitchen_status' => 'ready',
+                'created_at' => $completedAt->format('H:i:s'),
+                'seconds_ago' => $readySinceSeconds,
+                'preparing_seconds' => null,
+                'ready_seconds' => $readySinceSeconds,
+                'ready_since_seconds' => $readySinceSeconds,
+                'can_undo_ready' => $undoRemaining > 0,
+                'undo_remaining_seconds' => $undoRemaining,
+            ];
+        }
+
+        // En yeni üstte
+        usort($readyOrders, function ($a, $b) {
+            return ($a['ready_since_seconds'] ?? 99999) <=> ($b['ready_since_seconds'] ?? 99999);
+        });
+        $readyOrders = array_slice($readyOrders, 0, $completedLimit);
 
         $completedOrders = Order::where('kitchen_status', 'completed')
             ->orderBy('completed_at', 'desc')
@@ -135,12 +186,24 @@ class KitchenController extends Controller
 
         return response()->json([
             'orders' => $orders->values(),
-            'ready_orders' => $readyOrders->values(),
+            'ready_orders' => array_values($readyOrders),
             'ready_orders_limit' => $completedLimit,
             'completed_orders' => $completedOrders->values(),
             'completed_orders_limit' => $completedLimit,
             'waiter_calls' => $waiterCalls,
         ]);
+    }
+
+    /**
+     * Bar ekranında Symphony/KDS mesaj kaydını "servis edildi" olarak işaretle.
+     */
+    public function barSymphonyDelivered(Request $request)
+    {
+        $validated = $request->validate(['group_key' => 'required|string|max:64']);
+        DB::table('kitchen_pos_completions')
+            ->where('group_key', $validated['group_key'])
+            ->update(['delivered_at' => now()]);
+        return response()->json(['success' => true]);
     }
 
     public function kitchenApiOrders()

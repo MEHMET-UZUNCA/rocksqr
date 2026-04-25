@@ -227,6 +227,40 @@
             .catch(err => console.error(err));
         }
 
+        function undoSymphonyReady(groupKey) {
+            fetch(`/kitchen-pos/uncomplete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ group_key: groupKey })
+            })
+            .then(async (r) => {
+                const data = await r.json();
+                if (!r.ok || data.success === false) {
+                    throw new Error(data.message || 'Geri alinamadi.');
+                }
+                return data;
+            })
+            .then(() => fetchData())
+            .catch(err => alert(err.message));
+        }
+
+        function markSymphonyDelivered(groupKey) {
+            fetch(`/bar/symphony/delivered`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ group_key: groupKey })
+            })
+            .then(r => r.json())
+            .then(() => fetchData())
+            .catch(err => console.error(err));
+        }
+
         function renderReadyOrders(readyOrders, readyLimit = null) {
             const bar   = document.getElementById('ready-bar');
             const list  = document.getElementById('ready-orders-list');
@@ -243,24 +277,47 @@
             limit.textContent = readyLimit ? `son ${readyLimit}` : '';
 
             list.innerHTML = readyOrders.map(order => {
+                const isSymphony = order.source === 'symphony';
                 let items = [];
                 try { items = Array.isArray(order.items) ? order.items : JSON.parse(order.items); }
                 catch(e) { items = []; }
-                const itemSummary = items.map(i => `${getProductName(i.id)} x${i.quantity}`).join(', ');
+                const itemSummary = items.map(i => {
+                    const nm = i.name || (i.id ? getProductName(i.id) : '');
+                    return `${nm} x${i.quantity || 1}`;
+                }).join(', ');
                 const readySecs = order.ready_seconds !== null ? order.ready_seconds : order.seconds_ago;
                 const timeStr = String(Math.floor(readySecs / 3600)).padStart(2,'0') + ':'
                               + String(Math.floor((readySecs % 3600) / 60)).padStart(2,'0') + ':'
                               + String(readySecs % 60).padStart(2,'0');
                 const hasNote = order.order_note && order.order_note.trim() !== '';
-                const undoHtml = order.can_undo_ready
-                    ? `<button onclick="undoReady(${order.id})" class="mt-2 w-full py-1 bg-amber-500 hover:bg-amber-600 rounded text-black font-bold text-xs">Geri Al (${order.undo_remaining_seconds}s)</button>`
+
+                let undoHtml = '';
+                if (order.can_undo_ready) {
+                    if (isSymphony) {
+                        undoHtml = `<button onclick="undoSymphonyReady('${order.group_key}')" class="mt-2 w-full py-1 bg-amber-500 hover:bg-amber-600 rounded text-black font-bold text-xs">Geri Al (${order.undo_remaining_seconds}s)</button>`;
+                    } else {
+                        undoHtml = `<button onclick="undoReady(${order.id})" class="mt-2 w-full py-1 bg-amber-500 hover:bg-amber-600 rounded text-black font-bold text-xs">Geri Al (${order.undo_remaining_seconds}s)</button>`;
+                    }
+                }
+
+                const deliveredHtml = isSymphony
+                    ? `<button onclick="markSymphonyDelivered('${order.group_key}')" class="mt-2 w-full py-1 bg-emerald-600 hover:bg-emerald-700 rounded text-white font-bold text-xs"><i class="fas fa-truck mr-1"></i>Servis Edildi</button>`
                     : '';
+
+                const sourceBadge = isSymphony
+                    ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYMPHONY</span>`
+                    : `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-700 text-purple-100"><i class="fas fa-mobile-screen mr-0.5"></i>QR</span>`;
+
+                const idLabel = isSymphony ? '' : `<span class="text-xs text-gray-400">#${order.id}</span>`;
 
                 return `
                 <div class="bg-emerald-900/60 border-2 border-emerald-400 rounded-lg p-3">
                     <div class="flex items-center justify-between mb-1">
-                        <span class="font-bold text-emerald-300 text-base">${order.table_no ? 'Masa ' + order.table_no : 'Paket'} <span class="text-xs text-gray-400">#${order.id}</span></span>
-                        <span class="text-xs bg-emerald-700 px-2 py-0.5 rounded text-white">${timeStr}</span>
+                        <span class="font-bold text-emerald-300 text-base">${order.table_no ? 'Masa ' + order.table_no : 'Paket'} ${idLabel}</span>
+                        <div class="flex items-center gap-1">
+                            ${sourceBadge}
+                            <span class="text-xs bg-emerald-700 px-2 py-0.5 rounded text-white">${timeStr}</span>
+                        </div>
                     </div>
                     <p class="text-gray-300 text-xs truncate">${itemSummary}</p>
                     ${hasNote ? `<p class="mt-1 text-yellow-400 text-xs truncate"><i class="fas fa-exclamation-triangle mr-1 animate-pulse"></i>${order.order_note}</p>` : ''}
@@ -268,6 +325,7 @@
                         <i class="fas fa-check-circle"></i> Siparis Hazir
                     </div>
                     ${undoHtml}
+                    ${deliveredHtml}
                 </div>`;
             }).join('');
         }

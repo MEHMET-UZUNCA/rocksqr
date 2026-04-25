@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.0.15 - 2026-04-25
+
+### Eklenenler
+- **Symphony onayları artık bar ekranına da düşüyor** — QR siparişleriyle simetrik akış:
+  - KDS'de Symphony hesap kartı veya mutfak mesajı **Onayla → Servis** ile onaylandığında, bar ekranındaki **"SİPARİŞ HAZIR — SERVİSE GÖTÜR"** şeridine otomatik eklenir
+  - Bar ekranındaki kartta kaynak rozeti gösterilir: mavi **SYMPHONY** veya mor **QR**
+  - **Geri Al** butonu (admin panelindeki `ready_undo_seconds` süresince) — Symphony kayıtları için KDS uncomplete endpoint'ini çağırır, kayıt tamamen kalkar
+  - **Servis Edildi** butonu (sadece Symphony girdileri için) — bar'dan kaldırır ama KDS Tamamlananlar listesinde rapor için kalır
+- `kitchen_pos_completions` tablosuna `delivered_at` kolonu eklendi (null = bar'da görünür)
+- Yeni route: `POST /bar/symphony/delivered`
+
 ## v1.0.14 - 2026-04-25
 
 ### Eklenenler

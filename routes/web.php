@@ -26,6 +26,7 @@ Route::get('/order/{order}/success', [MenuController::class, 'orderSuccess'])->n
 Route::get('/bar', [KitchenController::class, 'bar'])->name('bar');
 Route::get('/bar/api/orders', [KitchenController::class, 'barApiOrders'])->name('bar.api');
 Route::patch('/bar/orders/{order}/status', [KitchenController::class, 'barUpdateStatus'])->name('bar.order.status');
+Route::post('/bar/symphony/delivered', [KitchenController::class, 'barSymphonyDelivered'])->name('bar.symphony.delivered');
 Route::patch('/bar/waiter-calls/{waiterCall}/attend', [KitchenController::class, 'attendWaiterCall'])->name('bar.waiter.attend');
 
 Route::get('/kitchen', [KitchenController::class, 'kitchen'])->name('kitchen');
