@@ -225,8 +225,8 @@
                     </div>
                 </div>
                 ${order.rvc ? `<div class="px-4 py-1 text-xs text-gray-400 border-b border-gray-700"><i class="fas fa-store mr-1"></i>${escapeHtml(order.rvc)}</div>` : ''}
-                ${messagesHtml}
                 <div class="px-4 py-3 text-sm">${itemsHtml || '<div class="text-gray-500 text-center py-2">Urun yok</div>'}</div>
+                ${messagesHtml}
                 <div class="px-4 py-2 border-t border-gray-700">
                     <button onclick='completeOrder("check", ${JSON.stringify(order.check_number ? String(order.check_number) : ("T" + (order.table_no || "")))}, ${JSON.stringify(order.check_number ? String(order.check_number) : "")}, ${JSON.stringify(String(order.table_no || ""))})'
                             class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-bold text-white">

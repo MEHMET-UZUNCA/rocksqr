@@ -494,7 +494,7 @@ class KitchenController extends Controller
 
     /**
      * Symphony POS canlı verisi: kayıtlı KDS sorgusunu çalıştırır,
-     * CheckNumber'a göre gruplar; MajGrp=1 ve MajGrp=99 (Mutfak Mesajları) hem grup içinde
+     * CheckNumber'a göre gruplar; MajGrp=99 (Mutfak Mesajları) hem grup içinde
      * hem de checksiz olarak ayrı bir listede tutulur.
      */
     public function kitchenPosApi()
@@ -558,8 +558,8 @@ class KitchenController extends Controller
                 $majGrp     = (int) $get(['MajGrp', 'maj_grp'], 0);
                 $dtlSeq     = (int) $get(['DtlSeq', 'dtl_seq'], 0);
 
-                // Mutfak mesajları: Symphony'de MajGrp 1 ve 99 mesaj/yorum kalemleri için kullanılır
-                $isMessage  = in_array($majGrp, [1, 99], true);
+                // MajGrp=1 yiyecek, MajGrp=99 mutfak mesajı/yorum
+                $isMessage  = ($majGrp === 99);
                 $hasCheck   = $checkNum !== null && (int) $checkNum > 0;
 
                 // Mesajlar için benzersiz item_id (Symphony bazen ItemID döndürmez → tüm mesajlar
