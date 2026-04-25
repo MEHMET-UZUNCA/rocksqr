@@ -1,49 +1,156 @@
-Sistem Detayları
+RocksQR - Sistem Detayları
+Versiyon: v1.0.42 (2026-04-26)
+=====================================
+
+Laravel 11, MySQL, Tailwind CSS ile geliştirildi.
+Lüks koyu tema (#1A1A2E) ve altın tonları (#D4A574) kullanıldı.
 
 
-Laravel 11, MySQL, Tailwind CSS ile geliştirildi ve lüks koyu tema (#1A1A2E) ile altın tonları (#D4A574) kullanıldı.
+--------------------------------------------------
+ÇALIŞMA SENARYOSU
+--------------------------------------------------
 
-Özellikler:
-✅ Müşteri Tarafı:
+RocksQR; QR menü (müşteri), Mutfak/Bar ekranları (personel) ve Symphony POS
+(mevcut sistem) arasında köprü kuran hibrit bir akıştır.
+Tarayıcı polling ile çalışır (5 sn). Sunucu tarafında cron/scheduler YOKTUR.
 
-QR kod ile masa numarası
-Kategorilere göre ürün listesi
-Sepet sistemi (ekle/çıkar, adet, not)
-"Garson Çağır" butonu
-Sipariş gönderme ve onay
-✅ Admin Paneli:
+-- Sipariş Akışı A: Müşteri QR'dan sipariş verir --
 
-Kategori CRUD
-Ürün CRUD (fotoğraf yükleme, Symphony ProductCode/mssql_id gösterimi)
-Sipariş yönetimi (mutfak / bar ayrı ekranlar, masa numarası kartlarda görünür)
-Mutfak ekranı (canlı siparişler, durum güncelleme, geri al)
-Symphony POS Mutfak Ekranı (/kitchen-pos): MSSQL KDS sorgusu ile canlı hesaplar, mutfak mesajları, ses uyarısı, tamamla/geri al (24 saatlik geçmiş)
-Garson çağrısı yönetimi (mobil sepet altında çağır butonu)
-MSSQL Symphony entegrasyonu: Ürün ve KDS için ayrı sekmeler, özel SQL sorgusu, Sorguyu Önizle (ilk 100 satır)
-QR kod yönetimi: toplu üretim, A4 baskı, ZIP indirme, arşiv
-✅ Teknik:
+1. Müşteri QR kodu okutur → ürün seçer → sipariş gönderir.
+2. Sipariş MySQL'e bar_status='new' olarak yazılır.
+3. Bar ekranında kart "POS BEKLENIYOR" rozeti + turuncu kenarlıkla belirir.
+   "Onayla" butonu pasiftir (kum saati animasyonu).
+4. Garson siparişi görür, Symphony POS'a aynı ürünleri girer, adisyonu açar.
+5. Bar ekranı 5 sn içinde Symphony BDS'den aynı masada açık adisyon görür →
+   kart altın renge döner, "YENI" rozeti + "Onayla (POS'ta var)" butonu aktif.
+6. Bar "Onayla"ya basar → QR kartı kaybolur.
+   Masanın mavi SYMPHONY kartı POS'tan canlı görünmeye devam eder.
+7. Mutfak hazırladığında KDS'den "Onayla → Servis" basar →
+   kart bar ekranındaki yeşil "SİPARİŞ HAZIR - SERVİSE GÖTÜR" şeridine düşer.
+8. Bar "Servis Edildi" der → kart kalkar (delivered_at set edilir).
 
-Laravel 11, MySQL
-Laravel Breeze auth
-Tailwind CSS, mobil uyumlu
-Laravel Storage (fotoğraf yükleme)
-Production seviyesinde kod
-Kurulum Adımları (README.md'de detaylı):
-PHP 8.2, Composer, MySQL kurun
-composer install && npm install
-.env dosyasını yapılandırın
-php artisan migrate
-php artisan storage:link
-npm run build
-php artisan breeze:install blade
-php artisan serve
-Erişim:
-Menü: http://localhost:8000/menu/1 (masa no için 1-100)
-Admin: http://localhost:8000/login
-MSSQL Symphony entegrasyonu Admin > MSSQL Ayarları üzerinden yönetilir (Ürün ve KDS sekmeleri ayrı bağlantı + ayrı SQL sorgusu kullanır; .env değişkeni gerekmez).
-Ana Sayfa	http://localhost:81/
-Müşteri Menüsü	http://localhost:81/menu
-Giriş Yap	http://localhost:81/login
-Kaydol	http://localhost:81/register
-Admin Paneli	http://localhost:81/admin
+-- Sipariş Akışı B: Garson doğrudan Symphony'ye girer (QR'sız) --
+
+1. Garson siparişi doğrudan Symphony POS'a girer.
+2. Bar ekranı 5 sn içinde mavi SYMPHONY kartı olarak gösterir.
+3. Mutfak ekranında da Symphony rozetli kart belirir.
+4. Mutfak "Onayla → Servis" der → bar yeşil şeride düşer.
+5. Bar "Servis Edildi" der → kart kalkar.
+
+-- Hibrit Doğrulama Mantığı (A senaryosu) --
+
+- Eşleşme table_no üzerinden yapılır.
+- Aynı masada hem bekleyen QR siparişi hem Symphony açık adisyonu varsa →
+  Onayla aktifleşir. Yoksa buton pasif kalır (çift giriş engeli).
+- Tüm karşılaştırma frontend'de yapılır → ekstra MSSQL sorgusu yok.
+
+-- Renk / Süre Eşikleri --
+
+  Ekran            | <5 dk   | 5-10 dk | 10-15 dk | 15+ dk
+  Bar (Symphony)   | Yeşil   | Sarı    | Kırmızı  | Kırmızı
+  Bar (QR)         | Yeşil   | Yeşil   | Yeşil    | Sarı/Kırmızı
+  Mutfak           | Yeşil   | Sarı    | Kırmızı  | Kırmızı
+
+
+--------------------------------------------------
+MSSQL AYARLAR (3 bağımsız sekme)
+--------------------------------------------------
+
+  Sekme                    | Prefix        | Amaç
+  Ürün (Symphony)          | mssql_        | Ürün menüsü senkronu
+  Symphony Mutfak (KDS)    | mssql_kds_    | Mutfak ekranı canlı akış
+  Symphony Bar (BDS)       | mssql_bds_    | Bar ekranı canlı akış
+
+Her sekme: Host / Port / DB / Kullanıcı / Şifre / RVC Filtresi / SQL Sorgusu
+           + Bağlantı Testi + Sorgu Önizleme (ilk 100 satır)
+Şifreler veritabanında encrypt() ile şifreli saklanır. .env değişkeni gerekmez.
+
+
+--------------------------------------------------
+ADMIN AYARLAR — BÖLÜMLER
+--------------------------------------------------
+
+Bar Ekran Ayarları:
+  - bar_screen_title        : Bar ekranı üst başlığı
+  - bar_completed_display   : Tamamlanan sipariş listesi max adet (1-100)
+  - order_ready_display     : Sipariş hazır alanı max adet (1-200)
+  - order_profit_display    : Sipariş karı raporu max adet (1-200)
+
+Kitchen Ekran Ayarları:
+  - kitchen_screen_title      : Mutfak ekranı üst başlığı
+  - kitchen_completed_display : Tamamlanan sipariş listesi max adet (1-100)
+  - waiter_call_display       : Garson çağrıları listesi max adet (1-200)
+  - ready_undo_seconds        : Geri alma butonu aktif kalma süresi (5-600 sn)
+
+Ekran Temizleme:
+  - clear_time : Ekranda bekleyen kart temizleme saati (HH:MM)
+
+
+--------------------------------------------------
+ÖZELLİKLER
+--------------------------------------------------
+
+Müşteri Tarafı:
+  - QR kod ile masa numarası belirleme
+  - Kategorilere göre ürün listesi
+  - Sepet sistemi (ekle/çıkar, adet, not)
+  - "Garson Çağır" butonu
+  - Sipariş gönderme ve onay ekranı
+
+Admin Paneli:
+  - Kategori CRUD (ana/alt kategori desteği)
+  - Ürün CRUD (fotoğraf yükleme, Symphony ProductCode eşleşmesi)
+  - Sipariş yönetimi (QR + Symphony birleşik)
+  - Mutfak ekranı: canlı siparişler, durum güncelleme, ses uyarısı, geri al
+  - Bar ekranı: QR onay + Symphony canlı takip, sipariş hazır şeridi
+  - MSSQL Sync: lokal product code'lu ürünleri Symphony'de arar →
+    Değişti / Güncel / MSSQL'de Yok badge'leri
+  - Garson çağrısı yönetimi
+  - QR kod yönetimi: toplu üretim, A4 baskı, ZIP indirme, arşiv
+
+Teknik:
+  - Laravel 11, PHP 8.2, MySQL
+  - Laravel Breeze auth
+  - Tailwind CSS CDN, mobil uyumlu
+  - Font Awesome ikonlar
+  - Laravel Storage (fotoğraf yükleme)
+  - PDO sqlsrv MSSQL sürücüsü
+
+
+--------------------------------------------------
+VERİTABANI TABLOLARI
+--------------------------------------------------
+
+  orders                  QR siparişleri (bar_status, kitchen_status)
+  kitchen_pos_completions Symphony sipariş onay/servis takibi
+  waiter_calls            Masa çağrıları
+  categories              Ana ve alt kategoriler (parent_id)
+  products                Ürünler (mssql_id = Symphony product code)
+  settings                Tüm ayarlar (key/value)
+  users                   Admin kullanıcılar
+
+
+--------------------------------------------------
+ERİŞİM ADRESLERİ
+--------------------------------------------------
+
+  Ana Sayfa       http://localhost:81/
+  Müşteri Menüsü  http://localhost:81/menu
+  Giriş Yap       http://localhost:81/login
+  Admin Paneli    http://localhost:81/admin
+  Mutfak Ekranı   http://localhost:81/kitchen-pos
+  Bar Ekranı      http://localhost:81/bar
+
+
+--------------------------------------------------
+KURULUM ADIMLARI
+--------------------------------------------------
+
+1. PHP 8.2, Composer, MySQL, MSSQL (sqlsrv) PDO sürücüsü kurun
+2. composer install
+3. npm install && npm run build
+4. .env dosyasını yapılandırın (DB_* değerleri)
+5. php artisan migrate
+6. php artisan storage:link
+7. MSSQL ayarları Admin > MSSQL Ayarları üzerinden yapılır (.env gerekmez)
 

@@ -50,8 +50,116 @@ RocksQR; **QR menü (müşteri)**, **Mutfak/Bar ekranları (personel)** ve **Sym
 - `waiter_calls` — masa çağrıları
 - `settings` — MSSQL bağlantı/SQL ayarları (3 bölüm: Ürün, KDS, BDS)
 
+### MSSQL Ayarlar (3 bağımsız sekme)
+| Sekme | Prefix | Amaç |
+|---|---|---|
+| **Ürün (Symphony)** | `mssql_` | Ürün menüsü senkronizasyonu — product code eşleşmesi |
+| **Symphony Mutfak (KDS)** | `mssql_kds_` | Mutfak ekranına canlı sipariş akışı |
+| **Symphony Bar (BDS)** | `mssql_bds_` | Bar ekranına canlı sipariş akışı |
+
+Her sekme: Host / Port / DB / Kullanıcı / Şifre / RVC Filtresi / SQL Sorgusu + Bağlantı Testi + Sorgu Önizleme
+
+### Admin Ayarlar — Ekran Bölümleri
+**Bar Ekran Ayarları**: Bar başlığı, tamamlanan sipariş sayısı, sipariş hazır alanı adedi, sipariş karı adedi
+**Kitchen Ekran Ayarları**: Mutfak başlığı, tamamlanan sipariş sayısı, garson çağrısı adedi, geri alma süresi
+
 ---
-## v1.0.30 - 2026-04-26
+
+## v1.0.42 - 2026-04-26
+
+### Ayarlar: Ekran Ayarları Bar ve Kitchen olarak ayrıldı
+- **Bar Ekran Ayarları** bölümü: Bar ekranı başlığı, tamamlanan sipariş sayısı, sipariş hazır alanı adedi, sipariş karı adedi — ayrı "Bar Ekran Ayarlarını Kaydet" butonu.
+- **Kitchen Ekran Ayarları** bölümü: Mutfak ekranı başlığı, tamamlanan sipariş sayısı, garson çağrıları adedi, geri alma süresi — ayrı "Kitchen Ekran Ayarlarını Kaydet" butonu.
+- Controller: `_display_only=bar` ve `_display_only=kitchen` ayrı validation + save branch'i.
+
+---
+
+## v1.0.41 - 2026-04-26
+
+### MSSQL Ayarlar: KDS ve BDS Symphony için bağımsız RVC filtresi
+- **Symphony Mutfak (KDS)** sekmesi: Bağımsız `mssql_kds_rvc_filter` alanı eklendi, tab başlığı güncellendi.
+- **Symphony Bar (BDS)** sekmesi: Bağımsız `mssql_bds_rvc_filter` alanı eklendi, tab başlığı güncellendi. KDS'den fallback değer alma kaldırıldı.
+- Partial `mssql-section.blade.php`: RVC filtre field adı `$rvcField` parametresiyle dinamik hale getirildi.
+
+---
+
+## v1.0.40 - 2026-04-26
+
+### Ayarlar: Görüntülenecek adet limitleri eklendi
+- **Garson Çağrıları: Görüntülenecek Adet** (`waiter_call_display`, varsayılan: 10)
+- **Sipariş Hazır Alanı: Görüntülenecek Adet** (`order_ready_display`, varsayılan: 10)
+- **Sipariş Karı: Görüntülenecek Adet** (`order_profit_display`, varsayılan: 20)
+- Controller'a validation ve kayıt eklendi.
+
+---
+
+## v1.0.39 - 2026-04-26
+
+### MSSQL Sync: Lokal product code'lu ürün bazlı karşılaştırma
+- **Eski davranış**: MSSQL'deki tüm ürünler çekilir, local'e eşleştirilirdi. Eşleşmeyenler ayrı liste.
+- **Yeni davranış**: Lokal'de `mssql_id` (product code) atanmış ürünler alınır; her biri MSSQL'de aranır.
+- **Durum badge'leri**: 🟡 Değişti (seçilebilir, güncellenebilir) · 🟢 Güncel · 🔴 MSSQL'de Yok
+- Tablo: Checkbox | Product Code | Yerel Ürün Adı | Durum | Ad Değişimi | Fiyat Değişimi | MSSQL Grup
+- Sıralama: Değişti → MSSQL'de Yok → Güncel
+
+---
+
+## v1.0.38 - 2026-04-26
+
+### MSSQL Sync modal açılmıyordu — düzeltildi
+- Önceki commit'te (`v1.0.37`) modal HTML eklendi fakat eski inline panel HTML silinmemişti. İki ayrı `id="mssql-panel"` oluştu; JS ilkini (inline, `fixed` değil) buluyordu.
+- Eski `hidden bg-white rounded-xl...` inline paneli kaldırıldı, `hidden fixed inset-0 bg-black/60 z-50...` modal yapısı kaldı.
+
+---
+
+## v1.0.37 - 2026-04-26
+
+### MSSQL Sync paneli → fixed modal
+- MSSQL karşılaştırma paneli, Symphony Import ile aynı fixed overlay modal yapısına geçirildi.
+- Tümünü Seç artık hem eşleşen (`mssql-check`) hem eşleşmeyen (`mssql-unmatched-check`) checkboxları seçiyor.
+
+---
+
+## v1.0.36 - 2026-04-26
+
+### MSSQL Sync: grup bazlı collapse + üst güncelle butonu
+- "Tüm ürünler güncel" mesajı eşleşmeyen varsa bunu belirtecek şekilde düzeltildi.
+- Eşleşmeyen ürünler grup bazlı collapse (accordion) yapısına geçirildi.
+- "Seçilenleri Güncelle" butonu tablonun üstüne de eklendi.
+
+---
+
+## v1.0.35 - 2026-04-26
+
+### MSSQL Sync: eşleşmeyen ürünler tablo + checkbox
+- Eşleşmeyen MSSQL ürünleri grid yerine tablo formatında listeleniyor.
+- Her satırda checkbox var; "Tümünü Seç / Seçimi Kaldır" desteği.
+
+---
+
+## v1.0.34 - 2026-04-26
+
+### Product Code inline edit + MSSQL karşılaştırma tablosu
+- Product Code düzenleme modal kaldırıldı; tablo hücresinde kalem butonu ile açılan inline edit.
+- MSSQL diff tablosu yenilendi: Yerel Ad / MSSQL Ad / Yerel Fiyat / MSSQL Fiyat / Grup kolonları.
+
+---
+
+## v1.0.33 - 2026-04-26
+
+### JS syntax hatası düzeltildi
+- `cancelBulk()` fonksiyonunda orphan satırlar tüm sayfa JS'ini çökertiyordu. Fazla kapanışlar kaldırıldı.
+
+---
+
+## v1.0.32 - 2026-04-26
+
+### `$symphonyConfigured` koşulu düzeltildi
+- `$symphonyConfigured` artık `mssql_custom_query` gerektirmiyor; sadece `mssql_host` + `mssql_database` kontrolü yapıyor.
+- `$mssqlConfigured` hâlâ üç koşul gerektiriyor (host + database + custom_query).
+
+---
+
 
 ### Sync Sayfası Komple Yeniden Tasarımı
 - **Kolon sırası düzeltildi**: ID → Product Code → Ürün Adı → Kategori → Fiyat → Durum → İşlem (tüm tablolarda tutarlı).
