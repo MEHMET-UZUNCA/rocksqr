@@ -213,6 +213,9 @@
                         <span class="text-xl font-bold text-gold">
                             Masa ${escapeHtml(order.table_no || '-')}
                         </span>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100" title="Symphony POS hesabindan">
+                            <i class="fas fa-server mr-0.5"></i>SYMPHONY
+                        </span>
                         <span class="px-2 py-1 rounded text-xs font-bold bg-gray-700 text-gray-200">${checkLabel}</span>
                         ${order.covers ? `<span class="text-xs text-gray-400"><i class="fas fa-user mr-1"></i>${order.covers}</span>` : ''}
                     </div>
@@ -252,6 +255,9 @@
                     <div class="flex items-center gap-3">
                         <span class="text-xl font-bold text-purple-200">
                             <i class="fas fa-qrcode mr-1"></i>Masa ${escapeHtml(order.table_no || '-')}
+                        </span>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-700 text-purple-100" title="QR Menu siparisi">
+                            <i class="fas fa-mobile-screen mr-0.5"></i>QR MENU
                         </span>
                         <span class="px-2 py-1 rounded text-xs font-bold bg-purple-700 text-white">QR #${order.qr_order_id}</span>
                     </div>
