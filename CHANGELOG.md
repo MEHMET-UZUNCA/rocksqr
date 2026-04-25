@@ -52,6 +52,17 @@ RocksQR; **QR menü (müşteri)**, **Mutfak/Bar ekranları (personel)** ve **Sym
 
 ---
 
+## v1.0.27 - 2026-04-25
+
+### Toplu Güncelle Geliştirmeleri
+- **Kategori artık toplu modda düzenlenebilir**: Her satırda ana/alt kategori seçimi için açılır liste gelir.
+- **Ürün adı ve fiyat** düzenlemesi mevcut (değişiklik yok).
+- **Product Code (MSSQL ID) artık salt-okunur** olarak gösterilir; toplu güncelleme akışında değiştirilemez (tek tek "MSSQL ID Düzenle" sunucu butonu mevcut).
+- Önizleme ve onaylama akışında kategori değişiklikleri "Eski Kategori → Yeni Kategori" olarak gösterilir.
+- Backend: `SyncController::previewBulk` ve `bulkUpdate` artık `category_id` kabul eder.
+
+---
+
 ## v1.0.26 - 2026-04-25
 
 ### Değişenler

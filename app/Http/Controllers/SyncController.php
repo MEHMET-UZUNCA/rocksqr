@@ -13,12 +13,13 @@ class SyncController extends Controller
 {
     public function index()
     {
-        $products = Product::with('category')->orderBy('id')->get();
+        $products = Product::with('category.parent')->orderBy('id')->get();
+        $categories = Category::with('parent')->orderBy('parent_id')->orderBy('sort_order')->orderBy('name')->get();
 
         $mssqlConfigured = Setting::get('mssql_host', '') !== '' && Setting::get('mssql_database', '') !== '' && trim((string) Setting::get('mssql_custom_query', '')) !== '';
         $symphonyConfigured = Setting::get('mssql_host', '') !== '' && Setting::get('mssql_database', '') !== '' && trim((string) Setting::get('mssql_custom_query', '')) !== '';
 
-        return view('admin.sync', compact('products', 'mssqlConfigured', 'symphonyConfigured'));
+        return view('admin.sync', compact('products', 'categories', 'mssqlConfigured', 'symphonyConfigured'));
     }
 
     public function apiProducts()
@@ -60,6 +61,7 @@ class SyncController extends Controller
             'updates.*.name' => 'nullable|string|max:255',
             'updates.*.price' => 'nullable|numeric|min:0',
             'updates.*.mssql_id' => 'nullable|string|max:255',
+            'updates.*.category_id' => 'nullable|exists:categories,id',
         ]);
 
         $results = [];
@@ -69,6 +71,7 @@ class SyncController extends Controller
                 'name' => $product->name,
                 'price' => $product->price,
                 'mssql_id' => $product->mssql_id,
+                'category_id' => $product->category_id,
             ];
 
             $data = [];
@@ -80,6 +83,9 @@ class SyncController extends Controller
             }
             if (array_key_exists('mssql_id', $update)) {
                 $data['mssql_id'] = $update['mssql_id'];
+            }
+            if (isset($update['category_id']) && $update['category_id'] !== '' && (int)$update['category_id'] !== (int)$product->category_id) {
+                $data['category_id'] = (int)$update['category_id'];
             }
 
             if (!empty($data)) {
@@ -94,6 +100,7 @@ class SyncController extends Controller
                     'name' => $product->name,
                     'price' => $product->price,
                     'mssql_id' => $product->mssql_id,
+                    'category_id' => $product->category_id,
                 ],
                 'changed' => !empty($data),
             ];
@@ -110,6 +117,7 @@ class SyncController extends Controller
             'updates.*.name' => 'nullable|string|max:255',
             'updates.*.price' => 'nullable|numeric|min:0',
             'updates.*.mssql_id' => 'nullable|string|max:255',
+            'updates.*.category_id' => 'nullable|exists:categories,id',
         ]);
 
         $preview = [];
@@ -125,6 +133,12 @@ class SyncController extends Controller
             }
             if (array_key_exists('mssql_id', $update) && $update['mssql_id'] !== $product->mssql_id) {
                 $changes['mssql_id'] = ['old' => $product->mssql_id, 'new' => $update['mssql_id']];
+            }
+            if (isset($update['category_id']) && $update['category_id'] !== '' && (int)$update['category_id'] !== (int)$product->category_id) {
+                $oldCat = $product->category ? ($product->category->parent ? $product->category->parent->name . ' / ' . $product->category->name : $product->category->name) : '-';
+                $newCatModel = Category::with('parent')->find($update['category_id']);
+                $newCat = $newCatModel ? ($newCatModel->parent ? $newCatModel->parent->name . ' / ' . $newCatModel->name : $newCatModel->name) : '-';
+                $changes['category_id'] = ['old' => $oldCat, 'new' => $newCat];
             }
 
             if (!empty($changes)) {

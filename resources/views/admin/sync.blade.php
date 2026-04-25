@@ -28,7 +28,7 @@
                 <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <p class="text-sm text-blue-700">
                         <i class="fas fa-info-circle mr-1"></i>
-                        Symphony Restaurant MSSQL kimliklerini tek tek guncelleyebilir veya <strong>Toplu Guncelle</strong> ile isim, fiyat ve Product Code degisikliklerini onizleyip onaylayabilirsiniz.
+                        Symphony Restaurant MSSQL kimliklerini tek tek guncelleyebilir veya <strong>Toplu Guncelle</strong> ile <strong>isim, fiyat ve kategori</strong> degisikliklerini onizleyip onaylayabilirsiniz. Product Code (MSSQL ID) toplu modda salt-okunur olarak gosterilir.
                     </p>
                 </div>
 
@@ -57,27 +57,36 @@
                                     <input type="text" class="edit-mode hidden w-full px-2 py-1 border border-gray-300 rounded text-sm"
                                            data-field="name" value="{{ $product->name }}" data-original="{{ $product->name }}">
                                 </td>
-                                <td class="px-3 py-3 text-xs">
-                                    @if($product->category)
-                                        <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded">{{ $product->category->parent ? $product->category->parent->name : $product->category->name }}</span>
-                                        @if($product->category->parent)
-                                            <br><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded mt-1 inline-block">{{ $product->category->name }}</span>
+                                <td class="px-3 py-3 text-xs cell-category">
+                                    <span class="view-mode">
+                                        @if($product->category)
+                                            <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded">{{ $product->category->parent ? $product->category->parent->name : $product->category->name }}</span>
+                                            @if($product->category->parent)
+                                                <br><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded mt-1 inline-block">{{ $product->category->name }}</span>
+                                            @endif
+                                        @else
+                                            <span class="text-gray-400">-</span>
                                         @endif
-                                    @else
-                                        <span class="text-gray-400">-</span>
-                                    @endif
+                                    </span>
+                                    <select class="edit-mode hidden w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                                            data-field="category_id" data-original="{{ $product->category_id }}">
+                                        <option value="">-- Kategori Sec --</option>
+                                        @foreach($categories as $cat)
+                                            <option value="{{ $cat->id }}" {{ $product->category_id == $cat->id ? 'selected' : '' }}>
+                                                {{ $cat->parent ? $cat->parent->name . ' / ' . $cat->name : $cat->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
                                 </td>
                                 <td class="px-3 py-3 font-mono cell-mssql">
-                                    <span class="view-mode mssql-display">
+                                    <span class="mssql-display">
                                         @if($product->mssql_id)
                                             <span class="bg-sky-100 text-sky-800 px-2 py-1 rounded text-xs">{{ $product->mssql_id }}</span>
                                         @else
                                             <span class="bg-gray-100 text-gray-400 px-2 py-1 rounded text-xs">-</span>
                                         @endif
                                     </span>
-                                    <input type="text" class="edit-mode hidden w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                                           data-field="mssql_id" value="{{ $product->mssql_id }}" data-original="{{ $product->mssql_id }}"
-                                           placeholder="SYM-1234">
+                                    <input type="hidden" data-field="mssql_id" value="{{ $product->mssql_id }}" data-original="{{ $product->mssql_id }}">
                                 </td>
                                 <td class="px-3 py-3 cell-price">
                                     <span class="view-mode">{{ number_format($product->price, 2) }} TL</span>
@@ -491,7 +500,7 @@ function previewChanges() {
 }
 
 function renderPreview(preview) {
-    const fieldLabels = { name: 'Urun Adi', price: 'Fiyat', mssql_id: 'Product Code' };
+    const fieldLabels = { name: 'Urun Adi', price: 'Fiyat', mssql_id: 'Product Code', category_id: 'Kategori' };
     const html = preview.map(item => {
         const changesHtml = Object.entries(item.changes).map(([field, vals]) => {
             const label = fieldLabels[field] || field;
@@ -534,6 +543,15 @@ function updateRowDisplay(row, values) {
     if (values.price !== undefined) row.querySelector('.cell-price .view-mode').textContent = parseFloat(values.price).toFixed(2) + ' TL';
     if (values.mssql_id !== undefined) {
         row.querySelector('.mssql-display').innerHTML = values.mssql_id ? `<span class="bg-sky-100 text-sky-800 px-2 py-1 rounded text-xs">${values.mssql_id}</span>` : '<span class="bg-gray-100 text-gray-400 px-2 py-1 rounded text-xs">-</span>';
+    }
+    if (values.category_id !== undefined) {
+        const sel = row.querySelector('.cell-category select');
+        const view = row.querySelector('.cell-category .view-mode');
+        if (sel && view) {
+            const opt = sel.querySelector(`option[value="${values.category_id}"]`);
+            const label = opt ? opt.textContent.trim() : '-';
+            view.innerHTML = `<span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded">${label}</span>`;
+        }
     }
     row.querySelectorAll('.edit-mode').forEach(input => {
         const field = input.dataset.field;
