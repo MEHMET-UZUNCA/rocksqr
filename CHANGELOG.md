@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.0.13 - 2026-04-25
+
+### Eklenenler
+- Symphony POS hesap kartlarındaki **Mutfak Mesajları** satırlarının yanına yeşil **"Onayla"** butonu eklendi; tıklanan mesaj listeden kalkar ve 12 saat boyunca tekrar gösterilmez (`kitchen_pos_completions` üzerinden filtrelenir)
+
+### Kaldırılanlar
+- KDS QR kartlarındaki **"Symphony'e işlendi"** butonu, **SYMPHONY?/SYMPHONY OK** rozetleri ve `toggleSymphony()` JS fonksiyonu kaldırıldı
+- `kitchenPosToggleSymphony` controller methodu ve `PATCH /kitchen-pos/qr/{order}/symphony` route'u kaldırıldı
+- `Order` modelinden `symphony_processed_at` fillable/cast kayıtları kaldırıldı
+
+### Veritabanı
+- `orders.symphony_processed_at` kolonu drop edildi (yeni migration: `2026_04_25_150000_drop_symphony_processed_at_from_orders_table`)
+
+---
+
 ## v1.0.12 - 2026-04-25
 
 ### Eklenenler

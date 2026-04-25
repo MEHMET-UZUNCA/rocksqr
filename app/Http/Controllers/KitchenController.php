@@ -442,8 +442,6 @@ class KitchenController extends Controller
                     'messages'             => [],
                     'order_note'           => $o->order_note,
                     'kitchen_status'       => $o->kitchen_status,
-                    'symphony_processed'   => $o->symphony_processed_at !== null,
-                    'symphony_processed_at'=> optional($o->symphony_processed_at)->format('H:i'),
                 ];
             }
 
@@ -480,7 +478,6 @@ class KitchenController extends Controller
                         'check_number'       => null,
                         'table_no'           => (string) $o->table_no,
                         'kitchen_status'     => $o->kitchen_status,
-                        'symphony_processed' => $o->symphony_processed_at !== null,
                         'completed_at'       => optional($o->kitchen_ready_at ?? $o->completed_at)->format('Y-m-d H:i:s'),
                         'items'              => $items,
                         'messages'           => [],
@@ -582,19 +579,5 @@ class KitchenController extends Controller
             'completed_at'     => null,
         ]);
         return response()->json(['success' => true]);
-    }
-
-    /**
-     * QR siparişi için Symphony POS'a manuel girildi işaretini aç/kapa.
-     */
-    public function kitchenPosToggleSymphony(Order $order)
-    {
-        $order->update([
-            'symphony_processed_at' => $order->symphony_processed_at ? null : now(),
-        ]);
-        return response()->json([
-            'success' => true,
-            'symphony_processed' => $order->symphony_processed_at !== null,
-        ]);
     }
 }

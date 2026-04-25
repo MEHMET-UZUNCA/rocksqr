@@ -40,7 +40,6 @@ Route::post('/kitchen-pos/complete', [KitchenController::class, 'kitchenPosCompl
 Route::post('/kitchen-pos/uncomplete', [KitchenController::class, 'kitchenPosUncomplete'])->name('kitchen.pos.uncomplete');
 Route::patch('/kitchen-pos/qr/{order}/confirm', [KitchenController::class, 'kitchenPosConfirmQr'])->name('kitchen.pos.qr.confirm');
 Route::patch('/kitchen-pos/qr/{order}/undo', [KitchenController::class, 'kitchenPosUndoQr'])->name('kitchen.pos.qr.undo');
-Route::patch('/kitchen-pos/qr/{order}/symphony', [KitchenController::class, 'kitchenPosToggleSymphony'])->name('kitchen.pos.qr.symphony');
 
 Route::get('/dashboard', function () {
     return redirect()->route('admin.dashboard');

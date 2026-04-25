@@ -21,7 +21,6 @@ class Order extends Model
         'kitchen_started_at',
         'kitchen_ready_at',
         'completed_at',
-        'symphony_processed_at',
     ];
 
     protected $casts = [
@@ -30,7 +29,6 @@ class Order extends Model
         'kitchen_started_at' => 'datetime',
         'kitchen_ready_at' => 'datetime',
         'completed_at' => 'datetime',
-        'symphony_processed_at' => 'datetime',
     ];
 
     public function getItemsAttribute()
