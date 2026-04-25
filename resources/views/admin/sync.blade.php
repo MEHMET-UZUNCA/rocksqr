@@ -764,9 +764,7 @@ function fetchFromMssql() {
         if (!data.success) return showMsg('error', data.error);
         mssqlMatchedData = data.matched.filter(item => item.has_changes);
         renderMssqlFetch(data);
-        const panel = document.getElementById('mssql-panel');
-        panel.classList.remove('hidden');
-        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.getElementById('mssql-panel').classList.remove('hidden');
     }).catch(err => {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-rotate mr-1.5"></i> MSSQL Sync';
@@ -918,16 +916,10 @@ function renderMssqlFetch(data) {
                     <span class="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-0.5 rounded-full">${data.unmatched.length}</span>
                     <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">${groupKeys.length} grup</span>
                 </div>
-                <div class="ml-auto flex items-center gap-2">
-                    <button onclick="unmatchedSelectAll(true)" class="px-2 py-1 bg-orange-500 text-white text-xs font-bold rounded hover:bg-orange-600">
-                        <i class="fas fa-check-square mr-1"></i>Tümünü Seç
-                    </button>
-                    <button onclick="unmatchedSelectAll(false)" class="px-2 py-1 bg-gray-400 text-white text-xs font-bold rounded hover:bg-gray-500">
-                        <i class="far fa-square mr-1"></i>Seçimi Kaldır
-                    </button>
+                <div class="ml-auto">
                     <div class="relative">
-                        <input type="text" id="unmatched-search" placeholder="Ara…" oninput="filterUnmatched()"
-                            class="pl-6 pr-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-orange-400 w-36">
+                        <input type="text" id="unmatched-search" placeholder="Eşleşmeyen ara…" oninput="filterUnmatched()"
+                            class="pl-6 pr-2 py-1 border border-orange-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-orange-400 w-44">
                         <i class="fas fa-search absolute left-1.5 top-1.5 text-gray-400 text-[10px]"></i>
                     </div>
                 </div>
@@ -942,10 +934,12 @@ function renderMssqlFetch(data) {
 }
 
 function mssqlSelectAll(checked) {
-    document.querySelectorAll('.mssql-check').forEach(cb => cb.checked = checked);
+    document.querySelectorAll('.mssql-check, .mssql-unmatched-check').forEach(cb => cb.checked = checked);
+    document.querySelectorAll('.unmatched-group-check').forEach(cb => { cb.checked = checked; cb.indeterminate = false; });
     const th = document.getElementById('mssql-th-check');
-    if (th) th.checked = checked;
+    if (th) { th.checked = checked; th.indeterminate = false; }
     updateMssqlSelectedCount();
+    updateUnmatchedSelectedCount();
 }
 
 function unmatchedSelectAll(checked) {
@@ -992,19 +986,25 @@ function filterUnmatched() {
 }
 
 function updateMssqlSelectedCount() {
-    const total = document.querySelectorAll('.mssql-check').length;
-    const count = document.querySelectorAll('.mssql-check:checked').length;
-    const label = total === 0 ? 'Güncellenecek satır yok' : `${count} / ${total} seçildi`;
-    document.getElementById('mssql-fetch-count').textContent = label;
-    const topLabel = document.getElementById('mssql-fetch-count-top');
-    if (topLabel) topLabel.textContent = total > 0 ? label : '';
-    document.getElementById('btn-apply-mssql').disabled = count === 0;
-    const topBtn = document.getElementById('btn-apply-mssql-top');
-    if (topBtn) topBtn.disabled = count === 0;
+    const matchedTotal   = document.querySelectorAll('.mssql-check').length;
+    const matchedCount   = document.querySelectorAll('.mssql-check:checked').length;
+    const unmatchedCount = document.querySelectorAll('.mssql-unmatched-check:checked').length;
+    const totalSelected  = matchedCount + unmatchedCount;
+    const label = matchedTotal === 0 && unmatchedCount === 0
+        ? 'Güncellenecek ürün yok'
+        : `${totalSelected} ürün seçildi`;
+    ['mssql-fetch-count', 'mssql-fetch-count-bottom'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = label;
+    });
+    ['btn-apply-mssql', 'btn-apply-mssql-bottom'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = totalSelected === 0;
+    });
     const th = document.getElementById('mssql-th-check');
     if (th) {
-        th.checked = (count === total && total > 0);
-        th.indeterminate = (count > 0 && count < total);
+        th.checked = (matchedCount === matchedTotal && matchedTotal > 0);
+        th.indeterminate = (matchedCount > 0 && matchedCount < matchedTotal);
     }
 }
 
