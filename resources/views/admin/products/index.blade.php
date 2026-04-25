@@ -9,7 +9,7 @@
                     <i class="fas fa-box mr-2 text-gold"></i>Ürünler
                 </h2>
                 <div class="flex flex-wrap gap-3">
-                    <a href="{{ route('admin.sync.index') }}?bulk=1" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                    <a href="{{ route('admin.sync') }}?bulk=1" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
                         <i class="fas fa-edit mr-1"></i> Toplu Güncelle
                     </a>
                     <a href="{{ route('admin.products.create') }}" class="px-4 py-2 bg-primary text-white rounded hover:bg-light-primary transition">
