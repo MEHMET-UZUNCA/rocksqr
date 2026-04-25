@@ -767,7 +767,7 @@ function fetchFromMssql() {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-rotate mr-1.5"></i> MSSQL Sync';
         if (!data.success) return showMsg('error', data.error);
-        mssqlMatchedData = data.matched.filter(item => item.has_changes);
+        mssqlMatchedData = (data.items || []).filter(i => i.status === 'changed');
         renderMssqlFetch(data);
         document.getElementById('mssql-panel').classList.remove('hidden');
     }).catch(err => {
@@ -778,173 +778,121 @@ function fetchFromMssql() {
 }
 
 function renderMssqlFetch(data) {
-    // Stats
+    const s = data.stats || { total: 0, changed: 0, same: 0, not_found: 0 };
+
     document.getElementById('mssql-stats').innerHTML = `
         <span class="flex items-center gap-1.5">
-            <span class="w-6 h-6 rounded-full bg-sky-200 text-sky-800 text-xs font-bold flex items-center justify-center">${data.total_mssql}</span>
-            <span class="text-sky-700 font-semibold">MSSQL toplam</span>
+            <span class="w-7 h-7 rounded-full bg-sky-200 text-sky-800 text-xs font-bold flex items-center justify-center">${s.total}</span>
+            <span class="text-sky-700 font-semibold">Product Code'lu</span>
         </span>
         <span class="flex items-center gap-1.5">
-            <span class="w-6 h-6 rounded-full bg-blue-200 text-blue-800 text-xs font-bold flex items-center justify-center">${data.total_matched}</span>
-            <span class="text-blue-700 font-semibold">Eşleşen</span>
+            <span class="w-7 h-7 rounded-full bg-amber-200 text-amber-800 text-xs font-bold flex items-center justify-center">${s.changed}</span>
+            <span class="text-amber-700 font-semibold">Değişti</span>
         </span>
         <span class="flex items-center gap-1.5">
-            <span class="w-6 h-6 rounded-full bg-amber-200 text-amber-800 text-xs font-bold flex items-center justify-center">${data.total_with_changes}</span>
-            <span class="text-amber-700 font-semibold">Güncellenecek</span>
+            <span class="w-7 h-7 rounded-full bg-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-center">${s.same}</span>
+            <span class="text-emerald-700 font-semibold">Güncel</span>
         </span>
         <span class="flex items-center gap-1.5">
-            <span class="w-6 h-6 rounded-full bg-orange-200 text-orange-700 text-xs font-bold flex items-center justify-center">${data.unmatched.length}</span>
-            <span class="text-gray-500">Eşleşmeyen</span>
+            <span class="w-7 h-7 rounded-full bg-red-200 text-red-800 text-xs font-bold flex items-center justify-center">${s.not_found}</span>
+            <span class="text-red-600 font-semibold">MSSQL'de Yok</span>
         </span>
-        ${data.income_center_filter ? `<span class="text-xs bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded ml-2">RVC: ${data.income_center_filter}</span>` : ''}
-        ${data.custom_query_used ? `<span class="text-xs bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded ml-2">Özel SQL</span>` : ''}`;
+        ${data.income_center_filter ? `<span class="text-xs bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded ml-auto">RVC: ${data.income_center_filter}</span>` : ''}`;
 
-    let html = '';
+    const items = data.items || [];
 
-    if (mssqlMatchedData.length > 0) {
-        html += `
-        <div class="overflow-x-auto rounded-lg border border-sky-200">
-          <table class="w-full text-sm" id="mssql-compare-table">
-            <thead class="bg-sky-600 text-white text-xs uppercase tracking-wide">
-              <tr>
-                <th class="px-3 py-2.5 w-10 text-center">
-                    <input type="checkbox" id="mssql-th-check" class="rounded" onclick="mssqlSelectAll(this.checked)" checked>
-                </th>
-                <th class="px-3 py-2.5 text-left w-32">Product Code</th>
-                <th class="px-3 py-2.5 text-left">Yerel Ürün</th>
-                <th class="px-3 py-2.5 text-left w-56">Ad Değişimi</th>
-                <th class="px-3 py-2.5 text-left w-44">Fiyat Değişimi</th>
-                <th class="px-3 py-2.5 text-left w-36">Grup</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-sky-100">` +
-            mssqlMatchedData.map((item, idx) => {
-                const nameChange = item.changes.name
-                    ? `<div class="flex flex-col gap-0.5">
-                         <span class="text-red-500 line-through text-xs leading-tight">${item.changes.name.old}</span>
-                         <span class="text-emerald-700 font-bold text-xs leading-tight">${item.changes.name.new}</span>
-                       </div>`
-                    : `<span class="text-gray-300 text-xs">—</span>`;
-                const priceChange = item.changes.price
-                    ? `<div class="flex items-center gap-1.5 flex-wrap">
-                         <span class="text-red-500 line-through text-xs">${parseFloat(item.changes.price.old).toFixed(2)} ₺</span>
-                         <i class="fas fa-arrow-right text-gray-300 text-[9px]"></i>
-                         <span class="text-emerald-700 font-bold text-xs">${parseFloat(item.changes.price.new).toFixed(2)} ₺</span>
-                       </div>`
-                    : `<span class="text-gray-300 text-xs">—</span>`;
-                const changeBadge = [item.changes.name ? 'Ad' : '', item.changes.price ? 'Fiyat' : '']
-                    .filter(Boolean).map(f => `<span class="bg-amber-100 text-amber-700 px-1 py-0.5 rounded text-[10px] font-bold">${f}</span>`).join('');
-                return `
-                <tr class="hover:bg-sky-50 mssql-compare-row" id="mssql-row-${idx}" data-name="${item.local_name.toLowerCase()}">
-                  <td class="px-3 py-2.5 text-center">
-                      <input type="checkbox" class="mssql-check rounded accent-sky-600" data-idx="${idx}" checked onchange="updateMssqlSelectedCount()">
-                  </td>
-                  <td class="px-3 py-2.5">
-                      <span class="font-mono text-xs bg-sky-50 text-sky-800 px-1.5 py-0.5 rounded border border-sky-200">${item.mssql_id}</span>
-                  </td>
-                  <td class="px-3 py-2.5">
-                      <div class="font-medium text-gray-800 text-sm leading-tight">${item.local_name}</div>
-                      <div class="flex items-center gap-1 mt-0.5 text-xs text-gray-400">#${item.local_id} ${changeBadge}</div>
-                  </td>
-                  <td class="px-3 py-2.5">${nameChange}</td>
-                  <td class="px-3 py-2.5">${priceChange}</td>
-                  <td class="px-3 py-2.5">
-                      <div class="flex flex-col gap-0.5">
-                          ${item.mssql_group ? `<span class="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs">${item.mssql_group}</span>` : ''}
-                          ${item.mssql_income_center ? `<span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-xs">${item.mssql_income_center}</span>` : ''}
-                      </div>
-                  </td>
-                </tr>`;
-            }).join('') +
-            `</tbody></table></div>`;
-    } else {
-        const hasUnmatched = data.unmatched && data.unmatched.length > 0;
-        html += `<div class="text-center py-10">
-            <i class="fas fa-check-circle text-5xl text-emerald-400 mb-3 block"></i>
-            <p class="text-lg font-bold text-gray-700">Eşleşen ürünlerde değişiklik yok.</p>
-            <p class="text-sm text-gray-400 mt-1">${hasUnmatched ? `<span class="text-orange-500 font-semibold">${data.unmatched.length} eşleşmeyen MSSQL ürünü</span> var — aşağıda listelenmiştir.` : 'MSSQL ile yerel ürünler tamamen uyumlu.'}</p>
-        </div>`;
-    }
-
-    if (data.unmatched.length > 0) {
-        // Gruplara ayır
-        const unmatchedGroups = {};
-        data.unmatched.forEach((item, idx) => {
-            const grp = item.mssql_group || item.mssql_subgroup || 'Gruplandırılmamış';
-            if (!unmatchedGroups[grp]) unmatchedGroups[grp] = [];
-            unmatchedGroups[grp].push({ ...item, _idx: idx });
-        });
-        const groupKeys = Object.keys(unmatchedGroups).sort();
-
-        let groupsHtml = '';
-        groupKeys.forEach(grpName => {
-            const items = unmatchedGroups[grpName];
-            const grpKey = 'ug_' + grpName.replace(/[^a-zA-Z0-9]/g, '_');
-            let rowsHtml = items.map(item => `
-                <tr class="hover:bg-orange-50 unmatched-row" data-name="${item.mssql_name.toLowerCase()}" data-group="${grpKey}">
-                  <td class="px-3 py-2 text-center">
-                      <input type="checkbox" class="mssql-unmatched-check rounded accent-orange-500" data-idx="${item._idx}"
-                             data-group="${grpKey}" onchange="updateUnmatchedGroup('${grpKey}'); updateUnmatchedSelectedCount();">
-                  </td>
-                  <td class="px-3 py-2">
-                      <span class="font-mono text-xs text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded border border-orange-200">${item.mssql_id}</span>
-                  </td>
-                  <td class="px-3 py-2 font-medium text-gray-800 text-sm">${item.mssql_name}</td>
-                  <td class="px-3 py-2 text-gray-700 font-semibold text-xs">${parseFloat(item.mssql_price).toFixed(2)} ₺</td>
-                  <td class="px-3 py-2">${item.mssql_income_center ? `<span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-xs">${item.mssql_income_center}</span>` : '<span class="text-gray-300">—</span>'}</td>
-                </tr>`).join('');
-
-            groupsHtml += `
-            <div class="mb-2 border border-orange-200 rounded-lg overflow-hidden">
-                <div class="flex items-center gap-3 px-4 py-2.5 bg-orange-50 hover:bg-orange-100 cursor-pointer select-none" onclick="toggleUnmatchedGroup('${grpKey}')">
-                    <input type="checkbox" class="unmatched-group-check rounded accent-orange-500" id="ugc-${grpKey}" data-group="${grpKey}"
-                           onclick="event.stopPropagation(); toggleAllInUnmatchedGroup('${grpKey}', this.checked);">
-                    <i class="fas fa-folder text-orange-400"></i>
-                    <span class="font-semibold text-gray-700 flex-1 text-sm">${grpName}</span>
-                    <span class="text-xs text-gray-400">${items.length} ürün</span>
-                    <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform" id="ugchev-${grpKey}"></i>
-                </div>
-                <div id="ugi-${grpKey}">
-                  <table class="w-full text-sm">
-                    <tbody class="divide-y divide-orange-100">${rowsHtml}</tbody>
-                  </table>
-                </div>
+    if (items.length === 0) {
+        document.getElementById('mssql-fetch-content').innerHTML = `
+            <div class="text-center py-16">
+                <i class="fas fa-barcode text-5xl text-gray-300 mb-3 block"></i>
+                <p class="text-lg font-bold text-gray-500">Product Code atanmış ürün yok.</p>
+                <p class="text-sm text-gray-400 mt-1">Önce ürünlere MSSQL Product Code atayın.</p>
             </div>`;
-        });
-
-        html += `
-        <div class="mt-5 pt-4 border-t border-gray-200" id="unmatched-section">
-            <div class="flex flex-wrap items-center gap-3 mb-3">
-                <div class="flex items-center gap-2">
-                    <i class="fas fa-unlink text-orange-500"></i>
-                    <h4 class="font-bold text-gray-700 text-sm">Eşleşmeyen MSSQL Ürünleri</h4>
-                    <span class="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-0.5 rounded-full">${data.unmatched.length}</span>
-                    <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">${groupKeys.length} grup</span>
-                </div>
-                <div class="ml-auto">
-                    <div class="relative">
-                        <input type="text" id="unmatched-search" placeholder="Eşleşmeyen ara…" oninput="filterUnmatched()"
-                            class="pl-6 pr-2 py-1 border border-orange-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-orange-400 w-44">
-                        <i class="fas fa-search absolute left-1.5 top-1.5 text-gray-400 text-[10px]"></i>
-                    </div>
-                </div>
-            </div>
-            ${groupsHtml}
-            <div class="mt-2 text-xs text-gray-500 text-right" id="unmatched-count-label"></div>
-        </div>`;
+        updateMssqlSelectedCount();
+        return;
     }
 
-    document.getElementById('mssql-fetch-content').innerHTML = html;
+    let changedIdx = 0;
+    const rows = items.map(item => {
+        let statusBadge, rowBg, checkCell;
+        if (item.status === 'changed') {
+            statusBadge = `<span class="bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"><i class="fas fa-arrow-right mr-0.5"></i>Değişti</span>`;
+            rowBg = 'hover:bg-amber-50';
+            checkCell = `<input type="checkbox" class="mssql-check rounded accent-sky-600" data-idx="${changedIdx++}" checked onchange="updateMssqlSelectedCount()">`;
+        } else if (item.status === 'same') {
+            statusBadge = `<span class="bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"><i class="fas fa-check mr-0.5"></i>Güncel</span>`;
+            rowBg = 'hover:bg-emerald-50';
+            checkCell = `<span class="text-gray-300 text-xs">—</span>`;
+        } else {
+            statusBadge = `<span class="bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"><i class="fas fa-unlink mr-0.5"></i>MSSQL'de Yok</span>`;
+            rowBg = 'bg-red-50/40 hover:bg-red-50';
+            checkCell = `<span class="text-gray-300 text-xs">—</span>`;
+        }
+
+        const nameChange = item.changes && item.changes.name
+            ? `<div class="flex flex-col gap-0.5">
+                 <span class="text-red-500 line-through text-xs leading-tight">${item.changes.name.old}</span>
+                 <span class="text-emerald-700 font-bold text-xs leading-tight">${item.changes.name.new}</span>
+               </div>`
+            : `<span class="text-gray-300 text-xs">—</span>`;
+
+        const priceChange = item.changes && item.changes.price
+            ? `<div class="flex items-center gap-1.5">
+                 <span class="text-red-500 line-through text-xs">${parseFloat(item.changes.price.old).toFixed(2)} ₺</span>
+                 <i class="fas fa-arrow-right text-gray-300 text-[9px]"></i>
+                 <span class="text-emerald-700 font-bold text-xs">${parseFloat(item.changes.price.new).toFixed(2)} ₺</span>
+               </div>`
+            : (item.mssql_price !== null
+                ? `<span class="text-gray-400 text-xs">${parseFloat(item.local_price).toFixed(2)} ₺</span>`
+                : `<span class="text-gray-300 text-xs">—</span>`);
+
+        return `
+        <tr class="${rowBg} mssql-compare-row" data-name="${item.local_name.toLowerCase()}">
+          <td class="px-3 py-2.5 text-center">${checkCell}</td>
+          <td class="px-3 py-2.5">
+              <span class="font-mono text-xs bg-sky-50 text-sky-800 px-1.5 py-0.5 rounded border border-sky-200">${item.product_code}</span>
+          </td>
+          <td class="px-3 py-2.5">
+              <div class="font-medium text-gray-800 text-sm leading-tight">${item.local_name}</div>
+              <div class="text-[10px] text-gray-400 mt-0.5">#${item.local_id}</div>
+          </td>
+          <td class="px-3 py-2.5 text-center">${statusBadge}</td>
+          <td class="px-3 py-2.5">${nameChange}</td>
+          <td class="px-3 py-2.5">${priceChange}</td>
+          <td class="px-3 py-2.5">
+              ${item.mssql_group ? `<span class="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs">${item.mssql_group}</span>` : '<span class="text-gray-300 text-xs">—</span>'}
+          </td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('mssql-fetch-content').innerHTML = `
+    <div class="overflow-x-auto rounded-lg border border-gray-200">
+      <table class="w-full text-sm" id="mssql-compare-table">
+        <thead class="bg-sky-600 text-white text-xs uppercase tracking-wide">
+          <tr>
+            <th class="px-3 py-2.5 w-10 text-center">
+                <input type="checkbox" id="mssql-th-check" class="rounded" onclick="mssqlSelectAll(this.checked)" title="Değişenleri seç/kaldır" checked>
+            </th>
+            <th class="px-3 py-2.5 text-left w-32">Product Code</th>
+            <th class="px-3 py-2.5 text-left">Yerel Ürün Adı</th>
+            <th class="px-3 py-2.5 text-center w-32">Durum</th>
+            <th class="px-3 py-2.5 text-left w-56">Ad Değişimi</th>
+            <th class="px-3 py-2.5 text-left w-44">Fiyat Değişimi</th>
+            <th class="px-3 py-2.5 text-left w-36">MSSQL Grup</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">${rows}</tbody>
+      </table>
+    </div>`;
+
     updateMssqlSelectedCount();
 }
 
 function mssqlSelectAll(checked) {
-    document.querySelectorAll('.mssql-check, .mssql-unmatched-check').forEach(cb => cb.checked = checked);
-    document.querySelectorAll('.unmatched-group-check').forEach(cb => { cb.checked = checked; cb.indeterminate = false; });
+    document.querySelectorAll('.mssql-check').forEach(cb => cb.checked = checked);
     const th = document.getElementById('mssql-th-check');
     if (th) { th.checked = checked; th.indeterminate = false; }
     updateMssqlSelectedCount();
-    updateUnmatchedSelectedCount();
 }
 
 function unmatchedSelectAll(checked) {
@@ -991,25 +939,21 @@ function filterUnmatched() {
 }
 
 function updateMssqlSelectedCount() {
-    const matchedTotal   = document.querySelectorAll('.mssql-check').length;
-    const matchedCount   = document.querySelectorAll('.mssql-check:checked').length;
-    const unmatchedCount = document.querySelectorAll('.mssql-unmatched-check:checked').length;
-    const totalSelected  = matchedCount + unmatchedCount;
-    const label = matchedTotal === 0 && unmatchedCount === 0
-        ? 'Güncellenecek ürün yok'
-        : `${totalSelected} ürün seçildi`;
+    const total = document.querySelectorAll('.mssql-check').length;
+    const count = document.querySelectorAll('.mssql-check:checked').length;
+    const label = total === 0 ? 'Güncellenecek değişiklik yok' : `${count} / ${total} değişiklik seçildi`;
     ['mssql-fetch-count', 'mssql-fetch-count-bottom'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.textContent = label;
     });
     ['btn-apply-mssql', 'btn-apply-mssql-bottom'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.disabled = totalSelected === 0;
+        if (el) el.disabled = count === 0;
     });
     const th = document.getElementById('mssql-th-check');
     if (th) {
-        th.checked = (matchedCount === matchedTotal && matchedTotal > 0);
-        th.indeterminate = (matchedCount > 0 && matchedCount < matchedTotal);
+        th.checked = total > 0 && count === total;
+        th.indeterminate = count > 0 && count < total;
     }
 }
 

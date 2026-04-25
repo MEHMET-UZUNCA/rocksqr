@@ -160,18 +160,28 @@ class SyncController extends Controller
         $database = Setting::get('mssql_database', '');
         $username = Setting::get('mssql_username', '');
         $password = Setting::get('mssql_password', '');
-        $table = Setting::get('mssql_table', '');
         $colId = Setting::get('mssql_column_id', 'ID');
         $colName = Setting::get('mssql_column_name', 'NAME');
         $colPrice = Setting::get('mssql_column_price', 'PRICE');
         $colGroup = Setting::get('mssql_column_group', 'PRODUCT_GROUP');
-        $colSubgroup = Setting::get('mssql_column_subgroup', 'SUBGROUP');
         $colIncomeCenter = Setting::get('mssql_column_income_center', 'RVC');
         $incomeCenterFilter = trim((string) Setting::get('mssql_income_center_filter', ''));
         $customQuery = trim((string) Setting::get('mssql_custom_query', ''));
 
         if (!$host || !$database || $customQuery === '') {
             return response()->json(['success' => false, 'error' => 'MSSQL bağlantı ayarları eksik. Özel SQL sorgusu girilmemiş.'], 422);
+        }
+
+        // Local products that have a product code (mssql_id)
+        $localProducts = Product::whereNotNull('mssql_id')->where('mssql_id', '!=', '')->orderBy('name')->get();
+
+        if ($localProducts->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'items' => [],
+                'stats' => ['total' => 0, 'changed' => 0, 'same' => 0, 'not_found' => 0],
+                'income_center_filter' => $incomeCenterFilter,
+            ]);
         }
 
         try {
@@ -189,73 +199,86 @@ class SyncController extends Controller
 
             $stmt = $pdo->prepare($customQuery);
             $stmt->execute();
-            $mssqlProducts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $mssqlRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            // Advanced post-fetch income center filter
             if ($incomeCenterFilter !== '') {
-                $mssqlProducts = $this->applyIncomeCenterFilter($mssqlProducts, $colIncomeCenter, $incomeCenterFilter);
+                $mssqlRows = $this->applyIncomeCenterFilter($mssqlRows, $colIncomeCenter, $incomeCenterFilter);
             }
 
-            $localProducts = Product::whereNotNull('mssql_id')->where('mssql_id', '!=', '')->get()->keyBy('mssql_id');
+            $mssqlRows = $this->dedupeByExternalId($mssqlRows, $colId);
 
-            $matched = [];
-            $unmatched = [];
-
-            $mssqlProducts = $this->dedupeByExternalId($mssqlProducts, $colId);
-
-            foreach ($mssqlProducts as $row) {
-                $externalId = (string) $this->resolveMssqlValue($row, [$colId, 'external_id', 'id', 'mssql_id', 'product_id', 'menu_item_id', 'ProductCode', 'product_code'], '');
-                $externalName = (string) $this->resolveMssqlValue($row, [$colName, 'product_name', 'name', 'mssql_name', 'item_name', 'ProductName'], '');
-                $externalPrice = (float) $this->resolveMssqlValue($row, [$colPrice, 'price', 'mssql_price', 'sales_price', 'product_price', 'Price'], 0);
-                $externalGroup = (string) $this->resolveMssqlValue($row, [$colGroup, 'product_group', 'group_name', 'major_group', 'main_group', 'FamilyGroup'], '');
-                $externalSubgroup = (string) $this->resolveMssqlValue($row, [$colSubgroup, 'subgroup', 'sub_group', 'family_group', 'FamilyGroup'], '');
-                $externalIncomeCenter = (string) $this->resolveMssqlValue($row, [$colIncomeCenter, 'rvc', 'income_center', 'revenue_center', 'revenue_centre', 'PriceLevel'], '');
-
-                if ($localProducts->has($externalId)) {
-                    $local = $localProducts->get($externalId);
-                    $changes = [];
-
-                    if ($externalName && $externalName !== $local->name) {
-                        $changes['name'] = ['old' => $local->name, 'new' => $externalName];
-                    }
-                    if ($externalPrice > 0 && $externalPrice !== (float) $local->price) {
-                        $changes['price'] = ['old' => (float) $local->price, 'new' => $externalPrice];
-                    }
-
-                    $matched[] = [
-                        'local_id' => $local->id,
-                        'mssql_id' => $externalId,
-                        'local_name' => $local->name,
-                        'mssql_name' => $externalName,
-                        'local_price' => (float) $local->price,
-                        'mssql_price' => $externalPrice,
-                        'mssql_group' => $externalGroup,
-                        'mssql_subgroup' => $externalSubgroup,
-                        'mssql_income_center' => $externalIncomeCenter,
-                        'has_changes' => !empty($changes),
-                        'changes' => $changes,
-                    ];
-                } else {
-                    $unmatched[] = [
-                        'mssql_id' => $externalId,
-                        'mssql_name' => $externalName,
-                        'mssql_price' => $externalPrice,
-                        'mssql_group' => $externalGroup,
-                        'mssql_subgroup' => $externalSubgroup,
-                        'mssql_income_center' => $externalIncomeCenter,
-                    ];
+            // Build MSSQL lookup map: product_code → row
+            $mssqlMap = [];
+            foreach ($mssqlRows as $row) {
+                $exId = (string) $this->resolveMssqlValue($row, [$colId, 'external_id', 'id', 'mssql_id', 'product_id', 'menu_item_id', 'ProductCode', 'product_code'], '');
+                if ($exId !== '') {
+                    $mssqlMap[$exId] = $row;
                 }
             }
 
+            $items = [];
+            $stats = ['total' => 0, 'changed' => 0, 'same' => 0, 'not_found' => 0];
+
+            foreach ($localProducts as $local) {
+                $stats['total']++;
+                $productCode = (string) $local->mssql_id;
+
+                if (!isset($mssqlMap[$productCode])) {
+                    $stats['not_found']++;
+                    $items[] = [
+                        'local_id'     => $local->id,
+                        'product_code' => $productCode,
+                        'local_name'   => $local->name,
+                        'local_price'  => (float) $local->price,
+                        'status'       => 'not_found',
+                        'mssql_name'   => null,
+                        'mssql_price'  => null,
+                        'mssql_group'  => null,
+                        'changes'      => [],
+                    ];
+                    continue;
+                }
+
+                $row          = $mssqlMap[$productCode];
+                $externalName = (string) $this->resolveMssqlValue($row, [$colName, 'product_name', 'name', 'mssql_name', 'item_name', 'ProductName'], '');
+                $externalPrice = (float) $this->resolveMssqlValue($row, [$colPrice, 'price', 'mssql_price', 'sales_price', 'product_price', 'Price'], 0);
+                $externalGroup = (string) $this->resolveMssqlValue($row, [$colGroup, 'product_group', 'group_name', 'major_group', 'main_group', 'FamilyGroup'], '');
+
+                $changes = [];
+                if ($externalName && $externalName !== $local->name) {
+                    $changes['name'] = ['old' => $local->name, 'new' => $externalName];
+                }
+                if ($externalPrice > 0 && $externalPrice !== (float) $local->price) {
+                    $changes['price'] = ['old' => (float) $local->price, 'new' => $externalPrice];
+                }
+
+                $status = empty($changes) ? 'same' : 'changed';
+                $stats[$status]++;
+
+                $items[] = [
+                    'local_id'     => $local->id,
+                    'product_code' => $productCode,
+                    'local_name'   => $local->name,
+                    'local_price'  => (float) $local->price,
+                    'status'       => $status,
+                    'mssql_name'   => $externalName,
+                    'mssql_price'  => $externalPrice,
+                    'mssql_group'  => $externalGroup,
+                    'changes'      => $changes,
+                ];
+            }
+
+            // Sort: changed first, then not_found, then same
+            usort($items, function ($a, $b) {
+                $order = ['changed' => 0, 'not_found' => 1, 'same' => 2];
+                return $order[$a['status']] <=> $order[$b['status']];
+            });
+
             return response()->json([
-                'success' => true,
-                'matched' => $matched,
-                'unmatched' => $unmatched,
-                'total_mssql' => count($mssqlProducts),
-                'total_matched' => count($matched),
-                'total_with_changes' => count(array_filter($matched, fn ($item) => $item['has_changes'])),
+                'success'              => true,
+                'items'                => $items,
+                'stats'                => $stats,
                 'income_center_filter' => $incomeCenterFilter,
-                'custom_query_used' => $customQuery !== '',
             ]);
         } catch (\PDOException $e) {
             return response()->json(['success' => false, 'error' => 'MSSQL bağlantı hatası: ' . $e->getMessage()], 500);
