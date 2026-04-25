@@ -379,10 +379,9 @@ class KitchenController extends Controller
 
             // Onaylanan (kullanıcı tarafından "kaldırılan") mutfak mesajlarını filtrele.
             // group_key formatı: 'M' + item_id  (kitchen-pos.blade.php Onayla butonu).
-            // Sadece son 12 saatte onaylananları dikkate al — eski item_id'lerin tekrar kullanılma riskine karşı.
+            // DB'den hiçbir şey silmiyoruz — sadece aktif listede görünmesinler diye filtreliyoruz.
             $completedMsgKeys = DB::table('kitchen_pos_completions')
                 ->where('kind', 'checkless_msg')
-                ->where('completed_at', '>=', now()->subHours(12))
                 ->pluck('group_key')
                 ->all();
             if (!empty($completedMsgKeys)) {
@@ -461,10 +460,10 @@ class KitchenController extends Controller
 
             $completedLimit = (int) Setting::get('kitchen_completed_display', 6);
 
-            // Onaylanmış mutfak mesajları (alt panelde "Tamamlananlar" gösterimi için)
+            // Onaylanmış mutfak mesajları (alt panelde "Tamamlananlar" gösterimi için).
+            // DB'den hiçbir şey silinmez; sadece son N tanesi UI'a gönderilir.
             $completedMsgs = DB::table('kitchen_pos_completions')
                 ->where('kind', 'checkless_msg')
-                ->where('completed_at', '>=', now()->subHours(12))
                 ->orderByDesc('completed_at')
                 ->limit($completedLimit)
                 ->get()
