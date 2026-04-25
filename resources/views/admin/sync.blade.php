@@ -216,41 +216,46 @@
         </div>
     </div>
 
-    {{-- MSSQL Inline Comparison Panel --}}
-    <div id="mssql-panel" class="hidden bg-white rounded-xl shadow-sm border-2 border-sky-300 overflow-hidden">
-        <div class="px-5 py-3.5 bg-sky-600 text-white flex items-center justify-between">
-            <h3 class="font-bold text-base"><i class="fas fa-rotate mr-2"></i>MSSQL Sync — Değişiklik Karşılaştırması</h3>
-            <button onclick="closeMssqlPanel()" class="text-sky-200 hover:text-white"><i class="fas fa-times text-lg"></i></button>
-        </div>
-        <div class="px-5 py-2.5 bg-sky-50 border-b border-sky-200 flex flex-wrap gap-4 text-sm" id="mssql-stats"></div>
-        <div class="px-5 py-2 border-b border-gray-200 bg-gray-50 flex flex-wrap items-center gap-3">
-            <button onclick="mssqlSelectAll(true)" class="px-3 py-1 bg-sky-600 text-white text-xs font-bold rounded hover:bg-sky-700">
-                <i class="fas fa-check-square mr-1"></i>Tümünü Seç
-            </button>
-            <button onclick="mssqlSelectAll(false)" class="px-3 py-1 bg-gray-400 text-white text-xs font-bold rounded hover:bg-gray-500">
-                <i class="far fa-square mr-1"></i>Seçimi Kaldır
-            </button>
-            <span class="text-xs text-gray-400 italic">Yalnızca değişiklik olan ürünler listelenir.</span>
-            <div class="relative ml-auto flex items-center gap-2">
-                <input type="text" id="mssql-search" placeholder="Ürün adı ara…" oninput="filterMssqlPanel()"
-                    class="pl-7 pr-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-sky-400 w-44">
-                <i class="fas fa-search absolute left-2 top-1.5 text-gray-400 text-[10px]"></i>
-                <span class="text-xs text-gray-600 font-semibold" id="mssql-fetch-count-top"></span>
-                <button onclick="applyMssqlChanges()" id="btn-apply-mssql-top" disabled
-                    class="px-4 py-1.5 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition text-xs disabled:opacity-40 disabled:cursor-not-allowed">
-                    <i class="fas fa-check mr-1"></i> Seçilenleri Güncelle
-                </button>
+    {{-- MSSQL Sync Modal --}}
+    <div id="mssql-panel" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[95vh] flex flex-col overflow-hidden">
+            <div class="px-6 py-4 bg-sky-600 text-white flex items-center justify-between">
+                <h3 class="text-lg font-bold"><i class="fas fa-rotate mr-2"></i>MSSQL Sync — Değişiklik Karşılaştırması</h3>
+                <button onclick="closeMssqlPanel()" class="text-sky-200 hover:text-white"><i class="fas fa-times text-xl"></i></button>
             </div>
-        </div>
-        <div class="p-4 overflow-x-auto" id="mssql-fetch-content"></div>
-        <div class="px-5 py-3.5 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
-            <span class="text-sm font-semibold text-gray-700" id="mssql-fetch-count">0 satır seçildi</span>
-            <div class="flex gap-3">
-                <button onclick="closeMssqlPanel()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 text-sm transition">Kapat</button>
-                <button onclick="applyMssqlChanges()" id="btn-apply-mssql" disabled
-                    class="px-5 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition text-sm disabled:opacity-40 disabled:cursor-not-allowed">
-                    <i class="fas fa-check mr-1"></i> Seçilenleri Güncelle
+            <div class="px-6 py-3 bg-sky-50 border-b border-sky-200 text-sm flex flex-wrap items-center gap-4" id="mssql-stats"></div>
+            <div class="px-6 py-2 border-b border-gray-200 bg-gray-50 flex flex-wrap items-center gap-3">
+                <button onclick="mssqlSelectAll(true)" class="px-3 py-1 bg-sky-600 text-white text-xs font-bold rounded hover:bg-sky-700">
+                    <i class="fas fa-check-square mr-1"></i>Tümünü Seç
                 </button>
+                <button onclick="mssqlSelectAll(false)" class="px-3 py-1 bg-gray-400 text-white text-xs font-bold rounded hover:bg-gray-500">
+                    <i class="far fa-square mr-1"></i>Seçimi Kaldır
+                </button>
+                <span class="text-xs text-gray-400 italic">Değişen eşleşenler + eşleşmeyenler dahil.</span>
+                <div class="ml-auto flex items-center gap-2">
+                    <div class="relative">
+                        <input type="text" id="mssql-search" placeholder="Değişen ürün ara…" oninput="filterMssqlPanel()"
+                            class="pl-7 pr-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-sky-400 w-44">
+                        <i class="fas fa-search absolute left-2 top-1.5 text-gray-400 text-[10px]"></i>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-700" id="mssql-fetch-count"></span>
+                    <button onclick="applyMssqlChanges()" id="btn-apply-mssql" disabled
+                        class="px-5 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fas fa-check mr-1"></i> Seçilenleri Güncelle
+                    </button>
+                    <button onclick="closeMssqlPanel()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 text-sm transition">Kapat</button>
+                </div>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1" id="mssql-fetch-content"></div>
+            <div class="px-6 py-3.5 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
+                <span class="text-sm font-semibold text-gray-700" id="mssql-fetch-count-bottom"></span>
+                <div class="flex gap-3">
+                    <button onclick="closeMssqlPanel()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 text-sm transition">Kapat</button>
+                    <button onclick="applyMssqlChanges()" id="btn-apply-mssql-bottom" disabled
+                        class="px-5 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fas fa-check mr-1"></i> Seçilenleri Güncelle
+                    </button>
+                </div>
             </div>
         </div>
     </div>
