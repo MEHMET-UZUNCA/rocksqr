@@ -607,10 +607,8 @@ function cancelBulk() {
     });
     bulkEditIds = [];
     document.getElementById('edit-bar').classList.add('hidden');
-    document.getElementById('th-actions').textContent = '\u0130\u015flem';
+    document.getElementById('th-actions').textContent = 'İşlem';
     clearSelection();
-}
-    document.getElementById('th-actions').textContent = 'Islem';
 }
 
 function collectChanges() {
