@@ -52,6 +52,11 @@ RocksQR; **QR menü (müşteri)**, **Mutfak/Bar ekranları (personel)** ve **Sym
 
 ---
 
+## v1.0.26 - 2026-04-25
+
+### Değişenler
+- **"Toplu Güncelle" butonu Sync sayfasından Ürünler sayfasına taşındı**: Admin → Ürünler ekranında **"Yeni Ürün"** butonunun yanına eklendi. Tıklandığında Sync sayfası `?bulk=1` parametresiyle açılır ve otomatik olarak toplu düzenleme moduna geçer.
+
 ## v1.0.25 - 2026-04-25
 
 ### Değişenler

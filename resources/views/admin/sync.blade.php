@@ -16,7 +16,7 @@
                         <button onclick="fetchFromMssql()" id="btn-mssql" class="px-4 py-2 bg-sky-600 text-white rounded hover:bg-sky-700 transition text-sm font-bold {{ $mssqlConfigured ? '' : 'opacity-50 cursor-not-allowed' }}" {{ $mssqlConfigured ? '' : 'disabled title=MSSQL ayarlari yapilandirilmamis' }}>
                             <i class="fas fa-rotate mr-1"></i> Sync
                         </button>
-                        <button onclick="enterBulkMode()" id="btn-bulk" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm font-bold">
+                        <button onclick="enterBulkMode()" id="btn-bulk" class="hidden px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm font-bold">
                             <i class="fas fa-edit mr-1"></i> Toplu Guncelle
                         </button>
                         <button onclick="cancelBulk()" id="btn-cancel" class="hidden px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition text-sm font-bold">
@@ -430,6 +430,14 @@ function enterBulkMode() {
     document.getElementById('btn-cancel').classList.remove('hidden');
     document.getElementById('btn-preview').classList.remove('hidden');
     document.getElementById('th-actions').textContent = '';
+}
+
+// URL'de ?bulk=1 varsa otomatik toplu g\u00fcncelle moduna ge\u00e7
+if (new URLSearchParams(window.location.search).get('bulk') === '1') {
+    window.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('btn-bulk').classList.remove('hidden');
+        enterBulkMode();
+    });
 }
 
 function cancelBulk() {

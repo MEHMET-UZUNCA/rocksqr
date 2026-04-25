@@ -8,9 +8,14 @@
                 <h2 class="text-2xl font-bold text-gray-900">
                     <i class="fas fa-box mr-2 text-gold"></i>Ürünler
                 </h2>
-                <a href="{{ route('admin.products.create') }}" class="px-4 py-2 bg-primary text-white rounded hover:bg-light-primary transition">
-                    <i class="fas fa-plus mr-1"></i> Yeni Ürün
-                </a>
+                <div class="flex flex-wrap gap-3">
+                    <a href="{{ route('admin.sync.index') }}?bulk=1" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                        <i class="fas fa-edit mr-1"></i> Toplu Güncelle
+                    </a>
+                    <a href="{{ route('admin.products.create') }}" class="px-4 py-2 bg-primary text-white rounded hover:bg-light-primary transition">
+                        <i class="fas fa-plus mr-1"></i> Yeni Ürün
+                    </a>
+                </div>
             </div>
 
             @if($products->isEmpty())
