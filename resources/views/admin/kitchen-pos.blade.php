@@ -447,7 +447,13 @@
             const compSect = document.getElementById('completed-section');
             const compGrid = document.getElementById('completed-grid');
             const compBadge = document.getElementById('completed-limit-badge');
-            const allCompleted = [...completed, ...completedMsgs, ...completedChecks];
+            const allCompleted = [...completed, ...completedMsgs, ...completedChecks]
+                .sort((a, b) => {
+                    const ta = Date.parse(a.completed_at || 0) || 0;
+                    const tb = Date.parse(b.completed_at || 0) || 0;
+                    return tb - ta;
+                })
+                .slice(0, completedLimit);
             if (allCompleted.length > 0) {
                 compSect.classList.remove('hidden');
                 compBadge.textContent = `son ${completedLimit}`;
