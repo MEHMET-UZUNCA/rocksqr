@@ -1,5 +1,33 @@
 # Changelog
 
+## v1.0.14 - 2026-04-25
+
+### Eklenenler
+- **KDS Mutfak Mesajları onayla/tamamla akışı**:
+  - Symphony hesap kartlarındaki her mutfak mesajının yanına büyük yeşil **"Onayla → Servis"** butonu (QR/hesap kartlarıyla aynı stil)
+  - Onaylanan mesaj aktif listeden kalkar, alt **"Son Tamamlananlar"** bölümüne sarı kartla düşer
+  - Sadece mesajdan oluşan boş Symphony kartı otomatik gizlenir
+  - Symphony bazı mesajlar için `ItemID` döndürmediğinde fallback olarak `tableNo + checkNum + dtlSeq + name + note + itemTime` md5'inden benzersiz `m-xxx` üretilir (toplu onay bug fix)
+- **Symphony hesap kartlarına da "Onayla → Servis" butonu** eklendi (eski "sadece görüntüleme" yazısı kaldırıldı). Onaylanan hesap alt panelde mavi **SYMPHONY** rozetli kart olarak görünür.
+- **Tamamlananlar bölümü** kaynak rozetleri:
+  - **QR MENU** (mor) → QR siparişler
+  - **SYMPHONY** (mavi) → Symphony hesapları & mesajları
+- **Sağ üst toast bildirim sistemi** (slide-in animasyonlu, hata/başarı/info renkleri, 3.5sn sonra otomatik kaybolur) — eski `alert()` popup'ları kaldırıldı
+
+### Düzeltmeler
+- "Geri Al" butonunun çalışmama bug'ı: `JSON.stringify` çıktısının HTML attribute içindeki çift tırnaklarla çakışması — `data-uncomplete-key` + `dataset` ile çözüldü
+- "Geri alma süresi doldu" mesajı artık inline toast olarak görünür (alert popup yerine)
+
+### Değişiklikler
+- **`ready_undo_seconds` ayarı** artık hem QR siparişlerin hem de mutfak mesajlarının/Symphony hesaplarının Geri Al süresini kontrol eder (Admin → Ayarlar → "Geri Alma Süresi (saniye)")
+- Mutfak mesajı/hesap onaylamaları DB'den **silinmez** (raporlama için kalıcı tutulur); UI sadece son N tanesini (kitchen_completed_display) gösterir
+- 12 saatlik zaman penceresi filtresi kaldırıldı
+
+### Veritabanı
+- `kitchen_pos_completions` tablosuna `name`, `note`, `qty` kolonları eklendi (yeni migration: `2026_04_25_160000_add_message_fields_to_kitchen_pos_completions_table`) — onaylanan mesajların alt panelde gösterilebilmesi için
+
+---
+
 ## v1.0.13 - 2026-04-25
 
 ### Eklenenler
