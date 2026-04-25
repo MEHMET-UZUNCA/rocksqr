@@ -398,6 +398,9 @@ class KitchenController extends Controller
                 ));
             }
 
+            // Mesajı + ürünü kalmayan boş Symphony kartlarını listeden çıkar
+            $checks = array_filter($checks, fn ($c) => !empty($c['items']) || !empty($c['messages']));
+
             // En yeni order önce
             uasort($checks, function ($a, $b) {
                 return strcmp((string) $b['order_time'], (string) $a['order_time']);
