@@ -54,6 +54,9 @@
             <div class="text-sm text-gray-400">
                 <span id="order-count" class="text-gold font-bold text-lg">0</span> aktif siparis
             </div>
+            <button onclick="toggleFullscreen()" id="fs-btn" class="text-gray-400 hover:text-gold transition" title="Tam ekran">
+                <i id="fs-icon" class="fas fa-expand"></i>
+            </button>
             <a href="/admin" class="text-gray-400 hover:text-gold transition">
                 <i class="fas fa-arrow-left mr-1"></i> Admin
             </a>
@@ -110,6 +113,29 @@
         }
         setInterval(updateClock, 1000);
         updateClock();
+
+        function toggleFullscreen() {
+            const icon = document.getElementById('fs-icon');
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(() => {
+                    icon.classList.remove('fa-expand');
+                    icon.classList.add('fa-compress');
+                }).catch(() => {});
+            } else {
+                document.exitFullscreen().then(() => {
+                    icon.classList.remove('fa-compress');
+                    icon.classList.add('fa-expand');
+                }).catch(() => {});
+            }
+        }
+        document.addEventListener('fullscreenchange', () => {
+            const icon = document.getElementById('fs-icon');
+            if (document.fullscreenElement) {
+                icon.classList.remove('fa-expand'); icon.classList.add('fa-compress');
+            } else {
+                icon.classList.remove('fa-compress'); icon.classList.add('fa-expand');
+            }
+        });
 
         function getProductName(productId) {
             const products = @json(\App\Models\Product::pluck('name', 'id'));

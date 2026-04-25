@@ -37,8 +37,8 @@ class SettingsController extends Controller
             return back()->with('success', 'Ekran temizleme saati güncellendi.');
         } elseif ($request->has('_display_only')) {
             $request->validate([
-                'kitchen_completed_display' => 'required|integer|in:3,6,12,24',
-                'bar_completed_display' => 'required|integer|in:3,6,12,24',
+                'kitchen_completed_display' => 'required|integer|min:1|max:100',
+                'bar_completed_display' => 'required|integer|min:1|max:100',
                 'ready_undo_seconds' => 'required|integer|min:5|max:600',
             ]);
             Setting::set('kitchen_completed_display', $request->kitchen_completed_display);

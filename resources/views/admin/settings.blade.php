@@ -134,28 +134,20 @@
                         <label for="kitchen_completed_display" class="block text-sm font-semibold text-gray-700 mb-2">
                             <i class="fas fa-utensils mr-1"></i>Mutfak Ekranı: Tamamlanan Son Sipariş Sayısı
                         </label>
-                        <select name="kitchen_completed_display" id="kitchen_completed_display"
-                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
-                            <option value="3"  {{ $settings['kitchen_completed_display'] == 3  ? 'selected' : '' }}>Son 3 sipariş</option>
-                            <option value="6"  {{ $settings['kitchen_completed_display'] == 6  ? 'selected' : '' }}>Son 6 sipariş</option>
-                            <option value="12" {{ $settings['kitchen_completed_display'] == 12 ? 'selected' : '' }}>Son 12 sipariş</option>
-                            <option value="24" {{ $settings['kitchen_completed_display'] == 24 ? 'selected' : '' }}>Son 24 sipariş</option>
-                        </select>
-                        <p class="text-xs text-gray-400 mt-1">Mutfak ekranında "Hazırlandı" olarak işaretlenen son kaç siparişin görüneceğini belirler.</p>
+                        <input type="number" min="1" max="100" step="1" name="kitchen_completed_display" id="kitchen_completed_display"
+                               value="{{ old('kitchen_completed_display', $settings['kitchen_completed_display']) }}"
+                               class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
+                        <p class="text-xs text-gray-400 mt-1">Mutfak ekranında "Hazırlandı" olarak işaretlenen son kaç siparişin görüneceğini belirler (1–100).</p>
                     </div>
 
                     <div>
                         <label for="bar_completed_display" class="block text-sm font-semibold text-gray-700 mb-2">
                             <i class="fas fa-wine-glass mr-1"></i>Bar Ekranı: Sipariş Hazır Son Sipariş Sayısı
                         </label>
-                        <select name="bar_completed_display" id="bar_completed_display"
-                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
-                            <option value="3"  {{ $settings['bar_completed_display'] == 3  ? 'selected' : '' }}>Son 3 sipariş</option>
-                            <option value="6"  {{ $settings['bar_completed_display'] == 6  ? 'selected' : '' }}>Son 6 sipariş</option>
-                            <option value="12" {{ $settings['bar_completed_display'] == 12 ? 'selected' : '' }}>Son 12 sipariş</option>
-                            <option value="24" {{ $settings['bar_completed_display'] == 24 ? 'selected' : '' }}>Son 24 sipariş</option>
-                        </select>
-                        <p class="text-xs text-gray-400 mt-1">Bar ekranındaki "Siparis Hazir" alanında kaç sipariş görüneceğini belirler.</p>
+                        <input type="number" min="1" max="100" step="1" name="bar_completed_display" id="bar_completed_display"
+                               value="{{ old('bar_completed_display', $settings['bar_completed_display']) }}"
+                               class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
+                        <p class="text-xs text-gray-400 mt-1">Bar ekranındaki "Siparis Hazir" ve "Tamamlanan" alanında kaç sipariş görüneceğini belirler (1–100).</p>
                     </div>
 
                     <div class="md:col-span-2">

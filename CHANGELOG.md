@@ -52,6 +52,14 @@ RocksQR; **QR menü (müşteri)**, **Mutfak/Bar ekranları (personel)** ve **Sym
 
 ---
 
+## v1.0.24 - 2026-04-25
+
+### Eklenenler
+- **Bar ekranına tam ekran butonu**: Üst bar'a `⛶` ikonu eklendi (mutfak ekranıyla aynı). Tıklayınca tarayıcı tam ekrana geçer, ikon `⤓` (compress) olur. PWA olarak yüklendiğinde de aynı kısayol çalışır.
+
+### Değişenler
+- **Mutfak/Bar son sipariş limiti artık serbest sayı**: Admin → Ekran Ayarları'ndaki "Mutfak Ekranı: Tamamlanan Son Sipariş Sayısı" ve "Bar Ekranı: Sipariş Hazır Son Sipariş Sayısı" alanları sabit `3/6/12/24` listeden çıkarılıp **1–100 arası serbest sayı girişi** olarak değiştirildi.
+
 ## v1.0.23 - 2026-04-25
 
 ### Değişenler
