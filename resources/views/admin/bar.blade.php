@@ -477,11 +477,21 @@
                 let items = [];
                 try { items = Array.isArray(order.items) ? order.items : JSON.parse(order.items); }
                 catch(e) { items = []; }
-                const summary = items.map(i => `${getProductName(i.id)} x${i.quantity}`).join(', ');
+                const summary = items.map(i => {
+                    const nm = i.name || (i.id ? getProductName(i.id) : '');
+                    return `${nm} x${i.quantity || 1}`;
+                }).join(', ');
+                const isSymphony = order.source === 'symphony';
+                const idLabel = isSymphony
+                    ? (order.check_number ? `<span class="text-gray-500">CHK #${order.check_number}</span>` : '')
+                    : `<span class="text-gray-500">#${order.id}</span>`;
+                const srcBadge = isSymphony
+                    ? `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-700 text-blue-100 ml-1">SYMPHONY</span>`
+                    : `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-purple-700 text-purple-100 ml-1">QR</span>`;
                 return `
                 <div class="bg-gray-800 rounded-lg border-2 border-emerald-700 p-3 text-xs">
                     <div class="flex items-center justify-between mb-1">
-                        <span class="font-bold text-emerald-400">${order.table_no ? 'Masa ' + order.table_no : 'Paket'} <span class="text-gray-500">#${order.id}</span></span>
+                        <span class="font-bold text-emerald-400">${order.table_no ? 'Masa ' + order.table_no : 'Paket'} ${idLabel}${srcBadge}</span>
                         <span class="text-gray-500">${order.created_at}</span>
                     </div>
                     <p class="text-gray-300 truncate">${summary || '—'}</p>

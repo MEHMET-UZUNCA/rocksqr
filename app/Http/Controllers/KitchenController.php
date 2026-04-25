@@ -170,7 +170,56 @@ class KitchenController extends Controller
             ->orderBy('completed_at', 'desc')
             ->limit($completedLimit)
             ->get()
-            ->map(fn ($order) => $this->mapOrder($order));
+            ->map(fn ($order) => $this->mapOrder($order))
+            ->values()
+            ->all();
+
+        // Symphony servis edilenleri de tamamlananlara ekle
+        $symphonyDelivered = DB::table('kitchen_pos_completions')
+            ->whereNotNull('delivered_at')
+            ->orderByDesc('delivered_at')
+            ->limit($completedLimit)
+            ->get();
+
+        foreach ($symphonyDelivered as $row) {
+            $deliveredAt = \Carbon\Carbon::parse($row->delivered_at);
+            $itemName = trim((string) ($row->name ?? ''));
+            $qty = (int) ($row->qty ?? 1);
+
+            if ($row->kind === 'check') {
+                $itemsArr = [['id' => null, 'name' => 'Hesap onaylandı (Adisyon #' . ($row->check_number ?: '-') . ')', 'quantity' => 1]];
+            } else {
+                $itemsArr = [['id' => null, 'name' => $itemName !== '' ? $itemName : 'Mutfak mesajı', 'quantity' => max(1, $qty)]];
+            }
+
+            $completedOrders[] = [
+                'id' => 0,
+                'source' => 'symphony',
+                'group_key' => $row->group_key,
+                'table_no' => $row->table_no,
+                'items' => $itemsArr,
+                'total_price' => 0,
+                'order_note' => null,
+                'status' => 'completed',
+                'bar_status' => 'approved',
+                'kitchen_status' => 'completed',
+                'created_at' => $deliveredAt->format('H:i:s'),
+                'completed_at_ts' => $deliveredAt->getTimestamp(),
+                'seconds_ago' => (int) $deliveredAt->diffInSeconds(now()),
+            ];
+        }
+
+        // En yeni servis üstte
+        usort($completedOrders, function ($a, $b) {
+            $av = $a['completed_at_ts'] ?? 0;
+            $bv = $b['completed_at_ts'] ?? 0;
+            // Order modeli mapOrder'da completed_at_ts yok; fallback created_at karsilastir
+            if (!$av && isset($a['completed_at'])) $av = strtotime($a['completed_at']);
+            if (!$bv && isset($b['completed_at'])) $bv = strtotime($b['completed_at']);
+            return $bv <=> $av;
+        });
+        $completedOrders = array_slice($completedOrders, 0, $completedLimit);
+        $completedOrders = collect($completedOrders);
 
         $waiterCalls = WaiterCall::where('status', 'pending')
             ->orderBy('created_at', 'desc')

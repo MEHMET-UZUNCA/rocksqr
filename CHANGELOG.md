@@ -52,6 +52,12 @@ RocksQR; **QR menü (müşteri)**, **Mutfak/Bar ekranları (personel)** ve **Sym
 
 ---
 
+## v1.0.22 - 2026-04-25
+
+### Düzeltildi
+- **Bar ekranı: Symphony "Servis Edildi" sonrası Tamamlananlara düşmüyordu**: Yeşil ready şeridindeki Symphony mesaj/sipariş kartı `Servis Edildi`'ye basılınca `delivered_at` set ediliyordu ama **Tamamlanan Siparişler** bölümü sadece yerel `orders.kitchen_status='completed'` kayıtlarını gösteriyordu, Symphony tarafı görünmüyordu.
+- Artık `kitchen_pos_completions` tablosunda `delivered_at IS NOT NULL` olan kayıtlar da Tamamlananlara karışıyor (mavi `SYMPHONY` rozetiyle), QR/Symphony en yeni servis sırasıyla birleşik gösterilir, `bar_completed_display` sınırı uygulanır.
+
 ## v1.0.21 - 2026-04-25
 
 ### Eklenenler
