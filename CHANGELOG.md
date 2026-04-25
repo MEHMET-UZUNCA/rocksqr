@@ -52,6 +52,13 @@ RocksQR; **QR menü (müşteri)**, **Mutfak/Bar ekranları (personel)** ve **Sym
 
 ---
 
+## v1.0.25 - 2026-04-25
+
+### Değişenler
+- **Symphony İmport modalı genişletildi** (`max-w-3xl` → `max-w-7xl`, yükseklik %95). Üstüne **Tümünü Seç / Seçimi Kaldır** butonları eklendi.
+- **"MSSQL'den Çek" butonu → `Sync`** olarak yeniden adlandırıldı (ikon: `fa-rotate`).
+- **Sync modalı tamamen yeniden tasarlandı**: Eski/Yeni karşılaştırma artık tablo formatında (MSSQL ID • Yerel ürün • Eski Ad/Fiyat • Yeni Ad/Fiyat • Grup/RVC). Her satırda **checkbox** var; **Tümünü Seç / Seçimi Kaldır** butonları ve başlıktaki üçlü-durum (checked/indeterminate) checkbox'ı ile sadece seçilen satırlar güncellenir. Modal `max-w-7xl` ile genişletildi.
+
 ## v1.0.24 - 2026-04-25
 
 ### Eklenenler
