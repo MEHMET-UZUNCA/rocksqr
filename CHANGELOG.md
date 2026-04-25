@@ -52,6 +52,18 @@ RocksQR; **QR menü (müşteri)**, **Mutfak/Bar ekranları (personel)** ve **Sym
 
 ---
 
+## v1.0.28 - 2026-04-25
+
+### Toplu Güncelle Ürünler Sayfasına Taşındı
+- **Admin → Ürünler** sayfasındaki **Toplu Güncelle** butonu artık başka bir sayfaya yönlendirmez. Aynı sayfada inline düzenleme moduna geçer.
+- Toplu modda düzenlenebilir alanlar: **Ürün Adı**, **Kategori** (ana/alt birleşik dropdown), **Fiyat**.
+- **Product Code (MSSQL ID)** kolonu salt-okunur olarak görünür (sky-100 rozet).
+- "Değişiklikleri Önizle" → modal'da eski/yeni karşılaştırması → "Onayla ve Güncelle".
+- Backend `admin.sync.preview` ve `admin.sync.bulk` endpoint'leri yeniden kullanılır.
+- `?bulk=1` query parametresi ile sayfa açılır açılmaz toplu mod aktive olur (eski Sync linki uyumlu).
+
+---
+
 ## v1.0.27 - 2026-04-25
 
 ### Toplu Güncelle Geliştirmeleri
