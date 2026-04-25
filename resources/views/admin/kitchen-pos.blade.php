@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#111827">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="RocksQR KDS">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="/favicon.ico">
     <title>{{ \App\Models\Setting::get('kitchen_screen_title', 'Mutfak Ekrani') }} - Symphony POS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -50,6 +57,9 @@
             <a href="/kitchen" class="text-gray-400 hover:text-gold transition" title="Yerel KDS ekranı">
                 <i class="fas fa-database mr-1"></i> Yerel
             </a>
+            <button onclick="toggleFullscreen()" class="text-gray-400 hover:text-gold transition" title="Tam ekran (F11)">
+                <i id="fs-icon" class="fas fa-expand"></i>
+            </button>
             <a href="/admin" class="text-gray-400 hover:text-gold transition">
                 <i class="fas fa-arrow-left mr-1"></i> Admin
             </a>
@@ -94,6 +104,7 @@
 
     <script>
         let previousIds = [];
+        let previousMsgKeys = [];
         let isFirstLoad = true;
 
         function updateClock() {
@@ -136,6 +147,24 @@
                     osc.connect(gain); gain.connect(ctx.destination);
                     osc.start(ctx.currentTime + i * 0.2);
                     osc.stop(ctx.currentTime + i * 0.2 + 0.5);
+                });
+            } catch(e) {}
+        }
+
+        // Mutfak mesajı için ayrı ses (alarm tarzı, dikkat çekici)
+        function playMessageSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                // Iki kere üst-alt ikili bip (alarm hissi)
+                [[880, 0], [660, 0.18], [880, 0.40], [660, 0.58]].forEach(([freq, t]) => {
+                    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+                    osc.type = 'square'; osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.0001, ctx.currentTime + t);
+                    gain.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime + t + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.16);
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime + t);
+                    osc.stop(ctx.currentTime + t + 0.18);
                 });
             } catch(e) {}
         }
@@ -470,11 +499,19 @@
 
             // Yeni sipariş sesi
             const ids = orders.map(o => o.source === 'qr' ? ('Q' + o.qr_order_id) : (o.check_number || ('T' + o.table_no)));
+            // Tüm mesaj id'lerini topla (hem checksiz, hem hesap içi)
+            const msgKeys = [];
+            (messages || []).forEach(m => msgKeys.push('CL-' + (m.item_id || (m.table_no + '-' + (m.name || '')))));
+            (orders || []).forEach(o => (o.messages || []).forEach(m => msgKeys.push('IN-' + ((o.check_number || o.table_no) + '-' + (m.item_id || m.name || '')))));
+
             if (!isFirstLoad) {
                 const newOnes = ids.filter(id => !previousIds.includes(id));
+                const newMsgs = msgKeys.filter(k => !previousMsgKeys.includes(k));
                 if (newOnes.length > 0) playOrderSound();
+                if (newMsgs.length > 0) playMessageSound();
             }
             previousIds = ids;
+            previousMsgKeys = msgKeys;
             isFirstLoad = false;
         }
 
@@ -496,6 +533,31 @@
             ctx.resume();
             document.removeEventListener('click', enableAudio);
         }, { once: true });
+
+        // Tam ekran (F11 alternatifi, PWA olarak da çalışır)
+        function toggleFullscreen() {
+            const icon = document.getElementById('fs-icon');
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen?.().then(() => {
+                    if (icon) icon.className = 'fas fa-compress';
+                }).catch(() => {});
+            } else {
+                document.exitFullscreen?.().then(() => {
+                    if (icon) icon.className = 'fas fa-expand';
+                }).catch(() => {});
+            }
+        }
+        document.addEventListener('fullscreenchange', () => {
+            const icon = document.getElementById('fs-icon');
+            if (icon) icon.className = document.fullscreenElement ? 'fas fa-compress' : 'fas fa-expand';
+        });
+
+        // PWA service worker (offline değil, sadece installable yapmak için)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(() => {});
+            });
+        }
     </script>
 </body>
 </html>
