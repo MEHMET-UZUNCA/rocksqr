@@ -1,129 +1,229 @@
 ﻿@extends('layouts.admin')
 
 @section('content')
+@php
+    $total      = $products->count();
+    $withCode   = $products->filter(fn($p) => $p->mssql_id)->count();
+    $noCode     = $total - $withCode;
+    $matchPct   = $total > 0 ? round($withCode / $total * 100) : 0;
+@endphp
+
 <div class="py-8">
-    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-            <div class="p-6 bg-white border-b border-gray-200">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold text-gray-900">
-                        <i class="fas fa-sync mr-2 text-gold"></i>Sync - Urun Senkronizasyonu
-                    </h2>
-                    <div class="flex flex-wrap gap-3">
-                        <button onclick="openSymphonyImport()" id="btn-symphony" class="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition text-sm font-bold {{ $symphonyConfigured ? '' : 'opacity-50 cursor-not-allowed' }}" {{ $symphonyConfigured ? '' : 'disabled title=MSSQL_ayarlari_yapilandirilmamis' }}>
-                            <i class="fas fa-file-import mr-1"></i> Symphony İmport
-                        </button>
-                        <button onclick="fetchFromMssql()" id="btn-mssql" class="px-4 py-2 bg-sky-600 text-white rounded hover:bg-sky-700 transition text-sm font-bold {{ $mssqlConfigured ? '' : 'opacity-50 cursor-not-allowed' }}" {{ $mssqlConfigured ? '' : 'disabled title=MSSQL ayarlari yapilandirilmamis' }}>
-                            <i class="fas fa-rotate mr-1"></i> Sync
-                        </button>
-                        <button onclick="enterBulkMode()" id="btn-bulk" class="hidden px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm font-bold">
-                            <i class="fas fa-edit mr-1"></i> Toplu Guncelle
-                        </button>
-                        <button onclick="cancelBulk()" id="btn-cancel" class="hidden px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition text-sm font-bold">
-                            <i class="fas fa-times mr-1"></i> Iptal
-                        </button>
-                    </div>
+<div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-5">
+
+    {{-- Stats Cards --}}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center gap-3">
+            <div class="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <i class="fas fa-box text-primary text-base"></i>
+            </div>
+            <div><div class="text-2xl font-bold text-gray-900">{{ $total }}</div><div class="text-xs text-gray-500 mt-0.5">Toplam Ürün</div></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center gap-3">
+            <div class="w-11 h-11 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
+                <i class="fas fa-link text-sky-600 text-base"></i>
+            </div>
+            <div><div class="text-2xl font-bold text-sky-700">{{ $withCode }}</div><div class="text-xs text-gray-500 mt-0.5">Product Code Var</div></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center gap-3">
+            <div class="w-11 h-11 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                <i class="fas fa-unlink text-orange-500 text-base"></i>
+            </div>
+            <div><div class="text-2xl font-bold text-orange-600">{{ $noCode }}</div><div class="text-xs text-gray-500 mt-0.5">Product Code Yok</div></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center gap-3">
+            <div class="w-11 h-11 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                <i class="fas fa-percent text-emerald-600 text-base"></i>
+            </div>
+            <div><div class="text-2xl font-bold text-emerald-700">{{ $matchPct }}%</div><div class="text-xs text-gray-500 mt-0.5">Eşleşme Oranı</div></div>
+        </div>
+    </div>
+
+    {{-- Main Panel --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+
+        {{-- Action & Search Bar --}}
+        <div class="px-5 py-3.5 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="openSymphonyImport()" id="btn-symphony"
+                    class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-sm font-semibold {{ $symphonyConfigured ? '' : 'opacity-50 cursor-not-allowed' }}"
+                    {{ $symphonyConfigured ? '' : 'disabled' }}>
+                    <i class="fas fa-file-import mr-1.5"></i> Symphony İmport
+                </button>
+                <button onclick="fetchFromMssql()" id="btn-mssql"
+                    class="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition text-sm font-semibold {{ $mssqlConfigured ? '' : 'opacity-50 cursor-not-allowed' }}"
+                    {{ $mssqlConfigured ? '' : 'disabled' }}>
+                    <i class="fas fa-rotate mr-1.5"></i> MSSQL Sync
+                </button>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="relative">
+                    <input type="text" id="search-input" placeholder="Ürün ara…" oninput="filterTable()"
+                        class="pl-8 pr-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 w-48">
+                    <i class="fas fa-search absolute left-2.5 top-2 text-gray-400 text-xs"></i>
                 </div>
+                <select id="filter-code" onchange="filterTable()"
+                    class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
+                    <option value="all">Tümü</option>
+                    <option value="has">Kodu Var</option>
+                    <option value="missing">Kodu Yok</option>
+                </select>
+            </div>
+        </div>
 
-                <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p class="text-sm text-blue-700">
-                        <i class="fas fa-info-circle mr-1"></i>
-                        Symphony Restaurant MSSQL kimliklerini tek tek guncelleyebilir veya <strong>Toplu Guncelle</strong> ile <strong>isim, fiyat ve kategori</strong> degisikliklerini onizleyip onaylayabilirsiniz. Product Code (MSSQL ID) toplu modda salt-okunur olarak gosterilir.
-                    </p>
-                </div>
+        {{-- Contextual: rows selected --}}
+        <div id="selection-bar" class="hidden px-5 py-2.5 bg-sky-50 border-b border-sky-200 flex items-center gap-3 text-sm">
+            <span class="font-semibold text-sky-800" id="selection-label">0 satır seçildi</span>
+            <button onclick="enterBulkMode()"
+                class="px-3 py-1 bg-sky-600 text-white text-xs font-bold rounded-lg hover:bg-sky-700 transition">
+                <i class="fas fa-edit mr-1"></i> Seçilenleri Düzenle
+            </button>
+            <button onclick="clearSelection()"
+                class="px-3 py-1 bg-gray-400 text-white text-xs font-bold rounded-lg hover:bg-gray-500 transition">
+                <i class="fas fa-times mr-1"></i> Seçimi Kaldır
+            </button>
+        </div>
 
-                <div id="msg-success" class="hidden mb-4 p-3 bg-green-100 border border-green-300 text-green-800 rounded"></div>
-                <div id="msg-error" class="hidden mb-4 p-3 bg-red-100 border border-red-300 text-red-800 rounded"></div>
+        {{-- Contextual: bulk edit mode --}}
+        <div id="edit-bar" class="hidden px-5 py-2.5 bg-amber-50 border-b border-amber-200 flex items-center gap-3 text-sm">
+            <span class="font-semibold text-amber-800"><i class="fas fa-edit mr-1"></i> Düzenleme Modu</span>
+            <button onclick="previewChanges()" id="btn-preview"
+                class="px-4 py-1.5 bg-gold text-primary text-xs font-bold rounded-lg hover:bg-yellow-400 transition">
+                <i class="fas fa-eye mr-1"></i> Değişiklikleri Önizle
+            </button>
+            <button onclick="cancelBulk()" id="btn-cancel"
+                class="px-3 py-1.5 bg-gray-500 text-white text-xs font-bold rounded-lg hover:bg-gray-600 transition">
+                <i class="fas fa-times mr-1"></i> İptal
+            </button>
+        </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden" id="sync-table">
-                        <thead class="bg-primary text-white">
-                            <tr>
-                                <th class="px-3 py-3 text-left w-16">ID</th>
-                                <th class="px-3 py-3 text-left min-w-48">Urun Adi</th>
-                                <th class="px-3 py-3 text-left w-36">Kategori</th>
-                                <th class="px-3 py-3 text-left w-40">Product Code</th>
-                                <th class="px-3 py-3 text-left w-32">Fiyat</th>
-                                <th class="px-3 py-3 text-left w-20">Durum</th>
-                                <th class="px-3 py-3 text-center w-28" id="th-actions">Islem</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($products as $product)
-                            <tr class="border-b border-gray-100 {{ $loop->even ? 'bg-gray-50' : '' }}" data-id="{{ $product->id }}">
-                                <td class="px-3 py-3 font-mono font-bold text-gold">{{ $product->id }}</td>
-                                <td class="px-3 py-3 cell-name">
-                                    <span class="view-mode">{{ $product->name }}</span>
-                                    <input type="text" class="edit-mode hidden w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                                           data-field="name" value="{{ $product->name }}" data-original="{{ $product->name }}">
-                                </td>
-                                <td class="px-3 py-3 text-xs cell-category">
-                                    <span class="view-mode">
-                                        @if($product->category)
-                                            <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded">{{ $product->category->parent ? $product->category->parent->name : $product->category->name }}</span>
-                                            @if($product->category->parent)
-                                                <br><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded mt-1 inline-block">{{ $product->category->name }}</span>
-                                            @endif
-                                        @else
-                                            <span class="text-gray-400">-</span>
-                                        @endif
-                                    </span>
-                                    <select class="edit-mode hidden w-full px-2 py-1 border border-gray-300 rounded text-xs"
-                                            data-field="category_id" data-original="{{ $product->category_id }}">
-                                        <option value="">-- Kategori Sec --</option>
-                                        @foreach($categories as $cat)
-                                            <option value="{{ $cat->id }}" {{ $product->category_id == $cat->id ? 'selected' : '' }}>
-                                                {{ $cat->parent ? $cat->parent->name . ' / ' . $cat->name : $cat->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </td>
-                                <td class="px-3 py-3 font-mono cell-mssql">
-                                    <span class="mssql-display">
-                                        @if($product->mssql_id)
-                                            <span class="bg-sky-100 text-sky-800 px-2 py-1 rounded text-xs">{{ $product->mssql_id }}</span>
-                                        @else
-                                            <span class="bg-gray-100 text-gray-400 px-2 py-1 rounded text-xs">-</span>
-                                        @endif
-                                    </span>
-                                    <input type="hidden" data-field="mssql_id" value="{{ $product->mssql_id }}" data-original="{{ $product->mssql_id }}">
-                                </td>
-                                <td class="px-3 py-3 cell-price">
-                                    <span class="view-mode">{{ number_format($product->price, 2) }} TL</span>
-                                    <input type="number" step="0.01" class="edit-mode hidden w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                                           data-field="price" value="{{ $product->price }}" data-original="{{ $product->price }}">
-                                </td>
-                                <td class="px-3 py-3">
-                                    @if($product->is_available)
-                                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">Aktif</span>
-                                    @else
-                                        <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold">Pasif</span>
+        {{-- Messages --}}
+        <div id="msg-success" class="hidden px-5 py-2.5 bg-green-100 border-b border-green-200 text-green-800 text-sm font-semibold"></div>
+        <div id="msg-error"   class="hidden px-5 py-2.5 bg-red-100 border-b border-red-200 text-red-800 text-sm font-semibold"></div>
+
+        {{-- Product Table --}}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm" id="sync-table">
+                <thead class="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                    <tr>
+                        <th class="px-4 py-3 w-10 text-center">
+                            <input type="checkbox" id="th-check" class="rounded accent-sky-600" onchange="selectAll(this.checked)">
+                        </th>
+                        <th class="px-4 py-3 text-left w-14">ID</th>
+                        <th class="px-4 py-3 text-left w-44">Product Code</th>
+                        <th class="px-4 py-3 text-left">Ürün Adı</th>
+                        <th class="px-4 py-3 text-left w-44">Kategori</th>
+                        <th class="px-4 py-3 text-left w-32">Fiyat</th>
+                        <th class="px-4 py-3 text-left w-20">Durum</th>
+                        <th class="px-4 py-3 text-center w-20" id="th-actions">İşlem</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @foreach($products as $product)
+                    <tr class="hover:bg-gray-50 transition-colors"
+                        data-id="{{ $product->id }}"
+                        data-name="{{ strtolower($product->name) }}"
+                        data-code="{{ $product->mssql_id ? 'has' : 'missing' }}">
+                        <td class="px-4 py-2.5 text-center">
+                            <input type="checkbox" class="row-check rounded accent-sky-600" value="{{ $product->id }}" onchange="onRowCheck()">
+                        </td>
+                        <td class="px-4 py-2.5 font-mono font-bold text-gold text-sm">{{ $product->id }}</td>
+                        <td class="px-4 py-2.5 font-mono cell-mssql">
+                            <span class="mssql-display">
+                                @if($product->mssql_id)
+                                    <span class="bg-sky-100 text-sky-800 px-2 py-0.5 rounded text-xs font-medium">{{ $product->mssql_id }}</span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 text-orange-500 text-xs"><i class="fas fa-exclamation-circle text-[10px]"></i> Yok</span>
+                                @endif
+                            </span>
+                            <input type="hidden" data-field="mssql_id" value="{{ $product->mssql_id }}" data-original="{{ $product->mssql_id }}">
+                        </td>
+                        <td class="px-4 py-2.5 cell-name">
+                            <span class="view-mode font-medium text-gray-800">{{ $product->name }}</span>
+                            <input type="text" class="edit-mode hidden w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                   data-field="name" value="{{ $product->name }}" data-original="{{ $product->name }}">
+                        </td>
+                        <td class="px-4 py-2.5 text-xs cell-category">
+                            <span class="view-mode">
+                                @if($product->category)
+                                    @if($product->category->parent)
+                                        <span class="text-gray-400 text-[10px] block leading-none mb-0.5">{{ $product->category->parent->name }}</span>
                                     @endif
-                                </td>
-                                <td class="px-3 py-3 text-center">
-                                    <div class="view-mode flex items-center justify-center gap-3">
-                                        <button onclick="editMssqlInline({{ $product->id }})" class="inline-mssql-btn text-sky-600 hover:text-sky-800 text-xs" title="MSSQL ID duzenle">
-                                            <i class="fas fa-server"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                                    <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded">{{ $product->category->name }}</span>
+                                @else
+                                    <span class="text-gray-400">—</span>
+                                @endif
+                            </span>
+                            <select class="edit-mode hidden w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                                    data-field="category_id" data-original="{{ $product->category_id }}">
+                                <option value="">-- Kategori --</option>
+                                @foreach($categories as $cat)
+                                    <option value="{{ $cat->id }}" {{ $product->category_id == $cat->id ? 'selected' : '' }}>
+                                        {{ $cat->parent ? $cat->parent->name . ' / ' . $cat->name : $cat->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </td>
+                        <td class="px-4 py-2.5 cell-price">
+                            <span class="view-mode font-semibold text-gray-800">{{ number_format($product->price, 2) }} ₺</span>
+                            <input type="number" step="0.01" min="0" class="edit-mode hidden w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                   data-field="price" value="{{ $product->price }}" data-original="{{ $product->price }}">
+                        </td>
+                        <td class="px-4 py-2.5">
+                            @if($product->is_available)
+                                <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-semibold">Aktif</span>
+                            @else
+                                <span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-semibold">Pasif</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-2.5 text-center">
+                            <button onclick="editMssqlInline({{ $product->id }})"
+                                class="p-1.5 rounded text-sky-500 hover:text-sky-700 hover:bg-sky-50 transition" title="Product Code düzenle">
+                                <i class="fas fa-qrcode text-sm"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
 
-                <div class="mt-4 flex justify-between items-center">
-                    <p class="text-sm text-gray-500">
-                        <i class="fas fa-database mr-1"></i> Toplam: {{ $products->count() }} urun
-                    </p>
-                    <button onclick="previewChanges()" id="btn-preview" class="hidden px-6 py-2 bg-gold text-primary font-bold rounded hover:bg-yellow-500 transition">
-                        <i class="fas fa-eye mr-1"></i> Degisiklikleri Onizle
-                    </button>
-                </div>
+        <div class="px-5 py-2.5 border-t border-gray-100 flex justify-between items-center">
+            <span class="text-xs text-gray-400">{{ $total }} ürün</span>
+            <span class="text-xs text-gray-400" id="filtered-label"></span>
+        </div>
+    </div>
+
+    {{-- MSSQL Inline Comparison Panel --}}
+    <div id="mssql-panel" class="hidden bg-white rounded-xl shadow-sm border-2 border-sky-300 overflow-hidden">
+        <div class="px-5 py-3.5 bg-sky-600 text-white flex items-center justify-between">
+            <h3 class="font-bold text-base"><i class="fas fa-rotate mr-2"></i>MSSQL Sync — Değişiklik Karşılaştırması</h3>
+            <button onclick="closeMssqlPanel()" class="text-sky-200 hover:text-white"><i class="fas fa-times text-lg"></i></button>
+        </div>
+        <div class="px-5 py-2.5 bg-sky-50 border-b border-sky-200 flex flex-wrap gap-4 text-sm" id="mssql-stats"></div>
+        <div class="px-5 py-2 border-b border-gray-200 bg-gray-50 flex items-center gap-3">
+            <button onclick="mssqlSelectAll(true)" class="px-3 py-1 bg-sky-600 text-white text-xs font-bold rounded hover:bg-sky-700">
+                <i class="fas fa-check-square mr-1"></i>Tümünü Seç
+            </button>
+            <button onclick="mssqlSelectAll(false)" class="px-3 py-1 bg-gray-400 text-white text-xs font-bold rounded hover:bg-gray-500">
+                <i class="far fa-square mr-1"></i>Seçimi Kaldır
+            </button>
+            <span class="text-xs text-gray-500">Yalnızca değişiklik olan satırlar listelenmiştir. Otomatik olarak seçili gelir.</span>
+        </div>
+        <div class="p-4 overflow-x-auto" id="mssql-fetch-content"></div>
+        <div class="px-5 py-3.5 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
+            <span class="text-sm font-semibold text-gray-700" id="mssql-fetch-count">0 satır seçildi</span>
+            <div class="flex gap-3">
+                <button onclick="closeMssqlPanel()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 text-sm transition">Kapat</button>
+                <button onclick="applyMssqlChanges()" id="btn-apply-mssql" disabled
+                    class="px-5 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                    <i class="fas fa-check mr-1"></i> Seçilenleri Güncelle
+                </button>
             </div>
         </div>
     </div>
+
+</div>
 </div>
 
 <!-- Symphony Import Modal -->
@@ -202,37 +302,66 @@
     </div>
 </div>
 
-<div id="mssql-fetch-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[95vh] flex flex-col overflow-hidden">
-        <div class="px-6 py-4 bg-sky-600 text-white flex justify-between items-center">
-            <h3 class="text-lg font-bold"><i class="fas fa-rotate mr-2"></i>Sync — MSSQL Veri Karşılaştırma</h3>
-            <button onclick="closeMssqlFetch()" class="text-sky-200 hover:text-white"><i class="fas fa-times text-xl"></i></button>
-        </div>
-        <div class="px-6 py-3 bg-sky-50 border-b border-sky-200 flex flex-wrap items-center gap-4 text-sm" id="mssql-stats"></div>
-        <div class="px-6 py-2 border-b border-gray-200 bg-gray-50 flex items-center gap-3">
-            <button onclick="mssqlSelectAll(true)" class="px-3 py-1 bg-sky-600 text-white text-xs font-bold rounded hover:bg-sky-700"><i class="fas fa-check-square mr-1"></i>Tümünü Seç</button>
-            <button onclick="mssqlSelectAll(false)" class="px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded hover:bg-gray-600"><i class="far fa-square mr-1"></i>Seçimi Kaldır</button>
-            <span class="text-xs text-gray-500 ml-2">Sadece seçilen satırlar güncellenir.</span>
-        </div>
-        <div class="p-4 overflow-y-auto flex-1" id="mssql-fetch-content"></div>
-        <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center bg-gray-50">
-            <p class="text-sm text-gray-600 font-medium" id="mssql-fetch-count">0 satır seçildi</p>
-            <div class="flex gap-3">
-                <button onclick="closeMssqlFetch()" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100 transition">Kapat</button>
-                <button onclick="applyMssqlChanges()" id="btn-apply-mssql" disabled
-                        class="px-6 py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
-                    <i class="fas fa-check mr-1"></i> Seçilenleri Güncelle
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script>
 const csrfToken = '{{ csrf_token() }}';
 let pendingUpdates = [];
 let mssqlMatchedData = [];
 let symphonyItemsMap = {};
+let bulkEditIds = [];
+
+// ─── Row selection & filter ──────────────────────────────────────────────────
+
+function selectAll(checked) {
+    document.querySelectorAll('#sync-table .row-check').forEach(cb => {
+        const row = cb.closest('tr');
+        if (!row.classList.contains('hidden')) cb.checked = checked;
+    });
+    onRowCheck();
+}
+
+function onRowCheck() {
+    const visible = Array.from(document.querySelectorAll('#sync-table .row-check'))
+        .filter(cb => !cb.closest('tr').classList.contains('hidden'));
+    const checked = visible.filter(cb => cb.checked);
+    const thCheck = document.getElementById('th-check');
+    thCheck.checked = checked.length === visible.length && visible.length > 0;
+    thCheck.indeterminate = checked.length > 0 && checked.length < visible.length;
+
+    const bar = document.getElementById('selection-bar');
+    const editBar = document.getElementById('edit-bar');
+    if (!editBar.classList.contains('hidden')) return; // already editing
+    if (checked.length > 0) {
+        document.getElementById('selection-label').textContent = checked.length + ' satır seçildi';
+        bar.classList.remove('hidden');
+    } else {
+        bar.classList.add('hidden');
+    }
+}
+
+function clearSelection() {
+    document.querySelectorAll('#sync-table .row-check').forEach(cb => cb.checked = false);
+    document.getElementById('th-check').checked = false;
+    document.getElementById('th-check').indeterminate = false;
+    document.getElementById('selection-bar').classList.add('hidden');
+}
+
+function filterTable() {
+    const q = document.getElementById('search-input').value.toLowerCase();
+    const code = document.getElementById('filter-code').value;
+    let visible = 0;
+    document.querySelectorAll('#sync-table tbody tr').forEach(row => {
+        const nameMatch = !q || row.dataset.name.includes(q);
+        const codeMatch = code === 'all' || row.dataset.code === code;
+        const show = nameMatch && codeMatch;
+        row.classList.toggle('hidden', !show);
+        if (show) visible++;
+    });
+    document.getElementById('filtered-label').textContent =
+        q || code !== 'all' ? visible + ' sonuç gösteriliyor' : '';
+    onRowCheck();
+}
+
 
 // ─── Symphony Import ──────────────────────────────────────────────────────────
 
@@ -433,31 +562,44 @@ function showMsg(type, text) {
 }
 
 function enterBulkMode() {
-    document.querySelectorAll('.view-mode').forEach(el => el.classList.add('hidden'));
-    document.querySelectorAll('.edit-mode').forEach(el => el.classList.remove('hidden'));
-    document.getElementById('btn-bulk').classList.add('hidden');
-    document.getElementById('btn-cancel').classList.remove('hidden');
-    document.getElementById('btn-preview').classList.remove('hidden');
+    bulkEditIds = Array.from(document.querySelectorAll('#sync-table .row-check:checked')).map(cb => parseInt(cb.value));
+    if (bulkEditIds.length === 0) {
+        // No selection → edit all
+        bulkEditIds = Array.from(document.querySelectorAll('#sync-table tbody tr:not(.hidden)')).map(r => parseInt(r.dataset.id));
+    }
+    bulkEditIds.forEach(id => {
+        const row = document.querySelector(`tr[data-id="${id}"]`);
+        if (!row) return;
+        row.querySelectorAll('.view-mode').forEach(el => el.classList.add('hidden'));
+        row.querySelectorAll('.edit-mode').forEach(el => el.classList.remove('hidden'));
+        row.classList.add('ring-1', 'ring-amber-300');
+    });
+    document.getElementById('selection-bar').classList.add('hidden');
+    document.getElementById('edit-bar').classList.remove('hidden');
     document.getElementById('th-actions').textContent = '';
 }
 
 // URL'de ?bulk=1 varsa otomatik toplu g\u00fcncelle moduna ge\u00e7
 if (new URLSearchParams(window.location.search).get('bulk') === '1') {
-    window.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('btn-bulk').classList.remove('hidden');
-        enterBulkMode();
-    });
+    window.addEventListener('DOMContentLoaded', () => enterBulkMode());
 }
 
 function cancelBulk() {
-    document.querySelectorAll('.view-mode').forEach(el => el.classList.remove('hidden'));
-    document.querySelectorAll('.edit-mode').forEach(el => {
-        el.classList.add('hidden');
-        el.value = el.dataset.original;
+    bulkEditIds.forEach(id => {
+        const row = document.querySelector(`tr[data-id="${id}"]`);
+        if (!row) return;
+        row.querySelectorAll('.view-mode').forEach(el => el.classList.remove('hidden'));
+        row.querySelectorAll('.edit-mode').forEach(el => {
+            el.classList.add('hidden');
+            el.value = el.dataset.original;
+        });
+        row.classList.remove('ring-1', 'ring-amber-300');
     });
-    document.getElementById('btn-bulk').classList.remove('hidden');
-    document.getElementById('btn-cancel').classList.add('hidden');
-    document.getElementById('btn-preview').classList.add('hidden');
+    bulkEditIds = [];
+    document.getElementById('edit-bar').classList.add('hidden');
+    document.getElementById('th-actions').textContent = '\u0130\u015flem';
+    clearSelection();
+}
     document.getElementById('th-actions').textContent = 'Islem';
 }
 
@@ -592,21 +734,23 @@ function saveMssqlId() {
 function fetchFromMssql() {
     const btn = document.getElementById('btn-mssql');
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Baglaniyor...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Sorgulanıyor...';
     fetch('/admin/sync/fetch-mssql', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken }
     }).then(r => r.json()).then(data => {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-server mr-1"></i> MSSQL\'den Cek';
+        btn.innerHTML = '<i class="fas fa-rotate mr-1.5"></i> MSSQL Sync';
         if (!data.success) return showMsg('error', data.error);
         mssqlMatchedData = data.matched.filter(item => item.has_changes);
         renderMssqlFetch(data);
-        document.getElementById('mssql-fetch-modal').classList.remove('hidden');
+        const panel = document.getElementById('mssql-panel');
+        panel.classList.remove('hidden');
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }).catch(err => {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-server mr-1"></i> MSSQL\'den Cek';
-        showMsg('error', 'MSSQL baglanti hatasi: ' + err.message);
+        btn.innerHTML = '<i class="fas fa-rotate mr-1.5"></i> MSSQL Sync';
+        showMsg('error', 'MSSQL bağlantı hatası: ' + err.message);
     });
 }
 
@@ -685,7 +829,11 @@ function updateMssqlSelectedCount() {
     }
 }
 
-function closeMssqlFetch() { document.getElementById('mssql-fetch-modal').classList.add('hidden'); }
+function closeMssqlPanel() {
+    document.getElementById('mssql-panel').classList.add('hidden');
+}
+
+function closeMssqlFetch() { closeMssqlPanel(); }
 
 function applyMssqlChanges() {
     const checkedIdx = Array.from(document.querySelectorAll('.mssql-check:checked')).map(cb => parseInt(cb.dataset.idx, 10));

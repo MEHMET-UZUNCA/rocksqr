@@ -51,7 +51,19 @@ RocksQR; **QR menü (müşteri)**, **Mutfak/Bar ekranları (personel)** ve **Sym
 - `settings` — MSSQL bağlantı/SQL ayarları (3 bölüm: Ürün, KDS, BDS)
 
 ---
+## v1.0.30 - 2026-04-26
 
+### Sync Sayfası Komple Yeniden Tasarımı
+- **Kolon sırası düzeltildi**: ID → Product Code → Ürün Adı → Kategori → Fiyat → Durum → İşlem (tüm tablolarda tutarlı).
+- **Stats kartları**: Toplam ürün / Product Code Var / Product Code Yok / Eşleşme Oranı (%).
+- **Arama + filtre**: Canlı ad araması ve "Kodu Var / Kodu Yok" filtresi.
+- **Satır checkbox'ları**: Her ürüne tick ekle; "Tümünü Seç" header checkbox; seçim bağlamsal aksiyon çubuğu (mavi bant).
+- **"Seçilenleri Düzenle"** ile sadece seçili satırlarda edit-mode açılır; bağlamsal turuncu düzenleme çubuğu gösterilir.
+- **MSSQL Sync inline panel**: "MSSQL Sync" tıklayınca karşılaştırma sonuçları modal değil, sayfada inline açılır; değişiklik olan satırlar otomatik seçili gelir.
+- Product Code "Yok" olan ürünler tur-turuncu uyarı ikonuyla belirtilir.
+- Tüm butonlar rounded-lg ve daha belirgin; çalışma alanı card bazlı layout.
+
+---
 ## v1.0.28 - 2026-04-25
 
 ### Toplu Güncelle Ürünler Sayfasına Taşındı
