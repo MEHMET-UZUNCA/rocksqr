@@ -15,8 +15,8 @@
                     <button type="button" onclick="cancelBulk()" id="btn-cancel" class="hidden px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition">
                         <i class="fas fa-times mr-1"></i> İptal
                     </button>
-                    <button type="button" onclick="previewChanges()" id="btn-preview" class="hidden px-4 py-2 bg-gold text-primary font-bold rounded hover:bg-yellow-500 transition">
-                        <i class="fas fa-eye mr-1"></i> Değişiklikleri Önizle
+                    <button type="button" onclick="saveChanges()" id="btn-preview" class="hidden px-4 py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700 transition">
+                        <i class="fas fa-save mr-1"></i> Kaydet
                     </button>
                     <a href="{{ route('admin.products.create') }}" class="px-4 py-2 bg-primary text-white rounded hover:bg-light-primary transition">
                         <i class="fas fa-plus mr-1"></i> Yeni Ürün
@@ -201,25 +201,31 @@ function showBulkMsg(type, msg) {
     setTimeout(() => el.classList.add('hidden'), 4000);
 }
 
-function previewChanges() {
+function saveChanges() {
     const updates = collectChanges();
     if (updates.length === 0) {
         showBulkMsg('error', 'Herhangi bir değişiklik yapılmadı.');
         return;
     }
-    fetch('/admin/sync/preview', {
+    const btn = document.getElementById('btn-preview');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Kaydediliyor...';
+    fetch('/admin/sync/bulk-update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
         body: JSON.stringify({ updates })
     })
     .then(r => r.json())
     .then(data => {
-        renderPreview(data.preview);
-        document.getElementById('preview-count').textContent = data.total_changes + ' üründe değişiklik';
-        document.getElementById('preview-modal').classList.remove('hidden');
-        pendingUpdates = updates;
+        const changedCount = data.results.filter(r => r.changed).length;
+        showBulkMsg('success', changedCount + ' ürün başarıyla güncellendi! Sayfa yenileniyor...');
+        setTimeout(() => location.reload(), 1200);
     })
-    .catch(err => showBulkMsg('error', 'Önizleme hatası: ' + err.message));
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save mr-1"></i> Kaydet';
+        showBulkMsg('error', 'Güncelleme hatası: ' + err.message);
+    });
 }
 
 function renderPreview(preview) {
