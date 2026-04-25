@@ -186,23 +186,17 @@
                 </div>
             `).join('');
 
-            const _checkNo = order.check_number || '';
-            const _tableNo = order.table_no || '';
             const messagesHtml = (order.messages || []).length > 0 ? `
                 <div class="mx-4 mb-2 p-2 bg-yellow-900/40 border border-yellow-500/60 rounded-lg">
                     <div class="text-xs text-yellow-400 font-bold uppercase mb-2">
                         <i class="fas fa-bullhorn mr-1"></i>Mutfak Mesajlari
                     </div>
                     ${(order.messages || []).map(m => `
-                        <div class="py-2 border-b border-yellow-500/20 last:border-0">
-                            <div class="text-yellow-200 text-sm mb-2">
+                        <div class="py-1 border-b border-yellow-500/20 last:border-0">
+                            <div class="text-yellow-200 text-sm">
                                 <span class="text-yellow-400">${m.qty > 1 ? 'x'+m.qty+' ' : ''}</span>${escapeHtml(m.name)}
                                 ${m.note ? ` <span class="text-yellow-400/80">— ${escapeHtml(m.note)}</span>` : ''}
                             </div>
-                            <button onclick='completeMessage(${JSON.stringify("M" + (m.item_id || ""))}, ${JSON.stringify(_checkNo)}, ${JSON.stringify(_tableNo)}, ${JSON.stringify(m.name || "")}, ${JSON.stringify(m.note || "")}, ${m.qty || 1})'
-                                    class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-bold text-white">
-                                <i class="fas fa-check-circle mr-1"></i>Onayla → Servis
-                            </button>
                         </div>
                     `).join('')}
                 </div>
@@ -385,18 +379,6 @@
         function completeOrder(kind, groupKey, checkNumber, tableNo) {
             postJson('/kitchen-pos/complete', {
                 kind, group_key: groupKey, check_number: checkNumber, table_no: tableNo,
-            }).then(() => fetchOnce()).catch(e => console.error(e));
-        }
-
-        function completeMessage(groupKey, checkNumber, tableNo, name, note, qty) {
-            postJson('/kitchen-pos/complete', {
-                kind: 'checkless_msg',
-                group_key: groupKey,
-                check_number: checkNumber,
-                table_no: tableNo,
-                name: name,
-                note: note,
-                qty: qty,
             }).then(() => fetchOnce()).catch(e => console.error(e));
         }
 
