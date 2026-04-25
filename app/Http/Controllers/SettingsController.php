@@ -39,21 +39,34 @@ class SettingsController extends Controller
             Setting::set('screen_clear_time', $request->screen_clear_time);
             return back()->with('success', 'Ekran temizleme saati güncellendi.');
         } elseif ($request->has('_display_only')) {
+            $section = $request->input('_display_only');
+
+            if ($section === 'bar') {
+                $request->validate([
+                    'bar_screen_title'    => 'nullable|string|max:255',
+                    'bar_completed_display'  => 'required|integer|min:1|max:100',
+                    'order_ready_display'    => 'required|integer|min:1|max:200',
+                    'order_profit_display'   => 'required|integer|min:1|max:200',
+                ]);
+                Setting::set('bar_screen_title', $request->bar_screen_title ?: 'KDS - Bar Ekrani');
+                Setting::set('bar_completed_display', $request->bar_completed_display);
+                Setting::set('order_ready_display', $request->order_ready_display);
+                Setting::set('order_profit_display', $request->order_profit_display);
+                return back()->with('success', 'Bar ekran ayarları güncellendi.');
+            }
+
+            // kitchen
             $request->validate([
-                'kitchen_completed_display' => 'required|integer|min:1|max:100',
-                'bar_completed_display' => 'required|integer|min:1|max:100',
-                'ready_undo_seconds' => 'required|integer|min:5|max:600',
-                'waiter_call_display' => 'required|integer|min:1|max:200',
-                'order_ready_display' => 'required|integer|min:1|max:200',
-                'order_profit_display' => 'required|integer|min:1|max:200',
+                'kitchen_screen_title'       => 'nullable|string|max:255',
+                'kitchen_completed_display'  => 'required|integer|min:1|max:100',
+                'waiter_call_display'        => 'required|integer|min:1|max:200',
+                'ready_undo_seconds'         => 'required|integer|min:5|max:600',
             ]);
+            Setting::set('kitchen_screen_title', $request->kitchen_screen_title ?: 'POOL Mutfak Ekrani');
             Setting::set('kitchen_completed_display', $request->kitchen_completed_display);
-            Setting::set('bar_completed_display', $request->bar_completed_display);
-            Setting::set('ready_undo_seconds', $request->ready_undo_seconds);
             Setting::set('waiter_call_display', $request->waiter_call_display);
-            Setting::set('order_ready_display', $request->order_ready_display);
-            Setting::set('order_profit_display', $request->order_profit_display);
-            return back()->with('success', 'Ekran görünüm ayarları güncellendi.');
+            Setting::set('ready_undo_seconds', $request->ready_undo_seconds);
+            return back()->with('success', 'Kitchen ekran ayarları güncellendi.');
         } else {
             $request->validate([
                 'site_title' => 'required|string|max:255',

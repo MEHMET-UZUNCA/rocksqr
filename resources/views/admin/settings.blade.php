@@ -126,48 +126,42 @@
                 </form>
 
                 <form action="{{ route('admin.settings.update') }}" method="POST" class="mt-8">
-                    <input type="hidden" name="_display_only" value="1">
+                    <input type="hidden" name="_display_only" value="bar">
                     @csrf
                     @method('PUT')
 
-                    <h3 class="text-base font-bold text-gray-800 mb-4">
-                        <i class="fas fa-desktop mr-1 text-gold"></i>Ekran Görünüm Ayarları
+                    <h3 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                            <i class="fas fa-wine-glass text-amber-600"></i>
+                        </span>
+                        Bar Ekran Ayarları
                     </h3>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label for="kitchen_completed_display" class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="fas fa-utensils mr-1"></i>Mutfak: Tamamlanan Son Sipariş Sayısı
+                            <label for="bar_screen_title" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-heading mr-1"></i>Bar Ekranı Başlığı
                             </label>
-                            <input type="number" min="1" max="100" step="1" name="kitchen_completed_display" id="kitchen_completed_display"
-                                   value="{{ old('kitchen_completed_display', $settings['kitchen_completed_display']) }}"
-                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
-                            <p class="text-xs text-gray-400 mt-1">Mutfak ekranında "Hazırlandı" olarak işaretlenen son kaç sipariş görüneceğini belirler (1–100).</p>
+                            <input type="text" name="bar_screen_title" id="bar_screen_title_bar"
+                                   value="{{ old('bar_screen_title', $settings['bar_screen_title']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold"
+                                   placeholder="KDS - Bar Ekrani">
                         </div>
                         <div>
                             <label for="bar_completed_display" class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="fas fa-wine-glass mr-1"></i>Bar: Sipariş Hazır Son Sipariş Sayısı
+                                <i class="fas fa-check-circle mr-1"></i>Tamamlanan Sipariş Sayısı
                             </label>
                             <input type="number" min="1" max="100" step="1" name="bar_completed_display" id="bar_completed_display"
                                    value="{{ old('bar_completed_display', $settings['bar_completed_display']) }}"
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
-                            <p class="text-xs text-gray-400 mt-1">Bar ekranındaki "Sipariş Hazır" ve "Tamamlanan" alanında kaç sipariş görüneceğini belirler (1–100).</p>
+                            <p class="text-xs text-gray-400 mt-1">"Sipariş Hazır" ve "Tamamlanan" alanında kaç sipariş görüneceğini belirler (1–100).</p>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div>
-                            <label for="waiter_call_display" class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="fas fa-bell mr-1"></i>Garson Çağrıları: Görüntülenecek Adet
-                            </label>
-                            <input type="number" min="1" max="200" step="1" name="waiter_call_display" id="waiter_call_display"
-                                   value="{{ old('waiter_call_display', $settings['waiter_call_display']) }}"
-                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
-                            <p class="text-xs text-gray-400 mt-1">Admin panelinde garson çağrıları listesinde kaç kayıt gösterileceğini belirler.</p>
-                        </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
                             <label for="order_ready_display" class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="fas fa-check-circle mr-1"></i>Sipariş Hazır Alanı: Görüntülenecek Adet
+                                <i class="fas fa-list-check mr-1"></i>Sipariş Hazır Alanı: Görüntülenecek Adet
                             </label>
                             <input type="number" min="1" max="200" step="1" name="order_ready_display" id="order_ready_display"
                                    value="{{ old('order_ready_display', $settings['order_ready_display']) }}"
@@ -185,19 +179,71 @@
                         </div>
                     </div>
 
-                    <div class="mb-4">
-                        <label for="ready_undo_seconds" class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-rotate-left mr-1"></i>Geri Alma Süresi (saniye)
-                        </label>
-                        <input type="number" min="5" max="600" step="1" name="ready_undo_seconds" id="ready_undo_seconds"
-                               value="{{ old('ready_undo_seconds', $settings['ready_undo_seconds']) }}"
-                               class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
-                        <p class="text-xs text-gray-400 mt-1">QR siparişleri ve onaylanan mutfak mesajları için "Geri Al" butonu bu süre boyunca çalışır. Sonrasında kayıt kalıcılaşır.</p>
+                    <button type="submit"
+                            class="py-3 px-6 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 transition">
+                        <i class="fas fa-save mr-2"></i>Bar Ekran Ayarlarını Kaydet
+                    </button>
+                </form>
+
+                <hr class="my-8 border-gray-200">
+
+                <form action="{{ route('admin.settings.update') }}" method="POST">
+                    <input type="hidden" name="_display_only" value="kitchen">
+                    @csrf
+                    @method('PUT')
+
+                    <h3 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+                            <i class="fas fa-utensils text-orange-600"></i>
+                        </span>
+                        Kitchen Ekran Ayarları
+                    </h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label for="kitchen_screen_title" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-heading mr-1"></i>Mutfak Ekranı Başlığı
+                            </label>
+                            <input type="text" name="kitchen_screen_title" id="kitchen_screen_title_settings"
+                                   value="{{ old('kitchen_screen_title', $settings['kitchen_screen_title']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold"
+                                   placeholder="POOL Mutfak Ekrani">
+                        </div>
+                        <div>
+                            <label for="kitchen_completed_display" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-check-circle mr-1"></i>Tamamlanan Son Sipariş Sayısı
+                            </label>
+                            <input type="number" min="1" max="100" step="1" name="kitchen_completed_display" id="kitchen_completed_display"
+                                   value="{{ old('kitchen_completed_display', $settings['kitchen_completed_display']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
+                            <p class="text-xs text-gray-400 mt-1">"Hazırlandı" olarak işaretlenen son kaç sipariş görüneceğini belirler (1–100).</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label for="waiter_call_display" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-bell mr-1"></i>Garson Çağrıları: Görüntülenecek Adet
+                            </label>
+                            <input type="number" min="1" max="200" step="1" name="waiter_call_display" id="waiter_call_display"
+                                   value="{{ old('waiter_call_display', $settings['waiter_call_display']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
+                            <p class="text-xs text-gray-400 mt-1">Garson çağrıları listesinde kaç kayıt gösterileceğini belirler.</p>
+                        </div>
+                        <div>
+                            <label for="ready_undo_seconds" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-rotate-left mr-1"></i>Geri Alma Süresi (saniye)
+                            </label>
+                            <input type="number" min="5" max="600" step="1" name="ready_undo_seconds" id="ready_undo_seconds"
+                                   value="{{ old('ready_undo_seconds', $settings['ready_undo_seconds']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
+                            <p class="text-xs text-gray-400 mt-1">"Geri Al" butonu bu süre boyunca çalışır. Sonrasında kayıt kalıcılaşır.</p>
+                        </div>
                     </div>
 
                     <button type="submit"
-                            class="py-3 px-6 bg-gold text-white font-bold rounded-lg hover:bg-yellow-500 transition whitespace-nowrap">
-                        <i class="fas fa-save mr-2"></i>Ekran Ayarlarını Kaydet
+                            class="py-3 px-6 bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-600 transition">
+                        <i class="fas fa-save mr-2"></i>Kitchen Ekran Ayarlarını Kaydet
                     </button>
                 </form>
 
