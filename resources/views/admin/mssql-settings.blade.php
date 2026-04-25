@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 
 @section('content')
 <div class="py-12">
@@ -12,8 +12,8 @@
                 <div class="mb-6 p-4 bg-sky-50 border border-sky-200 rounded-lg">
                     <p class="text-sm text-sky-700">
                         <i class="fas fa-info-circle mr-1"></i>
-                        İki ayrı bağlantı yapılandırılır: <strong>Ürün</strong> (Symphony menüsü), <strong>KDS</strong> (Mutfak ekranı) ve <strong>BDS</strong> (Bar ekranı).
-                        Her bağlantı için ayrı host, kullanıcı ve özel SQL sorgusu girilebilir. Şifreler şifreli saklanır.
+                        Üç bağlantı bağımsız olarak yapılandırılır: <strong>Ürün (Symphony)</strong> — menü senkronizasyonu, <strong>Symphony Mutfak (KDS)</strong> — mutfak ekranı, <strong>Symphony Bar (BDS)</strong> — bar ekranı.
+                        Her biri kendi host/kullanıcı/sorgu/RVC filtresiyle ayrı ayrı özelleştirilebilir. Şifreler şifreli saklanır.
                     </p>
                 </div>
 
@@ -23,10 +23,10 @@
                         <i class="fas fa-utensils mr-1"></i>Ürün (Symphony)
                     </button>
                     <button type="button" data-tab="kds" class="tab-btn px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-sky-600 hover:bg-sky-50">
-                        <i class="fas fa-fire mr-1"></i>KDS (Mutfak)
+                        <i class="fas fa-fire mr-1"></i>Symphony Mutfak (KDS)
                     </button>
                     <button type="button" data-tab="bds" class="tab-btn px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-sky-600 hover:bg-sky-50">
-                        <i class="fas fa-glass-martini-alt mr-1"></i>BDS (Bar)
+                        <i class="fas fa-glass-martini-alt mr-1"></i>Symphony Bar (BDS)
                     </button>
                 </div>
 
@@ -62,16 +62,17 @@
                         @include('admin.partials.mssql-section', [
                             'section'    => 'kds',
                             'prefix'     => 'mssql_kds',
-                            'title'      => 'KDS (Mutfak Ekranı)',
+                            'title'      => 'Symphony — Mutfak Ekranı (KDS)',
                             'icon'       => 'fa-fire',
                             'color'      => 'orange',
-                            'showRvc'    => false,
-                            'queryHint'  => 'KDS için açık siparişleri/üretim hattını döndüren SQL sorgusu.',
+                            'showRvc'    => true,
+                            'rvcField'   => 'mssql_kds_rvc_filter',
+                            'queryHint'  => 'Mutfak için Symphony\''den açık siparişler/üretim hattını döndüren SQL sorgusu.',
                             'aliasList'  => false,
                             'settings'   => $settings,
                         ])
                         <button type="submit" class="w-full py-3 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-700 transition mt-6">
-                            <i class="fas fa-save mr-2"></i>KDS Ayarlarını Kaydet
+                            <i class="fas fa-save mr-2"></i>Symphony Mutfak Ayarlarını Kaydet
                         </button>
                     </form>
                 </div>
@@ -85,16 +86,17 @@
                         @include('admin.partials.mssql-section', [
                             'section'    => 'bds',
                             'prefix'     => 'mssql_bds',
-                            'title'      => 'BDS (Bar Ekranı)',
+                            'title'      => 'Symphony — Bar Ekranı (BDS)',
                             'icon'       => 'fa-glass-martini-alt',
                             'color'      => 'amber',
-                            'showRvc'    => false,
-                            'queryHint'  => 'Bar ekranı için Symphony\'den açık bar siparişlerini döndüren SQL sorgusu. Beklenen kolonlar: TableNo, ItemName, Qty, OrderTime, CheckNumber (kolonları kendi sorgunuza göre adın).',
+                            'showRvc'    => true,
+                            'rvcField'   => 'mssql_bds_rvc_filter',
+                            'queryHint'  => 'Bar ekranı için Symphony dan açık bar siparişlerini döndüren SQL sorgusu.',
                             'aliasList'  => false,
                             'settings'   => $settings,
                         ])
                         <button type="submit" class="w-full py-3 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-700 transition mt-6">
-                            <i class="fas fa-save mr-2"></i>BDS Ayarlarını Kaydet
+                            <i class="fas fa-save mr-2"></i>Symphony Bar Ayarlarını Kaydet
                         </button>
                     </form>
                 </div>
@@ -287,3 +289,4 @@ function escapeHtml(s) {
 }
 </script>
 @endsection
+

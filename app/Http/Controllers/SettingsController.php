@@ -115,21 +115,23 @@ class SettingsController extends Controller
             'mssql_income_center_filter' => Setting::get('mssql_income_center_filter', ''),
             'mssql_custom_query' => Setting::get('mssql_custom_query', ''),
 
-            // KDS (Mutfak ekranı) bağlantısı
+            // KDS (Mutfak ekranı — Symphony bağlantısı)
             'mssql_kds_host' => Setting::get('mssql_kds_host', ''),
             'mssql_kds_port' => Setting::get('mssql_kds_port', '1433'),
             'mssql_kds_database' => Setting::get('mssql_kds_database', ''),
             'mssql_kds_username' => Setting::get('mssql_kds_username', ''),
             'mssql_kds_password' => Setting::get('mssql_kds_password', '') ? '********' : '',
             'mssql_kds_query' => Setting::get('mssql_kds_query', ''),
+            'mssql_kds_rvc_filter' => Setting::get('mssql_kds_rvc_filter', ''),
 
-            // BDS (Bar ekranı) bağlantısı
-            'mssql_bds_host' => Setting::get('mssql_bds_host', Setting::get('mssql_kds_host', '')),
-            'mssql_bds_port' => Setting::get('mssql_bds_port', Setting::get('mssql_kds_port', '1433')),
-            'mssql_bds_database' => Setting::get('mssql_bds_database', Setting::get('mssql_kds_database', '')),
-            'mssql_bds_username' => Setting::get('mssql_bds_username', Setting::get('mssql_kds_username', '')),
-            'mssql_bds_password' => Setting::get('mssql_bds_password', '') ? '********' : (Setting::get('mssql_kds_password', '') ? '********' : ''),
+            // BDS (Bar ekranı — Symphony bağlantısı)
+            'mssql_bds_host' => Setting::get('mssql_bds_host', ''),
+            'mssql_bds_port' => Setting::get('mssql_bds_port', '1433'),
+            'mssql_bds_database' => Setting::get('mssql_bds_database', ''),
+            'mssql_bds_username' => Setting::get('mssql_bds_username', ''),
+            'mssql_bds_password' => Setting::get('mssql_bds_password', '') ? '********' : '',
             'mssql_bds_query' => Setting::get('mssql_bds_query', ''),
+            'mssql_bds_rvc_filter' => Setting::get('mssql_bds_rvc_filter', ''),
         ];
 
         return view('admin.mssql-settings', compact('settings'));
@@ -147,6 +149,7 @@ class SettingsController extends Controller
                 'mssql_kds_username' => 'nullable|string|max:255',
                 'mssql_kds_password' => 'nullable|string|max:255',
                 'mssql_kds_query' => 'nullable|string',
+                'mssql_kds_rvc_filter' => 'nullable|string|max:255',
             ]);
 
             Setting::set('mssql_kds_host', trim((string) ($request->mssql_kds_host ?? '')));
@@ -154,12 +157,13 @@ class SettingsController extends Controller
             Setting::set('mssql_kds_database', trim((string) ($request->mssql_kds_database ?? '')));
             Setting::set('mssql_kds_username', trim((string) ($request->mssql_kds_username ?? '')));
             Setting::set('mssql_kds_query', (string) ($request->mssql_kds_query ?? ''));
+            Setting::set('mssql_kds_rvc_filter', trim((string) ($request->mssql_kds_rvc_filter ?? '')));
             if ($request->mssql_kds_password && $request->mssql_kds_password !== '********') {
                 Setting::set('mssql_kds_password', encrypt($request->mssql_kds_password));
             }
 
             return redirect()->route('admin.mssql-settings')
-                ->with('success', 'KDS ayarları güncellendi.')
+                ->with('success', 'Symphony Mutfak (KDS) ayarları güncellendi.')
                 ->with('active_tab', 'kds');
         }
 
@@ -171,6 +175,7 @@ class SettingsController extends Controller
                 'mssql_bds_username' => 'nullable|string|max:255',
                 'mssql_bds_password' => 'nullable|string|max:255',
                 'mssql_bds_query' => 'nullable|string',
+                'mssql_bds_rvc_filter' => 'nullable|string|max:255',
             ]);
 
             Setting::set('mssql_bds_host', trim((string) ($request->mssql_bds_host ?? '')));
@@ -178,12 +183,13 @@ class SettingsController extends Controller
             Setting::set('mssql_bds_database', trim((string) ($request->mssql_bds_database ?? '')));
             Setting::set('mssql_bds_username', trim((string) ($request->mssql_bds_username ?? '')));
             Setting::set('mssql_bds_query', (string) ($request->mssql_bds_query ?? ''));
+            Setting::set('mssql_bds_rvc_filter', trim((string) ($request->mssql_bds_rvc_filter ?? '')));
             if ($request->mssql_bds_password && $request->mssql_bds_password !== '********') {
                 Setting::set('mssql_bds_password', encrypt($request->mssql_bds_password));
             }
 
             return redirect()->route('admin.mssql-settings')
-                ->with('success', 'BDS ayarları güncellendi.')
+                ->with('success', 'Symphony Bar (BDS) ayarları güncellendi.')
                 ->with('active_tab', 'bds');
         }
 

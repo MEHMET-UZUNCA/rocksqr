@@ -58,15 +58,19 @@
 </div>
 
 @if($showRvc ?? false)
+    @php
+        // Product uses legacy 'mssql_income_center_filter', KDS/BDS use prefix-based field
+        $rvcFieldName = $rvcField ?? ($prefix . '_rvc_filter');
+    @endphp
     <hr class="my-5 border-gray-200">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
-            <label for="mssql_income_center_filter" class="block text-sm font-semibold text-gray-700 mb-2">
+            <label for="{{ $rvcFieldName }}" class="block text-sm font-semibold text-gray-700 mb-2">
                 <i class="fas fa-filter mr-1 text-emerald-600"></i>RVC / Gelir Merkezi Filtresi
                 <span class="ml-1 text-xs font-normal text-gray-400">(opsiyonel)</span>
             </label>
-            <input type="text" name="mssql_income_center_filter" id="mssql_income_center_filter"
-                value="{{ old('mssql_income_center_filter', $settings['mssql_income_center_filter'] ?? '') }}"
+            <input type="text" name="{{ $rvcFieldName }}" id="{{ $rvcFieldName }}"
+                value="{{ old($rvcFieldName, $settings[$rvcFieldName] ?? '') }}"
                 class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold"
                 placeholder="Boş = filtre yok">
             <p class="text-xs text-gray-500 mt-1">
