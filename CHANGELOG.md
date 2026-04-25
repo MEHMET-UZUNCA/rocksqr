@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.0.20 - 2026-04-25
+
+### Eklenenler
+- **Hibrit Symphony doğrulaması (bar ekranı)**: QR siparişi geldiğinde Onayla butonu, ilgili masanın Symphony POS'ta açık adisyonu olana kadar **pasif** durumda bekler:
+  - Yeni QR siparişi → kart turuncu kenarlıkla **`POS BEKLENIYOR`** etiketiyle görünür, buton "POS bekleniyor..." (kum saati animasyonu, tıklanamaz)
+  - Garson Symphony'ye girince (≤5 sn içinde algılanır) → kart altın renge döner, buton aktifleşir: **"Onayla (POS'ta var)"**
+  - Onayla'ya basılınca QR kartı kaybolur ve aynı masanın **mavi `SYMPHONY` kartı** akışı devralır (zaten POS'ta olduğu için)
+
+### Mantık
+- Eşleşme `table_no` üzerinden yapılır (Symphony BDS sorgusundan dönen masalar ile QR siparişlerin `table_no`'su karşılaştırılır)
+- Ekstra MSSQL yükü yok — mevcut bar/symphony API yanıtları frontend'de eşleştiriliyor
+
 ## v1.0.19 - 2026-04-25
 
 ### Düzeltildi

@@ -357,9 +357,12 @@
                     statusText = 'POS';
                     sourceBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYMPHONY</span>`;
                 } else {
-                    borderClass = isNew ? 'new-order border-gold' : 'border-green-500';
-                    statusBg = isNew ? 'bg-yellow-500' : 'bg-blue-500';
-                    statusText = isNew ? 'YENI' : 'MUTFAKTA';
+                    const inSym = order.in_symphony === true;
+                    borderClass = isNew
+                        ? (inSym ? 'new-order border-gold' : 'border-orange-500')
+                        : 'border-green-500';
+                    statusBg = isNew ? (inSym ? 'bg-yellow-500' : 'bg-orange-500') : 'bg-blue-500';
+                    statusText = isNew ? (inSym ? 'YENI' : 'POS BEKLENIYOR') : 'MUTFAKTA';
                     sourceBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-700 text-purple-100"><i class="fas fa-mobile-screen mr-0.5"></i>QR</span>`;
                 }
 
@@ -401,13 +404,21 @@
                     const priceLine = order.total_price ? `<div class="px-4 py-2 border-t border-gray-700 flex justify-between items-center">
                         <span class="font-bold text-gold">${parseFloat(order.total_price).toFixed(2)} TL</span>
                     </div>` : '';
-                    const btn = isNew
-                        ? `<button onclick="confirmOrder(${order.id})" class="w-full py-2 bg-gold hover:bg-yellow-600 text-primary rounded-lg text-sm font-bold transition flex items-center justify-center gap-2">
-                                <i class="fas fa-check-circle"></i> Onayla
-                            </button>`
-                        : `<div class="w-full py-2 bg-blue-600/40 border border-blue-500 rounded-lg text-sm font-bold text-center flex items-center justify-center gap-2 text-blue-100">
+                    const inSym = order.in_symphony === true;
+                    let btn;
+                    if (isNew && inSym) {
+                        btn = `<button onclick="confirmOrder(${order.id})" class="w-full py-2 bg-gold hover:bg-yellow-600 text-primary rounded-lg text-sm font-bold transition flex items-center justify-center gap-2">
+                                <i class="fas fa-check-circle"></i> Onayla (POS'ta var)
+                            </button>`;
+                    } else if (isNew && !inSym) {
+                        btn = `<button disabled class="w-full py-2 bg-gray-700 text-gray-400 rounded-lg text-sm font-bold flex items-center justify-center gap-2 cursor-not-allowed" title="Symphony POS'ta bu masaya ait acik adisyon bulunamadi. Garson POS'a girince Onayla aktif olacak.">
+                                <i class="fas fa-hourglass-half animate-pulse"></i> POS bekleniyor...
+                            </button>`;
+                    } else {
+                        btn = `<div class="w-full py-2 bg-blue-600/40 border border-blue-500 rounded-lg text-sm font-bold text-center flex items-center justify-center gap-2 text-blue-100">
                                 <i class="fas fa-utensils"></i> Mutfakta hazirlaniyor
                             </div>`;
+                    }
                     footer = `${priceLine}<div class="px-4 py-2 border-t border-gray-700">${btn}</div>`;
                 }
 
@@ -515,6 +526,13 @@
                     bar_status: 'approved',
                     created_at: (o.order_time || '').slice(-8), // sadece HH:MM:SS
                 }));
+
+                // Hibrit dogrulama: ayni masada Symphony girisi varsa QR Onayla aktif olsun
+                const symphonyTables = new Set(symOrders.map(o => String(o.table_no || '')).filter(t => t !== ''));
+                qrOrders.forEach(q => {
+                    q.in_symphony = q.table_no ? symphonyTables.has(String(q.table_no)) : false;
+                });
+
                 const allOrders = [...qrOrders, ...symOrders].sort((a, b) => {
                     return (a.seconds_ago || 0) - (b.seconds_ago || 0);
                 });
