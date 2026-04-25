@@ -19,13 +19,16 @@ class Product extends Model
         'photo_path',
         'sort_order',
         'is_available',
-        'oracle_id',
+        'show_in_kitchen',
+        'show_in_bar',
         'mssql_id',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
         'is_available' => 'boolean',
+        'show_in_kitchen' => 'boolean',
+        'show_in_bar' => 'boolean',
     ];
 
     public function category(): BelongsTo

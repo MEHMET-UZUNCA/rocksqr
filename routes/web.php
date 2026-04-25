@@ -22,11 +22,25 @@ Route::post('/waiter-call', [MenuController::class, 'callWaiterPublic'])->name('
 Route::post('/waiter-call/{tableNo}', [MenuController::class, 'callWaiter'])->name('waiter.call');
 Route::get('/order/{order}/success', [MenuController::class, 'orderSuccess'])->name('order.success');
 
-// Kitchen Display System (public - no auth required)
-Route::get('/kitchen', [KitchenController::class, 'index'])->name('kitchen');
-Route::get('/kitchen/api/orders', [KitchenController::class, 'apiOrders'])->name('kitchen.api');
-Route::patch('/kitchen/orders/{order}/status', [KitchenController::class, 'updateStatus'])->name('kitchen.order.status');
-Route::patch('/kitchen/waiter-calls/{waiterCall}/attend', [KitchenController::class, 'attendWaiterCall'])->name('kitchen.waiter.attend');
+// Display Screens (public - no auth required)
+Route::get('/bar', [KitchenController::class, 'bar'])->name('bar');
+Route::get('/bar/api/orders', [KitchenController::class, 'barApiOrders'])->name('bar.api');
+Route::patch('/bar/orders/{order}/status', [KitchenController::class, 'barUpdateStatus'])->name('bar.order.status');
+Route::patch('/bar/waiter-calls/{waiterCall}/attend', [KitchenController::class, 'attendWaiterCall'])->name('bar.waiter.attend');
+
+Route::get('/kitchen', [KitchenController::class, 'kitchen'])->name('kitchen');
+Route::get('/kitchen/api/orders', [KitchenController::class, 'kitchenApiOrders'])->name('kitchen.api');
+Route::get('/kitchen/sse', [KitchenController::class, 'kitchenSse'])->name('kitchen.sse');
+Route::patch('/kitchen/orders/{order}/status', [KitchenController::class, 'kitchenUpdateStatus'])->name('kitchen.order.status');
+
+// Symphony POS tabanlı KDS ekranı (Symphony hesapları read-only, QR siparişleri onaylanabilir)
+Route::get('/kitchen-pos', [KitchenController::class, 'kitchenPos'])->name('kitchen.pos');
+Route::get('/kitchen-pos/api', [KitchenController::class, 'kitchenPosApi'])->name('kitchen.pos.api');
+Route::post('/kitchen-pos/complete', [KitchenController::class, 'kitchenPosComplete'])->name('kitchen.pos.complete');
+Route::post('/kitchen-pos/uncomplete', [KitchenController::class, 'kitchenPosUncomplete'])->name('kitchen.pos.uncomplete');
+Route::patch('/kitchen-pos/qr/{order}/confirm', [KitchenController::class, 'kitchenPosConfirmQr'])->name('kitchen.pos.qr.confirm');
+Route::patch('/kitchen-pos/qr/{order}/undo', [KitchenController::class, 'kitchenPosUndoQr'])->name('kitchen.pos.qr.undo');
+Route::patch('/kitchen-pos/qr/{order}/symphony', [KitchenController::class, 'kitchenPosToggleSymphony'])->name('kitchen.pos.qr.symphony');
 
 Route::get('/dashboard', function () {
     return redirect()->route('admin.dashboard');
@@ -51,26 +65,21 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('settings', [SettingsController::class, 'index'])->name('settings');
     Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
 
-    // Oracle Settings
-    Route::get('oracle-settings', [SettingsController::class, 'oracleIndex'])->name('oracle-settings');
-    Route::put('oracle-settings', [SettingsController::class, 'oracleUpdate'])->name('oracle-settings.update');
-    Route::post('oracle-settings/test', [SettingsController::class, 'oracleTest'])->name('oracle-settings.test');
-
     // MSSQL Settings
     Route::get('mssql-settings', [SettingsController::class, 'mssqlIndex'])->name('mssql-settings');
     Route::put('mssql-settings', [SettingsController::class, 'mssqlUpdate'])->name('mssql-settings.update');
     Route::post('mssql-settings/test', [SettingsController::class, 'mssqlTest'])->name('mssql-settings.test');
+    Route::post('mssql-settings/preview', [SettingsController::class, 'mssqlPreview'])->name('mssql-settings.preview');
 
     // Sync
     Route::get('sync', [SyncController::class, 'index'])->name('sync');
-    Route::patch('sync/oracle/{product}', [SyncController::class, 'updateOracleId'])->name('sync.oracle');
     Route::patch('sync/mssql/{product}', [SyncController::class, 'updateMssqlId'])->name('sync.mssql');
     Route::post('sync/preview', [SyncController::class, 'previewBulk'])->name('sync.preview');
     Route::post('sync/bulk-update', [SyncController::class, 'bulkUpdate'])->name('sync.bulk');
-    Route::post('sync/fetch-oracle', [SyncController::class, 'fetchOracle'])->name('sync.fetch-oracle');
-    Route::post('sync/apply-oracle', [SyncController::class, 'applyOracle'])->name('sync.apply-oracle');
     Route::post('sync/fetch-mssql', [SyncController::class, 'fetchMssql'])->name('sync.fetch-mssql');
     Route::post('sync/apply-mssql', [SyncController::class, 'applyMssql'])->name('sync.apply-mssql');
+    Route::post('sync/symphony-fetch', [SyncController::class, 'symphonyFetch'])->name('sync.symphony-fetch');
+    Route::post('sync/symphony-import', [SyncController::class, 'symphonyImport'])->name('sync.symphony-import');
 
     // QR Codes
     Route::get('qr-codes', [AdminQrController::class, 'index'])->name('qr-codes.index');

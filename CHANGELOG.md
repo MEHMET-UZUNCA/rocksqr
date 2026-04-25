@@ -1,5 +1,68 @@
 # Changelog
 
+## v1.0.12 - 2026-04-25
+
+### Eklenenler
+- **Symphony POS Mutfak Ekranı (`/kitchen-pos`)** artık QR menü siparişlerini de gösteriyor; Symphony hesapları read-only kalıyor, QR kartları **mor "QR" şeritli** ayrı stille basılıyor
+- QR kartında **"Onayla → Servis"** butonu: tıklayınca yerel sipariş `kitchen_status=ready` olur ve **Bar ekranındaki "SİPARİŞ HAZIR — SERVİSE GÖTÜR"** şeridine düşer
+- QR kartında **"Symphony'e işlendi"** geçişi: garson Symphony POS'a manuel girdikten sonra işaretler; kart üst kısmı yanıp sönen kırmızı **"SYMPHONY?"** rozetinden sabit yeşil **"SYMPHONY OK"** rozetine döner (yerel `orders.symphony_processed_at` alanında saklanır)
+- Bar ekranına **"Son Tamamlananlar"** alt bölümü eklendi (mutfak `completed` siparişler, `bar_completed_display` ayarı ile sınırlı)
+- Süre/yaş rengi (yeşil/sarı/kırmızı, 10/15 dk eşiği) Symphony hesaplarıyla aynı şekilde QR kartlarında da çalışıyor
+- Yeni Settings sekmesi gerekmeden, ürün bazında **mutfak/bar yönlendirme** kontrolü:
+  - Ürün form ekranına `Mutfak ekranında görünsün` ve `Bar ekranında görünsün` checkbox'ları eklendi
+  - Ürün listesinde her satırın yanında **KDS** / **BAR** rozetleri görünür hale geldi
+  - Kitchen-POS'daki QR kartında yalnızca `show_in_kitchen=true` ürünler listelenir; tek bir bar ürünü olan sipariş kitchen ekranında hiç gösterilmez
+
+### Değişiklikler
+- `kitchen_pos_completions` tablosu artık ana akışta kullanılmıyor (legacy endpoint geriye uyumluluk için duruyor); QR siparişler doğrudan `orders` tablosu üzerinden tamamlanır
+- `mapOrder` ve bar API yanıtı `completed_orders` + `completed_orders_limit` alanlarıyla genişletildi
+
+### Veritabanı
+- `products.show_in_kitchen` (boolean, default `true`) eklendi
+- `products.show_in_bar` (boolean, default `false`) eklendi
+- `orders.symphony_processed_at` (nullable timestamp) eklendi
+
+### Notlar
+- Symphony tarafına yazma yapılmaz; "Symphony'e işlendi" sadece operasyonel takip içindir
+- Mutfak mesajları (Symphony `MajGrp=99`) bu değişikliklerden etkilenmez
+
+---
+
+## v1.0.11 - 2026-04-25
+
+### Eklenenler
+- Symphony Import: **ProductCode (mssql_id) sabit anahtar** olarak kullanılıyor — tekrar senkronizasyonda mevcut ürünler bulunup güncelleniyor, yeni olanlar ekleniyor (silinmiyor)
+- Symphony çoklu fiyat seviyesi (HierStrucID) için otomatik **deduplication**: ürün başına tek satır, en yüksek seviye önceli (RVC > Property > Enterprise)
+- Kullanıcının PascalCase alias'ları desteklendi: `ProductCode`, `ProductName`, `FamilyGroup`, `Price`, `PriceLevel`, `PriceLevelID`
+- MSSQL Ayarları sayfasına **Sorguyu Önizle** butonu eklendi: özel SQL sorgusunu doğrudan çalıştırıp ilk 100 satırı tablo halinde modal'da gösterir (yalnızca SELECT/WITH)
+- MSSQL Ayarları sayfası **sekmeli** yapıya kavuştu: **Ürün (Symphony)** ve **KDS (Mutfak)** için ayrı bağlantı + ayrı SQL sorgusu yönetimi
+- KDS için kendi host/port/db/kullanıcı/şifre/sorgu alanları; her sekme için bağımsız Test ve Önizle butonları
+- **Symphony POS Mutfak Ekranı** (`/kitchen-pos`): KDS sorgusunu canlı çalıştırıp hesapları ve mutfak mesajlarını gösteren read-only ekran
+  - Hesaplar `CheckNumber`'a göre gruplanıyor; her kart masa, hesap, gelir merkezi, kişi sayısı ve geçen süre gösterir
+  - **Mutfak mesajları (MajGrp=99)** iki türlü işleniyor: hesap içindekiler kartın üstünde sarı banner; **checksiz** olanlar sayfanın en üstünde ayrı flash bölüm
+  - 5 saniyede bir otomatik yenileme, yeni hesaplarda ses uyarısı
+  - **Onayla / Tamamla butonu**: hesap veya checksiz mesaj tamamlandığında alttaki "Son Tamamlananlar" bölümüne taşınır (24 saat saklanır), tek tıkla "Geri Al"
+  - Admin menüsüne **Kitchen-Symphony** linki eklendi
+  - Yerel ↔ Symphony KDS ekranları arası çapraz linkler eklendi
+
+### Düzeltmeler
+- Aynı ürünün birden fazla fiyat satırıyla gelmesi durumunda son satır yerine en spesifik fiyatın seçilmesi sağlandı
+
+---
+
+## v1.0.10 - 2026-04-24
+
+### Eklenenler
+- Mutfak ekranında sipariş kartlarında **Masa Numarası** gösterimi eklendi
+- Mobil müşteri menüsünde **alışveriş sepeti altına Garson Çağır butonu** eklendi (sepet kapalıyken de açılabilir)
+
+### İyileştirmeler
+- Kitchen display screen'de sipariş başında masa bilgisi artık görünür ("Siparis #123 Masa 5" formatında)
+- Mobil kullanıcılar sepeti açmadan garson çağırabilir
+- Responsive design mobile-first yaklaşımla optimize edildi
+
+---
+
 ## v1.0.9 - 2026-04-22
 
 ### Eklenenler

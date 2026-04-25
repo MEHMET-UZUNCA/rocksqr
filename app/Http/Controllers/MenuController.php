@@ -56,6 +56,8 @@ class MenuController extends Controller
             'total_price' => $validated['total_price'],
             'order_note' => $validated['order_note'] ?? null,
             'status' => 'new',
+            'bar_status' => 'new',
+            'kitchen_status' => 'waiting',
             'items_json' => json_encode($validated['items']),
         ]);
 
@@ -83,6 +85,8 @@ class MenuController extends Controller
             'total_price' => $validated['total_price'],
             'order_note' => $validated['order_note'] ?? null,
             'status' => 'new',
+            'bar_status' => 'new',
+            'kitchen_status' => 'waiting',
             'items_json' => json_encode($validated['items']),
         ]);
 

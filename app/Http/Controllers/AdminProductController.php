@@ -12,7 +12,7 @@ class AdminProductController extends Controller
     public function index()
     {
         $products = Product::with('category')
-            ->orderBy('sort_order')
+            ->orderBy('id', 'asc')
             ->paginate(20);
 
         return view('admin.products.index', compact('products'));
@@ -33,11 +33,12 @@ class AdminProductController extends Controller
             'price' => 'required|numeric|min:0',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'sort_order' => 'integer|min:0',
-            'oracle_id' => 'nullable|string|max:255',
             'mssql_id' => 'nullable|string|max:255',
         ]);
 
         $validated['is_available'] = $request->has('is_available');
+        $validated['show_in_kitchen'] = $request->has('show_in_kitchen');
+        $validated['show_in_bar'] = $request->has('show_in_bar');
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
 
         if ($request->hasFile('photo')) {
@@ -66,11 +67,12 @@ class AdminProductController extends Controller
             'price' => 'required|numeric|min:0',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'sort_order' => 'integer|min:0',
-            'oracle_id' => 'nullable|string|max:255',
             'mssql_id' => 'nullable|string|max:255',
         ]);
 
         $validated['is_available'] = $request->has('is_available');
+        $validated['show_in_kitchen'] = $request->has('show_in_kitchen');
+        $validated['show_in_bar'] = $request->has('show_in_bar');
 
         if ($request->hasFile('photo')) {
             if ($product->photo_path) {

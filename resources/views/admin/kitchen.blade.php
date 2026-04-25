@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>KDS - Mutfak Ekranı</title>
+    <title>{{ \App\Models\Setting::get('kitchen_screen_title', 'POOL Mutfak Ekrani') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -30,71 +30,57 @@
             50% { border-color: #ef4444; }
         }
         .new-order { animation: pulse-border 1.5s ease-in-out infinite; }
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-        .waiter-alert { animation: shake 0.5s ease-in-out infinite; }
     </style>
 </head>
 <body class="bg-gray-900 font-poppins text-white min-h-screen">
-    <!-- Header -->
     <header class="bg-primary border-b border-gold/30 px-6 py-3 flex items-center justify-between">
         <div class="flex items-center gap-4">
             <h1 class="text-2xl font-bold text-gold">
-                <i class="fas fa-utensils mr-2"></i>KDS - Mutfak Ekranı
+                <i class="fas fa-utensils mr-2"></i>{{ \App\Models\Setting::get('kitchen_screen_title', 'POOL Mutfak Ekrani') }}
             </h1>
             <span id="clock" class="text-gray-400 text-lg"></span>
         </div>
         <div class="flex items-center gap-6">
             <div class="flex items-center gap-2">
                 <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
-                <span class="text-sm text-gray-400">Canlı</span>
+                <span class="text-sm text-gray-400">Canli</span>
             </div>
             <div class="text-sm text-gray-400">
-                <span id="order-count" class="text-gold font-bold text-lg">0</span> aktif sipariş
+                <span id="order-count" class="text-gold font-bold text-lg">0</span> aktif siparis
             </div>
+            <a href="/kitchen-pos" class="text-gray-400 hover:text-gold transition" title="Symphony POS KDS ekranı">
+                <i class="fas fa-server mr-1"></i> Symphony
+            </a>
             <a href="/admin" class="text-gray-400 hover:text-gold transition">
                 <i class="fas fa-arrow-left mr-1"></i> Admin
             </a>
         </div>
     </header>
 
-    <!-- Waiter Calls Bar -->
-    <div id="waiter-bar" class="hidden bg-red-900/50 border-b border-red-500 px-6 py-3">
-        <div class="flex items-center gap-3 mb-2">
-            <i class="fas fa-bell text-red-400 text-xl waiter-alert"></i>
-            <span class="font-bold text-red-300">GARSON ÇAĞRILARI</span>
-            <span id="waiter-count" class="text-red-400 text-sm"></span>
-        </div>
-        <div id="waiter-calls-list" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3"></div>
-    </div>
-
-    <!-- Orders Grid -->
     <main class="p-4">
-        <div id="orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            <!-- Orders will be populated by JS -->
-        </div>
+        <div id="orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
         <div id="no-orders" class="hidden text-center py-20">
             <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
-            <p class="text-2xl text-gray-400">Tüm siparişler tamamlandı!</p>
-            <p class="text-gray-500 mt-2">Yeni siparişler otomatik olarak görünecek.</p>
+            <p class="text-2xl text-gray-400">Tum siparisler tamamlandi!</p>
+            <p class="text-gray-500 mt-2">Yeni siparisler otomatik olarak gorunecek.</p>
+        </div>
+
+        <!-- Completed Orders Section -->
+        <div id="completed-section" class="hidden mt-8 border-t border-gray-700 pt-6">
+            <h2 class="text-lg font-semibold text-gray-400 mb-3 flex items-center gap-2">
+                <i class="fas fa-check-double text-emerald-500"></i>
+                Son Tamamlananlar
+                <span id="completed-limit-badge" class="text-xs bg-gray-700 px-2 py-1 rounded-full text-gray-400"></span>
+            </h2>
+            <div id="completed-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 opacity-60"></div>
         </div>
     </main>
 
-    <!-- Audio elements for notifications -->
-    <audio id="order-sound" preload="auto">
-        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgiJ2NdGFZW3KRo52Kc1xZXnqSm5eOgXRubnqIk5WTjIR+eHt/hYyRk5KOiYR/fH2AhYqOkZKRjoiDf3x9gIWKjpKSkY2HgX16e3+EiY2RkpGOiIF8eXp9goiMkJKSj4uFf3p5e36DhoyQk5KQjIaBe3h5fIGGi4+Sk5GNiIF7eHl7gIWKj5KTkY6IgXt4eHqAhImOkpOSj4uEfnl4eX2ChYuQk5ORjYeBe3d3eX2BhoyRk5OSjoiBenZ2d3yAhYuQk5SSjoqDfHd2d3t/hIqPk5WSj4yFf3l2dnh8gYaLkJOVk5CMhn94dXV3e4CFipCUlZOQjIZ+d3R0dXqAhYuRlJaTkY2Gfnd0dHV5f4WLkZWWk5KOh355dHN0eH6Ei5GVl5WTj4h+eHRyc3d9g4qRlZeWk5CJf3l0cnJ2fIKJkJWYl5WRi4B6dHFxdHuBh46TmJiWk4yBe3VxcHJ5f4aNk5iZl5SOg3x2cW9xd36EjJOYmpiVkIR9d3Fub3V8goqSlpmamJORhX54cm5udHqBiJCWmZqZlZKHgHlzbm1yeX+Hi5SZm5qXlI2DfHZwbW9zeYCFjJOYnJuZlpCHgXpzbW1xdnuCiI+VmZuamJWQiYJ7c21sbHN5f4aPl5ucm5mWkIqDfHRtbGxydnuBh4+WmpybmpaRi4V+dnBsa2xwd3yCiJCXm52cmpeTjIaAfHRuampsbnR6gYiQl5ydnJuXk42Ig350bWlpam50eoGIkJecnp2cm5aSjYiCfHZwamhpa25zeYCHjpWbnp6dnJiVkIuGgHt1b2poaGtudHqAh46Wm56fnp2ZlpGMh4F7dXBqaGdqbXN5f4aOlpuen5+enJiVkIuGgXx2cGtpaGlsb3V7gYeOlpuen5+fnpuXk4+KhYB7dm9raWhpa21zeIGHj5acn6CgoJ6cmJSTjoqFgHp0b2tpaWlrbHJ4f4WNlJqen6CgoJ6cmJWRjYmDfnl0b2ppaWlrbHF3fYSMlJqen6GhoJ+dmZaSkY2IhH96dXBsaWlpa2xxdnyDi5OanqChoaCgn52alZKOiYV/enVwbGppaWpscHV7goqSlpyfoKGioaCgn5yZlZKOioWAe3ZxbWppaWlrbnR6gYmSlpyfoaKioaCgnpyZlZKOioaBfHdzb2tpaWlrbHJ4fYSMk5meoKGioqKhoJ6cmZaSkYyHg356dW9samlpa2xwdXuBiZGXnJ+goqKioaCgnpyZlpOPi4eDfnp1cW5raWlqa25zeICIkJecn6GhoqKhoJ+enJqXlJCMiISAfHd0cGxqaWlqbHB1e4GIkJecn6ChoqKioaCfnZuYlZGNiYWBfXl1cW1raWlqa25yeICIj5abnaChoaKioaCfnZuYlZKOioaDf3t3c29tamlpamxvdHqAh46WmpyfoKGioqKgoJ6cmpiVkY2KhoJ/e3h0cW1raWlqam1xdnuBh46Vmpyfoaaho6Ghn5+dnJqXlJCMiYV/" >
-    </audio>
-    <audio id="waiter-sound" preload="auto">
-        <source src="data:audio/wav;base64,UklGRpQFAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YXAFAACAgICAgICAgICAgICBgoSHi4+TlpmdoKKjoqCcmJOOiYWBfnx7e3x9f4KFiY2RlJeZmpudnJuZlpKOioaBfnx7e3x+gIOGio2QlJeZm5ycnJqYlZGNiYWBfnx7fH1/goWIjJCTlpibnJycm5mXlJCMiIR/fHt7fH6AgoaJjJCTlpibnJ2cnJqYlZGNiYR/fHp7fH5/goaJjJCUl5mbnJ2dnJqYlZGNiIR/fHp6e31/goWJjZCUl5qcnp6dnJqXlJCMh4N+e3p6e31/goaJjZGUl5qcnp+enZuYlZGMh4N+e3l5e31/g4aKjZGVmJqcnp+fnpyZlpKNiIN+e3l5en1/g4aKjpGVmJudnp+fnpyZlpKNiIN+eng5en1/g4eKjpKVmZudnp+gn52alZGMh4J9eXh4eX1/g4eKjpKWmZydoKCgn52alZGMhX95d3d4en1/g4iLj5OWmp2foKGhn52alZCLhX94d3Z3eXx/g4iMkJOXmp2foaGgoJ2alZCLhX54dnZ3eXuAg4iMkJSYm56goaKhoJ6bllCKhH13dXR2eHuAhImNkZSYnJ+goaKioJ6bllCJg3x1dHR1d3qAhImOkZWZnJ+hoquioJ6bllCIg3t0c3J0d3mAhIqOkpWZnaChouOioJ6bl5KIg3t0cnF0dnmAhIqOk5aanaCio+SjoZ+cl5KHgnp0cXBzdniAhYqPk5ebnqGjpOWko6Cdl5KHgXpzb29ydXiAhouQlJicn6KkpealoqCdmJKHgXlybm5xdHeAhouRlZmcoKKlpuempaKfm5eRhoB5cm1sbnF1eIGHjJGWmpygoqWnp+empaOgnJeRhX94cW1rbW9zeICHjJKWm56ho6ao6OinpaOgnJaSg354cGxqa21wd3+Gi5GWm56ho6ap6umnpaOgnJaRg354b2tpamtudnuEio+Ul5ueoqSm" >
-    </audio>
-
     <script>
         let previousOrderIds = [];
-        let previousWaiterIds = [];
         let isFirstLoad = true;
+        let eventSource = null;
+        let sseRetryTimeout = null;
 
         function updateClock() {
             const now = new Date();
@@ -105,13 +91,12 @@
 
         function getProductName(productId) {
             const products = @json(\App\Models\Product::pluck('name', 'id'));
-            return products[productId] || 'Ürün #' + productId;
+            return products[productId] || 'Urun #' + productId;
         }
 
         function playOrderSound() {
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                // Pleasant ding-dong for orders
                 [523.25, 659.25, 783.99].forEach((freq, i) => {
                     const osc = ctx.createOscillator();
                     const gain = ctx.createGain();
@@ -127,25 +112,6 @@
             } catch(e) { console.log('Audio error:', e); }
         }
 
-        function playWaiterSound() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                // Urgent bell sound for waiter calls
-                for (let i = 0; i < 4; i++) {
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.type = 'square';
-                    osc.frequency.value = i % 2 === 0 ? 880 : 1100;
-                    gain.gain.setValueAtTime(0.2, ctx.currentTime + i * 0.15);
-                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.12);
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.start(ctx.currentTime + i * 0.15);
-                    osc.stop(ctx.currentTime + i * 0.15 + 0.12);
-                }
-            } catch(e) { console.log('Audio error:', e); }
-        }
-
         function updateStatus(orderId, newStatus) {
             fetch(`/kitchen/orders/${orderId}/status`, {
                 method: 'PATCH',
@@ -155,174 +121,209 @@
                 },
                 body: JSON.stringify({ status: newStatus })
             })
-            .then(r => r.json())
-            .then(data => { if (data.success) fetchData(); })
-            .catch(err => console.error(err));
-        }
-
-        function attendWaiterCall(callId) {
-            fetch(`/kitchen/waiter-calls/${callId}/attend`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            .then(async (r) => {
+                const data = await r.json();
+                if (!r.ok || data.success === false) {
+                    throw new Error(data.message || 'Durum guncellenemedi.');
                 }
+                return data;
             })
-            .then(r => r.json())
-            .then(data => { if (data.success) fetchData(); })
+            .then(() => { /* SSE will push the update */ })
             .catch(err => console.error(err));
         }
 
-        function confirmOrder(orderId) {
-            updateStatus(orderId, 'preparing');
+        function confirmOrder(orderId) { updateStatus(orderId, 'preparing'); }
+        function markReady(orderId)    { updateStatus(orderId, 'ready'); }
+
+        function buildOrderCard(order, compact) {
+            const kitchenStatus = order.kitchen_status;
+            const isNew       = kitchenStatus === 'new';
+            const isPreparing = kitchenStatus === 'preparing';
+            const isReady     = kitchenStatus === 'ready';
+
+            const borderClass = isNew ? 'new-order border-gold' : isReady ? 'border-emerald-500' : 'border-blue-500';
+            const statusBg    = isNew ? 'bg-yellow-500' : isPreparing ? 'bg-blue-500' : 'bg-emerald-600';
+            const statusText  = isNew ? 'YENI' : isPreparing ? 'HAZIRLANIYOR' : 'HAZIRLANDI';
+
+            const totalSecs = isPreparing && order.preparing_seconds !== null
+                ? order.preparing_seconds
+                : isReady && order.ready_seconds !== null
+                    ? order.ready_seconds
+                    : order.seconds_ago;
+            const hrs  = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
+            const mins = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
+            const secs = String(totalSecs % 60).padStart(2, '0');
+            const timeStr  = hrs + ':' + mins + ':' + secs;
+            const minTotal = Math.floor(totalSecs / 60);
+            const timeBg   = minTotal > 15 ? 'bg-red-600' : minTotal > 10 ? 'bg-yellow-600' : 'bg-green-600';
+
+            let items = [];
+            try { items = Array.isArray(order.items) ? order.items : JSON.parse(order.items); }
+            catch(e) { items = []; }
+
+            const hasNote = order.order_note && order.order_note.trim() !== '';
+
+            // Compact card (completed section)
+            if (compact) {
+                const itemSummary = items.map(i => `${getProductName(i.id)} x${i.quantity}`).join(', ');
+                const undoHtml = order.can_undo_ready
+                    ? `<button onclick="updateStatus(${order.id}, 'preparing')" class="mt-2 w-full py-1 bg-amber-500 hover:bg-amber-600 rounded text-black font-bold text-xs">Geri Al (${order.undo_remaining_seconds}s)</button>`
+                    : '';
+                return `
+                <div class="bg-gray-800 rounded-lg border-2 border-emerald-700 p-3 text-xs">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-bold text-emerald-400">#${order.id}</span>
+                        <span class="text-gray-500">${order.created_at}</span>
+                    </div>
+                    <p class="text-gray-300 truncate">${itemSummary}</p>
+                    ${hasNote ? `<p class="mt-1 text-yellow-400 truncate"><i class="fas fa-exclamation-circle mr-1"></i>${order.order_note}</p>` : ''}
+                    <div class="mt-1 text-emerald-500 font-bold">${timeStr}</div>
+                    ${undoHtml}
+                </div>`;
+            }
+
+            // Note pulse badge
+            const noteBadge = hasNote ? `
+                <div class="mx-4 mb-2 p-2 bg-yellow-900/40 border border-yellow-500/60 rounded-lg flex items-start gap-2">
+                    <span class="text-yellow-400 animate-pulse mt-0.5 flex-shrink-0"><i class="fas fa-exclamation-triangle"></i></span>
+                    <span class="text-yellow-300 text-sm font-medium">${order.order_note}</span>
+                </div>` : '';
+
+            const itemsHtml = items.map(item =>
+                `<div class="flex justify-between py-1 border-b border-gray-700">
+                    <span>${getProductName(item.id)}</span>
+                    <span class="font-bold text-gold">x${item.quantity}</span>
+                </div>`
+            ).join('');
+
+            const actionBtn = isNew
+                ? `<button onclick="confirmOrder(${order.id})" class="w-full py-2 bg-gold hover:bg-yellow-600 text-primary rounded-lg text-sm font-bold transition flex items-center justify-center gap-2">
+                       <i class="fas fa-check-circle"></i> Onayla
+                   </button>`
+                : isPreparing
+                ? `<button onclick="markReady(${order.id})" class="w-full py-2 bg-amber-500 hover:bg-amber-600 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2 text-black">
+                       <i class="fas fa-bell-concierge"></i> Hazirla
+                   </button>`
+                : `<div class="w-full py-2 bg-emerald-700 rounded-lg text-sm font-bold text-center flex items-center justify-center gap-2 text-white">
+                       <i class="fas fa-check-circle"></i> Hazirlandi
+                   </div>`;
+
+            return `
+            <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden">
+                <div class="flex items-center justify-between px-4 py-2 bg-gray-750">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl font-bold text-gold">
+                            Siparis #${order.id}
+                            <span class="text-base text-gray-300 ml-2 inline-block">Masa ${order.table_no}</span>
+                            ${hasNote ? ' <span class="text-yellow-400 text-base animate-pulse" title="Not var!"><i class="fas fa-sticky-note"></i></span>' : ''}
+                        </span>
+                        <span class="px-2 py-1 rounded text-xs font-bold ${statusBg}">${statusText}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-1 rounded text-xs ${timeBg}">${timeStr}</span>
+                        <span class="text-gray-400 text-sm">${order.created_at}</span>
+                    </div>
+                </div>
+                ${noteBadge}
+                <div class="px-4 py-3 text-sm">${itemsHtml}</div>
+                <div class="px-4 py-2 border-t border-gray-700 flex justify-between items-center">
+                    <span class="font-bold text-gold">${parseFloat(order.total_price).toFixed(2)} TL</span>
+                </div>
+                <div class="px-4 py-2 border-t border-gray-700">${actionBtn}</div>
+            </div>`;
         }
 
-        function renderOrders(orders) {
-            const grid = document.getElementById('orders-grid');
-            const noOrders = document.getElementById('no-orders');
+        function renderOrders(orders, completed, completedLimit) {
+            const grid       = document.getElementById('orders-grid');
+            const noOrders   = document.getElementById('no-orders');
+            const compSect   = document.getElementById('completed-section');
+            const compGrid   = document.getElementById('completed-grid');
+            const compBadge  = document.getElementById('completed-limit-badge');
+            const countEl    = document.getElementById('order-count');
 
+            // Active orders
             if (orders.length === 0) {
                 grid.classList.add('hidden');
                 noOrders.classList.remove('hidden');
-                return;
+                countEl.textContent = '0';
+            } else {
+                grid.classList.remove('hidden');
+                noOrders.classList.add('hidden');
+                countEl.textContent = orders.length;
+                grid.innerHTML = orders.map(o => buildOrderCard(o, false)).join('');
             }
 
-            grid.classList.remove('hidden');
-            noOrders.classList.add('hidden');
-            document.getElementById('order-count').textContent = orders.length;
-
-            grid.innerHTML = orders.map(order => {
-                const isNew = order.status === 'new';
-                const borderClass = isNew ? 'new-order border-gold' : 'border-green-500';
-                const statusBg = isNew ? 'bg-yellow-500' : 'bg-blue-500';
-                const statusText = isNew ? 'YENİ' : 'HAZIRLANIYOR';
-                const totalSecs = order.confirmed_seconds !== null ? order.confirmed_seconds : order.seconds_ago;
-                const hrs = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
-                const mins = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
-                const secs = String(totalSecs % 60).padStart(2, '0');
-                const timeStr = hrs + ':' + mins + ':' + secs;
-                const minTotal = Math.floor(totalSecs / 60);
-                const timeBg = minTotal > 15 ? 'bg-red-600' : minTotal > 10 ? 'bg-yellow-600' : 'bg-green-600';
-
-                let items = [];
-                try {
-                    items = Array.isArray(order.items) ? order.items : JSON.parse(order.items);
-                } catch(e) { items = []; }
-
-                const itemsHtml = items.map(item =>
-                    `<div class="flex justify-between py-1 border-b border-gray-700">
-                        <span>${getProductName(item.id)}</span>
-                        <span class="font-bold text-gold">x${item.quantity}</span>
-                    </div>`
-                ).join('');
-
-                return `
-                <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden">
-                    <div class="flex items-center justify-between px-4 py-2 bg-gray-750">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl font-bold text-gold">
-                                ${order.table_no ? 'Masa ' + order.table_no : 'Paket'}
-                            </span>
-                            <span class="px-2 py-1 rounded text-xs font-bold ${statusBg}">${statusText}</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="px-2 py-1 rounded text-xs ${timeBg}">${timeStr}</span>
-                            <span class="text-gray-400 text-sm">${order.created_at}</span>
-                        </div>
-                    </div>
-                    <div class="px-4 py-3 text-sm">
-                        ${itemsHtml}
-                        ${order.order_note ? `<div class="mt-2 p-2 bg-yellow-900/30 rounded text-yellow-300 text-xs"><i class="fas fa-sticky-note mr-1"></i>${order.order_note}</div>` : ''}
-                    </div>
-                    <div class="px-4 py-2 border-t border-gray-700 flex justify-between items-center">
-                        <span class="font-bold text-gold">${parseFloat(order.total_price).toFixed(2)} ₺</span>
-                    </div>
-                    <div class="px-4 py-2 border-t border-gray-700">
-                        ${isNew ? `<button onclick="confirmOrder(${order.id})" class="w-full py-2 bg-gold hover:bg-yellow-600 text-primary rounded-lg text-sm font-bold transition flex items-center justify-center gap-2">
-                            <i class="fas fa-check-circle"></i> Onayla
-                        </button>` : `<div class="w-full py-2 bg-green-600 rounded-lg text-sm font-bold text-center flex items-center justify-center gap-2 text-white">
-                            <i class="fas fa-check-circle"></i> Onaylandı
-                        </div>`}
-                    </div>
-                </div>`;
-            }).join('');
-        }
-
-        function renderWaiterCalls(calls) {
-            const bar = document.getElementById('waiter-bar');
-            const list = document.getElementById('waiter-calls-list');
-
-            if (calls.length === 0) {
-                bar.classList.add('hidden');
-                return;
+            // Completed orders
+            if (completed && completed.length > 0) {
+                compSect.classList.remove('hidden');
+                compBadge.textContent = `son ${completedLimit}`;
+                compGrid.innerHTML = completed.map(o => buildOrderCard(o, true)).join('');
+            } else {
+                compSect.classList.add('hidden');
             }
-
-            bar.classList.remove('hidden');
-            document.getElementById('waiter-count').textContent = `(${calls.length} adet)`;
-            list.innerHTML = calls.map(call => {
-                const minTotal = Math.floor(call.seconds_ago / 60);
-                const timeBg = minTotal > 10 ? 'bg-red-600' : minTotal > 5 ? 'bg-yellow-600' : 'bg-green-600';
-                const timeStr = String(Math.floor(call.seconds_ago / 3600)).padStart(2, '0') + ':' + String(Math.floor((call.seconds_ago % 3600) / 60)).padStart(2, '0') + ':' + String(call.seconds_ago % 60).padStart(2, '0');
-                return `
-                <div class="bg-red-900/70 border border-red-500 rounded-lg p-3">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-lg font-bold text-white">${call.table_no ? 'Masa ' + call.table_no : 'Genel'}</span>
-                        <span class="px-2 py-0.5 rounded text-xs ${timeBg}">${timeStr}</span>
-                    </div>
-                    ${call.note ? `<p class="text-red-300 text-sm mb-2 truncate"><i class="fas fa-comment mr-1"></i>${call.note}</p>` : ''}
-                    <div class="flex items-center justify-between">
-                        <span class="text-red-400 text-xs">${call.created_at}</span>
-                        <button onclick="attendWaiterCall(${call.id})" class="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-xs font-bold transition">
-                            <i class="fas fa-check mr-1"></i>İlgilendi
-                        </button>
-                    </div>
-                </div>`;
-            }).join('');
         }
 
-        function fetchData() {
+        function handleData(data) {
+            const orders    = data.orders    || [];
+            const completed = data.completed || [];
+            const limit     = data.completed_limit || 6;
+
+            const currentIds = orders.map(o => o.id);
+            if (!isFirstLoad) {
+                const newOnes = currentIds.filter(id => !previousOrderIds.includes(id));
+                if (newOnes.length > 0) playOrderSound();
+            }
+            previousOrderIds = currentIds;
+            isFirstLoad = false;
+            renderOrders(orders, completed, limit);
+        }
+
+        // --- SSE with polling fallback ---
+        let useFallbackPolling = false;
+
+        function startSSE() {
+            if (eventSource) { eventSource.close(); eventSource = null; }
+            clearTimeout(sseRetryTimeout);
+
+            eventSource = new EventSource('/kitchen/sse');
+
+            eventSource.onmessage = function(event) {
+                try { handleData(JSON.parse(event.data)); }
+                catch(e) { console.error('SSE parse error', e); }
+            };
+
+            eventSource.onerror = function() {
+                console.warn('SSE error, switching to polling fallback...');
+                eventSource.close();
+                eventSource = null;
+                useFallbackPolling = true;
+                // polling fallback every 3s
+                sseRetryTimeout = setTimeout(startPollingFallback, 500);
+            };
+        }
+
+        function startPollingFallback() {
             fetch('/kitchen/api/orders')
                 .then(r => r.json())
-                .then(data => {
-                    const currentOrderIds = data.orders.map(o => o.id);
-                    const currentWaiterIds = data.waiter_calls.map(c => c.id);
-
-                    if (!isFirstLoad) {
-                        // Check for new orders
-                        const newOrders = currentOrderIds.filter(id => !previousOrderIds.includes(id));
-                        if (newOrders.length > 0) {
-                            playOrderSound();
-                        }
-
-                        // Check for new waiter calls
-                        const newCalls = currentWaiterIds.filter(id => !previousWaiterIds.includes(id));
-                        if (newCalls.length > 0) {
-                            playWaiterSound();
-                        }
-                    }
-
-                    previousOrderIds = currentOrderIds;
-                    previousWaiterIds = currentWaiterIds;
-                    isFirstLoad = false;
-
-                    renderOrders(data.orders);
-                    renderWaiterCalls(data.waiter_calls);
-                })
-                .catch(err => console.error('Fetch error:', err));
+                .then(handleData)
+                .catch(e => console.error('Fetch error', e));
+            sseRetryTimeout = setTimeout(startPollingFallback, 3000);
         }
 
-        // Initial load
-        fetchData();
+        startSSE();
 
-        // Auto-refresh every 5 seconds
-        setInterval(fetchData, 5000);
-
-        // Enable audio on first user interaction
         document.addEventListener('click', function enableAudio() {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
             ctx.resume();
             document.removeEventListener('click', enableAudio);
         }, { once: true });
+
+        // Reconnect SSE after tab becomes visible again
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && !useFallbackPolling) {
+                startSSE();
+            }
+        });
     </script>
 </body>
 </html>

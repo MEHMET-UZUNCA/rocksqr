@@ -23,6 +23,7 @@
                         <thead class="bg-gray-50 border-b">
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Görsel</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Product Code</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Ürün Adı</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Kategori</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Fiyat</th>
@@ -43,8 +44,23 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3">
+                                        @if($product->mssql_id)
+                                            <span class="px-2 py-1 rounded text-xs font-mono bg-sky-100 text-sky-800">{{ $product->mssql_id }}</span>
+                                        @else
+                                            <span class="text-xs text-gray-400">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3">
                                         <div class="font-medium text-gray-900">{{ $product->name }}</div>
                                         <div class="text-xs text-gray-500 truncate max-w-xs">{{ $product->description }}</div>
+                                        <div class="mt-1 flex gap-1">
+                                            @if($product->show_in_kitchen)
+                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800" title="Mutfak ekranında görünür"><i class="fas fa-utensils"></i> KDS</span>
+                                            @endif
+                                            @if($product->show_in_bar)
+                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800" title="Bar ekranında görünür"><i class="fas fa-wine-glass"></i> BAR</span>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td class="px-4 py-3 text-gray-700">{{ $product->category->name ?? '—' }}</td>
                                     <td class="px-4 py-3 text-gray-700 font-semibold">{{ number_format($product->price, 2) }} ₺</td>

@@ -14,11 +14,13 @@ Sipariş gönderme ve onay
 ✅ Admin Paneli:
 
 Kategori CRUD
-Ürün CRUD (fotoğraf yükleme)
-Sipariş yönetimi
-Mutfak ekranı (canlı siparişler, durum güncelleme)
-Garson çağrısı yönetimi
-Oracle veritabanı senkronizasyonu hazırlığı
+Ürün CRUD (fotoğraf yükleme, Symphony ProductCode/mssql_id gösterimi)
+Sipariş yönetimi (mutfak / bar ayrı ekranlar, masa numarası kartlarda görünür)
+Mutfak ekranı (canlı siparişler, durum güncelleme, geri al)
+Symphony POS Mutfak Ekranı (/kitchen-pos): MSSQL KDS sorgusu ile canlı hesaplar, mutfak mesajları, ses uyarısı, tamamla/geri al (24 saatlik geçmiş)
+Garson çağrısı yönetimi (mobil sepet altında çağır butonu)
+MSSQL Symphony entegrasyonu: Ürün ve KDS için ayrı sekmeler, özel SQL sorgusu, Sorguyu Önizle (ilk 100 satır)
+QR kod yönetimi: toplu üretim, A4 baskı, ZIP indirme, arşiv
 ✅ Teknik:
 
 Laravel 11, MySQL
@@ -38,7 +40,7 @@ php artisan serve
 Erişim:
 Menü: http://localhost:8000/menu/1 (masa no için 1-100)
 Admin: http://localhost:8000/login
-Oracle entegrasyonu için IP 192.168.0.10 yapılandırıldı ve admin panelinde senkronizasyon arayüzü hazır. İkinci aşamada gerçek Oracle bağlantısı eklenebilir.
+MSSQL Symphony entegrasyonu Admin > MSSQL Ayarları üzerinden yönetilir (Ürün ve KDS sekmeleri ayrı bağlantı + ayrı SQL sorgusu kullanır; .env değişkeni gerekmez).
 Ana Sayfa	http://localhost:81/
 Müşteri Menüsü	http://localhost:81/menu
 Giriş Yap	http://localhost:81/login

@@ -45,17 +45,20 @@
                 <a href="{{ route('admin.products.index') }}" class="hover:text-gold transition">
                     <i class="fas fa-box mr-1"></i> Ürünler
                 </a>
+                <a href="{{ route('bar') }}" class="hover:text-gold transition">
+                    <i class="fas fa-wine-glass mr-1"></i> Bar
+                </a>
                 <a href="{{ route('kitchen') }}" class="hover:text-gold transition">
-                    <i class="fas fa-tv mr-1"></i> Mutfak
+                    <i class="fas fa-tv mr-1"></i> Kitchen
+                </a>
+                <a href="{{ route('kitchen.pos') }}" class="hover:text-gold transition">
+                    <i class="fas fa-server mr-1"></i> Kitchen-Symphony
                 </a>
                 <a href="{{ route('admin.sync') }}" class="hover:text-gold transition">
                     <i class="fas fa-sync mr-1"></i> Sync
                 </a>
                 <a href="{{ route('admin.qr-codes.index') }}" class="hover:text-gold transition">
                     <i class="fas fa-qrcode mr-1"></i> QR
-                </a>
-                <a href="{{ route('admin.oracle-settings') }}" class="hover:text-gold transition">
-                    <i class="fas fa-database mr-1"></i> Oracle
                 </a>
                 <a href="{{ route('admin.mssql-settings') }}" class="hover:text-gold transition">
                     <i class="fas fa-server mr-1"></i> MSSQL

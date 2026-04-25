@@ -3,14 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\Product;
+use App\Models\Setting;
 use App\Models\WaiterCall;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class KitchenController extends Controller
 {
-    public function index()
+    public function bar()
     {
-        $orders = Order::whereIn('status', ['new', 'preparing'])
+        $orders = Order::where('bar_status', 'new')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -18,21 +21,76 @@ class KitchenController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('admin.kitchen', compact('orders', 'waiterCalls'));
+        return view('admin.bar', compact('orders', 'waiterCalls'));
     }
 
-    public function updateStatus(Request $request, Order $order)
+    public function kitchen()
+    {
+        $orders = Order::whereIn('kitchen_status', ['new', 'preparing', 'ready'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('admin.kitchen', compact('orders'));
+    }
+
+    public function barUpdateStatus(Request $request, Order $order)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:preparing',
+        ]);
+
+        $order->update([
+            'bar_status' => 'approved',
+            'bar_approved_at' => $order->bar_approved_at ?? now(),
+            'kitchen_status' => $order->kitchen_status === 'waiting' ? 'new' : $order->kitchen_status,
+            'status' => $order->kitchen_status === 'waiting' ? 'new' : $order->status,
+            'completed_at' => null,
+        ]);
+
+        return response()->json(['success' => true, 'status' => $order->kitchen_status]);
+    }
+
+    public function kitchenUpdateStatus(Request $request, Order $order)
     {
         $validated = $request->validate([
             'status' => 'required|in:preparing,ready,completed',
         ]);
 
-        $order->update([
-            'status' => $validated['status'],
-            'completed_at' => $validated['status'] === 'completed' ? now() : $order->completed_at,
-        ]);
+        $undoWindowSeconds = (int) Setting::get('ready_undo_seconds', 30);
+        $isUndoToPreparing = $validated['status'] === 'preparing' && $order->kitchen_status === 'ready';
 
-        return response()->json(['success' => true, 'status' => $order->status]);
+        if ($isUndoToPreparing) {
+            if ($order->kitchen_ready_at === null || $order->kitchen_ready_at->diffInSeconds(now()) > $undoWindowSeconds) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Geri alma suresi doldu.',
+                ], 422);
+            }
+        }
+
+        $payload = [
+            'kitchen_status' => $validated['status'],
+            'status' => $validated['status'],
+            'bar_status' => 'approved',
+            'completed_at' => $validated['status'] === 'completed' ? now() : null,
+        ];
+
+        if ($validated['status'] === 'preparing' && $order->kitchen_started_at === null) {
+            $payload['kitchen_started_at'] = now();
+        }
+
+        if ($validated['status'] === 'ready' && $order->kitchen_ready_at === null) {
+            $payload['kitchen_ready_at'] = now();
+        }
+
+        if ($isUndoToPreparing) {
+            $payload['kitchen_ready_at'] = null;
+            $payload['completed_at'] = null;
+        }
+
+        $order->update($payload);
+
+        return response()->json(['success' => true, 'status' => $order->kitchen_status]);
     }
 
     public function attendWaiterCall(WaiterCall $waiterCall)
@@ -41,26 +99,26 @@ class KitchenController extends Controller
         return response()->json(['success' => true]);
     }
 
-    public function apiOrders()
+    public function barApiOrders()
     {
-        $orders = Order::whereIn('status', ['new', 'preparing'])
-            ->orderBy('created_at', 'desc')
+        $completedLimit = (int) Setting::get('bar_completed_display', 6);
+
+        $orders = Order::where('bar_status', 'new')
+            ->orderBy('created_at', 'asc')
             ->get()
-            ->map(function ($order) {
-                return [
-                    'id' => $order->id,
-                    'table_no' => $order->table_no,
-                    'items' => $order->items,
-                    'total_price' => $order->total_price,
-                    'order_note' => $order->order_note,
-                    'status' => $order->status,
-                    'created_at' => $order->created_at->format('H:i:s'),
-                    'seconds_ago' => (int) $order->created_at->diffInSeconds(now()),
-                    'confirmed_seconds' => $order->status !== 'new'
-                        ? (int) $order->created_at->diffInSeconds($order->updated_at)
-                        : null,
-                ];
-            });
+            ->map(fn ($order) => $this->mapOrder($order));
+
+        $readyOrders = Order::where('kitchen_status', 'ready')
+            ->orderBy('kitchen_ready_at', 'desc')
+            ->limit($completedLimit)
+            ->get()
+            ->map(fn ($order) => $this->mapOrder($order));
+
+        $completedOrders = Order::where('kitchen_status', 'completed')
+            ->orderBy('completed_at', 'desc')
+            ->limit($completedLimit)
+            ->get()
+            ->map(fn ($order) => $this->mapOrder($order));
 
         $waiterCalls = WaiterCall::where('status', 'pending')
             ->orderBy('created_at', 'desc')
@@ -76,8 +134,445 @@ class KitchenController extends Controller
             });
 
         return response()->json([
-            'orders' => $orders,
+            'orders' => $orders->values(),
+            'ready_orders' => $readyOrders->values(),
+            'ready_orders_limit' => $completedLimit,
+            'completed_orders' => $completedOrders->values(),
+            'completed_orders_limit' => $completedLimit,
             'waiter_calls' => $waiterCalls,
+        ]);
+    }
+
+    public function kitchenApiOrders()
+    {
+        $completedLimit = (int) Setting::get('kitchen_completed_display', 6);
+
+        $activeOrders = Order::whereIn('kitchen_status', ['new', 'preparing'])
+            ->orderBy('created_at', 'asc')
+            ->get()
+            ->map(fn ($order) => $this->mapOrder($order));
+
+        $completedOrders = Order::where('kitchen_status', 'ready')
+            ->orderBy('kitchen_ready_at', 'desc')
+            ->limit($completedLimit)
+            ->get()
+            ->map(fn ($order) => $this->mapOrder($order));
+
+        return response()->json([
+            'orders' => $activeOrders->values(),
+            'completed' => $completedOrders->values(),
+            'completed_limit' => $completedLimit,
+        ]);
+    }
+
+    public function kitchenSse()
+    {
+        return response()->stream(function () {
+            $completedLimit = (int) Setting::get('kitchen_completed_display', 6);
+            $timeout = time() + 25;
+
+            while (time() < $timeout) {
+                $activeOrders = Order::whereIn('kitchen_status', ['new', 'preparing'])
+                    ->orderBy('created_at', 'asc')
+                    ->get()
+                    ->map(fn ($order) => $this->mapOrder($order));
+
+                $completedOrders = Order::where('kitchen_status', 'ready')
+                    ->orderBy('kitchen_ready_at', 'desc')
+                    ->limit($completedLimit)
+                    ->get()
+                    ->map(fn ($order) => $this->mapOrder($order));
+
+                $payload = json_encode([
+                    'orders' => $activeOrders->values(),
+                    'completed' => $completedOrders->values(),
+                    'completed_limit' => $completedLimit,
+                ]);
+
+                echo "data: {$payload}\n\n";
+
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+
+                if (connection_aborted()) {
+                    break;
+                }
+
+                sleep(2);
+            }
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
+            'X-Accel-Buffering' => 'no',
+            'Connection' => 'keep-alive',
+        ]);
+    }
+
+    private function mapOrder(Order $order): array
+    {
+        $preparingSeconds = null;
+        $readySeconds = null;
+        $readySinceSeconds = null;
+        $canUndoReady = false;
+        $undoRemainingSeconds = 0;
+        $undoWindowSeconds = (int) Setting::get('ready_undo_seconds', 30);
+
+        if ($order->kitchen_started_at !== null && $order->kitchen_status === 'preparing') {
+            $preparingSeconds = (int) $order->kitchen_started_at->diffInSeconds(now());
+        }
+
+        if ($order->kitchen_started_at !== null && $order->kitchen_ready_at !== null) {
+            $readySeconds = (int) $order->kitchen_started_at->diffInSeconds($order->kitchen_ready_at);
+        }
+
+        if ($order->kitchen_status === 'ready' && $order->kitchen_ready_at !== null) {
+            $readySinceSeconds = (int) $order->kitchen_ready_at->diffInSeconds(now());
+            $undoRemainingSeconds = max(0, $undoWindowSeconds - $readySinceSeconds);
+            $canUndoReady = $undoRemainingSeconds > 0;
+        }
+
+        return [
+            'id' => $order->id,
+            'table_no' => $order->table_no,
+            'items' => $order->items,
+            'total_price' => $order->total_price,
+            'order_note' => $order->order_note,
+            'status' => $order->status,
+            'bar_status' => $order->bar_status,
+            'kitchen_status' => $order->kitchen_status,
+            'created_at' => $order->created_at->format('H:i:s'),
+            'seconds_ago' => (int) $order->created_at->diffInSeconds(now()),
+            'preparing_seconds' => $preparingSeconds,
+            'ready_seconds' => $readySeconds,
+            'ready_since_seconds' => $readySinceSeconds,
+            'can_undo_ready' => $canUndoReady,
+            'undo_remaining_seconds' => $undoRemainingSeconds,
+        ];
+    }
+
+    /**
+     * Symphony POS tabanlı KDS ekranı (read-only).
+     */
+    public function kitchenPos()
+    {
+        return view('admin.kitchen-pos');
+    }
+
+    /**
+     * Symphony POS canlı verisi: kayıtlı KDS sorgusunu çalıştırır,
+     * CheckNumber'a göre gruplar; MajGrp=99 (Mutfak Mesajları) hem grup içinde
+     * hem de checksiz olarak ayrı bir listede tutulur.
+     */
+    public function kitchenPosApi()
+    {
+        $host     = (string) Setting::get('mssql_kds_host', '');
+        $port     = (string) Setting::get('mssql_kds_port', '1433');
+        $database = (string) Setting::get('mssql_kds_database', '');
+        $username = (string) Setting::get('mssql_kds_username', '');
+        $password = (string) Setting::get('mssql_kds_password', '');
+        $query    = trim((string) Setting::get('mssql_kds_query', ''));
+
+        if ($query === '' || !$host || !$database || !$username) {
+            return response()->json([
+                'success'  => false,
+                'message'  => 'KDS MSSQL ayarları/sorgusu eksik. Önce Admin → MSSQL Ayarları → KDS sekmesinden tanımlayın.',
+                'orders'   => [],
+                'messages' => [],
+            ], 200);
+        }
+
+        try {
+            $actualPassword = '';
+            if ($password) {
+                try { $actualPassword = decrypt($password); } catch (\Exception $e) { $actualPassword = $password; }
+            }
+
+            $pdo = new \PDO("sqlsrv:Server={$host},{$port};Database={$database};TrustServerCertificate=1", $username, $actualPassword);
+            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+            $stmt = $pdo->prepare($query);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $checks  = [];
+            $checkless = [];
+
+            foreach ($rows as $row) {
+                $get = function (array $candidates, $default = null) use ($row) {
+                    foreach ($candidates as $c) {
+                        foreach ([$c, strtoupper($c), strtolower($c)] as $k) {
+                            if (array_key_exists($k, $row) && $row[$k] !== null && $row[$k] !== '') {
+                                return $row[$k];
+                            }
+                        }
+                    }
+                    return $default;
+                };
+
+                $checkNum   = $get(['CheckNumber', 'check_number', 'ChkNum'], null);
+                $itemId     = $get(['ItemID', 'item_id'], null);
+                $tableNo    = (string) $get(['TableNumber', 'table_number'], '');
+                $orderTime  = $get(['OrderTime', 'order_time'], null);
+                $itemTime   = $get(['ItemTime', 'item_time'], null);
+                $rvc        = $get(['RevenueCenter', 'revenue_center'], '');
+                $rvcId      = (int) $get(['RevenueCenterID', 'revenue_center_id'], 0);
+                $covers     = (int) $get(['Covers', 'covers'], 0);
+                $status     = (string) $get(['Status', 'status'], '');
+                $qty        = (int) $get(['Qty', 'qty', 'Quantity'], 1);
+                $name       = (string) $get(['ProductName', 'product_name', 'Name'], '');
+                $note       = (string) $get(['MessageNote', 'message_note', 'RefInfo'], '');
+                $majGrp     = (int) $get(['MajGrp', 'maj_grp'], 0);
+                $dtlSeq     = (int) $get(['DtlSeq', 'dtl_seq'], 0);
+
+                $isMessage  = ($majGrp === 99);
+                $hasCheck   = $checkNum !== null && (int) $checkNum > 0;
+
+                $item = [
+                    'item_id'    => $itemId,
+                    'dtl_seq'    => $dtlSeq,
+                    'qty'        => $qty,
+                    'name'       => $name,
+                    'note'       => $note,
+                    'is_message' => $isMessage,
+                    'item_time'  => $itemTime,
+                    'maj_grp'    => $majGrp,
+                ];
+
+                if ($isMessage && !$hasCheck) {
+                    $checkless[] = array_merge($item, [
+                        'table_no'      => $tableNo,
+                        'rvc'           => $rvc,
+                        'rvc_id'        => $rvcId,
+                    ]);
+                    continue;
+                }
+
+                $key = (string) $checkNum ?: ('T' . $tableNo);
+                if (!isset($checks[$key])) {
+                    $checks[$key] = [
+                        'check_number' => $checkNum,
+                        'table_no'     => $tableNo,
+                        'rvc'          => $rvc,
+                        'rvc_id'       => $rvcId,
+                        'order_time'   => $orderTime,
+                        'covers'       => $covers,
+                        'status'       => $status,
+                        'items'        => [],
+                        'messages'     => [],
+                    ];
+                }
+
+                if ($isMessage) {
+                    $checks[$key]['messages'][] = $item;
+                } else {
+                    $checks[$key]['items'][] = $item;
+                }
+            }
+
+            // En yeni order önce
+            uasort($checks, function ($a, $b) {
+                return strcmp((string) $b['order_time'], (string) $a['order_time']);
+            });
+
+            $symphonyOrders = array_values($checks);
+
+            // QR (yerel) siparişleri ekle: kitchen ekranında gösterilecek (bar onaylı + mutfak yeni/preparing)
+            $kitchenProductIds = Product::where('show_in_kitchen', true)->pluck('id')->all();
+            $kitchenProductMap = Product::whereIn('id', $kitchenProductIds)->pluck('name', 'id')->all();
+
+            $qrOrders = Order::whereIn('kitchen_status', ['new', 'preparing'])
+                ->where('bar_status', 'approved')
+                ->orderBy('created_at', 'asc')
+                ->get();
+
+            $qrCards = [];
+            foreach ($qrOrders as $o) {
+                $items = [];
+                foreach (($o->items ?? []) as $it) {
+                    $pid = (int) ($it['id'] ?? 0);
+                    if (!in_array($pid, $kitchenProductIds, true)) continue;
+                    $items[] = [
+                        'item_id'    => 'qr-' . $o->id . '-' . $pid,
+                        'dtl_seq'    => 0,
+                        'qty'        => (int) ($it['quantity'] ?? 1),
+                        'name'       => $kitchenProductMap[$pid] ?? ('Urun #' . $pid),
+                        'note'       => '',
+                        'is_message' => false,
+                        'item_time'  => optional($o->created_at)->format('Y-m-d H:i:s'),
+                        'maj_grp'    => 0,
+                    ];
+                }
+                if (empty($items)) continue;
+
+                $qrCards[] = [
+                    'check_number'         => null,
+                    'qr_order_id'          => $o->id,
+                    'source'               => 'qr',
+                    'table_no'             => (string) $o->table_no,
+                    'rvc'                  => 'QR Menu',
+                    'rvc_id'               => 0,
+                    'order_time'           => optional($o->created_at)->format('Y-m-d H:i:s'),
+                    'covers'               => 0,
+                    'status'               => $o->kitchen_status,
+                    'items'                => $items,
+                    'messages'             => [],
+                    'order_note'           => $o->order_note,
+                    'kitchen_status'       => $o->kitchen_status,
+                    'symphony_processed'   => $o->symphony_processed_at !== null,
+                    'symphony_processed_at'=> optional($o->symphony_processed_at)->format('H:i'),
+                ];
+            }
+
+            // QR + Symphony birleşik aktif liste (QR'lar üstte görünsün kı garson hemen Symphony'e işlesin)
+            $activeOrders = array_merge($qrCards, $symphonyOrders);
+
+            // Symphony tamamlama kaydı (sadece read-only Symphony hesapları içindi; QR akışı artık Order tablosu üzerinden ilerliyor)
+            // Geriye uyumluluk için tablo dursun ama artık UI'da gösterilmiyor.
+
+            $activeMessages = $checkless;
+
+            $completedLimit = (int) Setting::get('kitchen_completed_display', 6);
+
+            // QR tamamlananlar (kitchen_status=ready) — “servise götür” listesinin ön izlemesi
+            $qrCompleted = Order::whereIn('kitchen_status', ['ready', 'completed'])
+                ->where('bar_status', 'approved')
+                ->orderByDesc(DB::raw('COALESCE(kitchen_ready_at, completed_at, updated_at)'))
+                ->limit($completedLimit)
+                ->get()
+                ->map(function ($o) use ($kitchenProductMap, $kitchenProductIds) {
+                    $items = [];
+                    foreach (($o->items ?? []) as $it) {
+                        $pid = (int) ($it['id'] ?? 0);
+                        if (!in_array($pid, $kitchenProductIds, true)) continue;
+                        $items[] = [
+                            'qty'  => (int) ($it['quantity'] ?? 1),
+                            'name' => $kitchenProductMap[$pid] ?? ('Urun #' . $pid),
+                        ];
+                    }
+                    if (empty($items)) return null;
+                    return [
+                        'qr_order_id'        => $o->id,
+                        'source'             => 'qr',
+                        'check_number'       => null,
+                        'table_no'           => (string) $o->table_no,
+                        'kitchen_status'     => $o->kitchen_status,
+                        'symphony_processed' => $o->symphony_processed_at !== null,
+                        'completed_at'       => optional($o->kitchen_ready_at ?? $o->completed_at)->format('Y-m-d H:i:s'),
+                        'items'              => $items,
+                        'messages'           => [],
+                    ];
+                })
+                ->filter()
+                ->values()
+                ->all();
+
+            return response()->json([
+                'success'         => true,
+                'orders'          => $activeOrders,
+                'messages'        => $activeMessages,
+                'completed'       => $qrCompleted,
+                'completed_msgs'  => [],
+                'completed_limit' => $completedLimit,
+                'fetched_at'      => now()->format('H:i:s'),
+                'count'           => count($activeOrders),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success'  => false,
+                'message'  => 'KDS sorgu hatası: ' . $e->getMessage(),
+                'orders'   => [],
+                'messages' => [],
+                'completed' => [],
+                'completed_msgs' => [],
+            ], 200);
+        }
+    }
+
+    /**
+     * Symphony POS hesabı veya checksiz mesajı tamamlandı olarak işaretle. (legacy)
+     */
+    public function kitchenPosComplete(Request $request)
+    {
+        $validated = $request->validate([
+            'kind'         => 'required|in:check,checkless_msg',
+            'group_key'    => 'required|string|max:64',
+            'check_number' => 'nullable|string|max:64',
+            'table_no'     => 'nullable|string|max:32',
+        ]);
+
+        DB::table('kitchen_pos_completions')->updateOrInsert(
+            ['group_key' => $validated['group_key']],
+            [
+                'kind'         => $validated['kind'],
+                'check_number' => $validated['check_number'] ?? null,
+                'table_no'     => $validated['table_no'] ?? null,
+                'completed_at' => now(),
+            ]
+        );
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Tamamlamayı geri al. (legacy)
+     */
+    public function kitchenPosUncomplete(Request $request)
+    {
+        $validated = $request->validate(['group_key' => 'required|string|max:64']);
+        DB::table('kitchen_pos_completions')->where('group_key', $validated['group_key'])->delete();
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * QR siparisini KDS'de "Onayla" → kitchen_status=ready, bar ekranı “servise götür” şeridine düşer.
+     */
+    public function kitchenPosConfirmQr(Order $order)
+    {
+        $order->update([
+            'kitchen_status'   => 'ready',
+            'status'           => 'ready',
+            'bar_status'       => 'approved',
+            'kitchen_ready_at' => $order->kitchen_ready_at ?? now(),
+            'kitchen_started_at' => $order->kitchen_started_at ?? now(),
+            'completed_at'     => null,
+        ]);
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * QR siparisini KDS'de geri al → kitchen_status=preparing.
+     */
+    public function kitchenPosUndoQr(Order $order)
+    {
+        $undoWindowSeconds = (int) Setting::get('ready_undo_seconds', 30);
+        if ($order->kitchen_status !== 'ready') {
+            return response()->json(['success' => false, 'message' => 'Bu sipariş geri alınamaz.'], 422);
+        }
+        if ($order->kitchen_ready_at && $order->kitchen_ready_at->diffInSeconds(now()) > $undoWindowSeconds) {
+            return response()->json(['success' => false, 'message' => 'Geri alma süresi doldu.'], 422);
+        }
+        $order->update([
+            'kitchen_status'   => 'preparing',
+            'status'           => 'preparing',
+            'kitchen_ready_at' => null,
+            'completed_at'     => null,
+        ]);
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * QR siparişi için Symphony POS'a manuel girildi işaretini aç/kapa.
+     */
+    public function kitchenPosToggleSymphony(Order $order)
+    {
+        $order->update([
+            'symphony_processed_at' => $order->symphony_processed_at ? null : now(),
+        ]);
+        return response()->json([
+            'success' => true,
+            'symphony_processed' => $order->symphony_processed_at !== null,
         ]);
     }
 }

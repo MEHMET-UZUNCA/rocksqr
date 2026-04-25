@@ -114,14 +114,19 @@
                     @endif
                     <p class="text-sm" style="color: #d4af37;">QR MENU</p>
                     @if($tableNo)
-                        <p class="text-xs" style="color: #c0c0c0;">Mesa {{ $tableNo }}</p>
+                        <p class="text-xs" style="color: #c0c0c0;">Masa {{ $tableNo }}</p>
                     @endif
                 </div>
-                <button onclick="document.getElementById('cart-drawer').classList.toggle('translate-x-full')" 
-                        class="flex items-center gap-2 px-6 py-3 btn-primary">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span class="cart-badge" id="cart-count">0</span>
-                </button>
+                <div class="flex items-center gap-3">
+                    <button onclick="showWaiterNote()" class="sm:hidden px-4 py-3 rounded font-bold border-2 border-gold text-gold hover:bg-gold/20 transition">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                    <button onclick="document.getElementById('cart-drawer').classList.toggle('translate-x-full')" 
+                            class="flex items-center gap-2 px-6 py-3 btn-primary">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-badge" id="cart-count">0</span>
+                    </button>
+                </div>
             </div>
         </header>
 

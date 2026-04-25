@@ -64,6 +64,27 @@
                                placeholder="Rocks Hotel QR Menü">
                     </div>
 
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label for="bar_screen_title" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-wine-glass mr-1"></i>Bar Ekranı Başlığı
+                            </label>
+                            <input type="text" name="bar_screen_title" id="bar_screen_title"
+                                   value="{{ old('bar_screen_title', $settings['bar_screen_title']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold"
+                                   placeholder="KDS - Bar Ekrani">
+                        </div>
+                        <div>
+                            <label for="kitchen_screen_title" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-utensils mr-1"></i>Mutfak Ekranı Başlığı
+                            </label>
+                            <input type="text" name="kitchen_screen_title" id="kitchen_screen_title"
+                                   value="{{ old('kitchen_screen_title', $settings['kitchen_screen_title']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold"
+                                   placeholder="POOL Mutfak Ekrani">
+                        </div>
+                    </div>
+
                     <!-- Meta Description -->
                     <div class="mb-6">
                         <label for="meta_description" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -94,7 +115,7 @@
                         </h3>
                         <p class="text-sm text-blue-700">
                             Her ürünün veritabanında benzersiz bir <code class="bg-blue-100 px-1 rounded">id</code> değeri vardır.
-                            Ayrıca <code class="bg-blue-100 px-1 rounded">oracle_id</code> ve <code class="bg-blue-100 px-1 rounded">mssql_id</code> alanları harici sistem entegrasyonu için kullanılabilir.
+                            <code class="bg-blue-100 px-1 rounded">mssql_id</code> alanı harici sistem entegrasyonu için kullanılabilir.
                         </p>
                     </div>
 
@@ -102,6 +123,57 @@
                             class="w-full py-3 bg-primary text-white font-bold rounded-lg hover:bg-light-primary transition">
                         <i class="fas fa-save mr-2"></i>Kaydet
                     </button>
+                </form>
+
+                <!-- Kitchen Completed Display Setting -->
+                <form action="{{ route('admin.settings.update') }}" method="POST" class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                    <input type="hidden" name="_display_only" value="1">
+                    @csrf
+                    @method('PUT')
+                    <div>
+                        <label for="kitchen_completed_display" class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-utensils mr-1"></i>Mutfak Ekranı: Tamamlanan Son Sipariş Sayısı
+                        </label>
+                        <select name="kitchen_completed_display" id="kitchen_completed_display"
+                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
+                            <option value="3"  {{ $settings['kitchen_completed_display'] == 3  ? 'selected' : '' }}>Son 3 sipariş</option>
+                            <option value="6"  {{ $settings['kitchen_completed_display'] == 6  ? 'selected' : '' }}>Son 6 sipariş</option>
+                            <option value="12" {{ $settings['kitchen_completed_display'] == 12 ? 'selected' : '' }}>Son 12 sipariş</option>
+                            <option value="24" {{ $settings['kitchen_completed_display'] == 24 ? 'selected' : '' }}>Son 24 sipariş</option>
+                        </select>
+                        <p class="text-xs text-gray-400 mt-1">Mutfak ekranında "Hazırlandı" olarak işaretlenen son kaç siparişin görüneceğini belirler.</p>
+                    </div>
+
+                    <div>
+                        <label for="bar_completed_display" class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-wine-glass mr-1"></i>Bar Ekranı: Sipariş Hazır Son Sipariş Sayısı
+                        </label>
+                        <select name="bar_completed_display" id="bar_completed_display"
+                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
+                            <option value="3"  {{ $settings['bar_completed_display'] == 3  ? 'selected' : '' }}>Son 3 sipariş</option>
+                            <option value="6"  {{ $settings['bar_completed_display'] == 6  ? 'selected' : '' }}>Son 6 sipariş</option>
+                            <option value="12" {{ $settings['bar_completed_display'] == 12 ? 'selected' : '' }}>Son 12 sipariş</option>
+                            <option value="24" {{ $settings['bar_completed_display'] == 24 ? 'selected' : '' }}>Son 24 sipariş</option>
+                        </select>
+                        <p class="text-xs text-gray-400 mt-1">Bar ekranındaki "Siparis Hazir" alanında kaç sipariş görüneceğini belirler.</p>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label for="ready_undo_seconds" class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-rotate-left mr-1"></i>Hazirlanan Sipariş Geri Alma Süresi (saniye)
+                        </label>
+                        <input type="number" min="5" max="600" step="1" name="ready_undo_seconds" id="ready_undo_seconds"
+                               value="{{ old('ready_undo_seconds', $settings['ready_undo_seconds']) }}"
+                               class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
+                        <p class="text-xs text-gray-400 mt-1">Son tamamlanan siparişlerde bu süre boyunca "Geri Al" butonu görünür.</p>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <button type="submit"
+                                class="py-3 px-6 bg-gold text-white font-bold rounded-lg hover:bg-yellow-500 transition whitespace-nowrap">
+                            <i class="fas fa-save mr-2"></i>Ekran Ayarlarını Kaydet
+                        </button>
+                    </div>
                 </form>
 
                 <!-- Screen Clear Time Separate Form -->

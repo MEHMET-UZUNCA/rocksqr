@@ -10,7 +10,6 @@ Bu projeyi çalıştırmak için aşağıdaki yazılım ve PHP eklentilerinin ku
 
 ## PHP Eklentileri
 - PDO
-- PDO_OCI (Oracle veritabanı bağlantısı için)
 - PDO_SQLSRV (Microsoft SQL Server bağlantısı için)
 - SQLSRV (Microsoft SQL Server sürücüsü için)
 - GD (QR kodlarına logo eklemek için)
@@ -25,7 +24,7 @@ Bu projeyi çalıştırmak için aşağıdaki yazılım ve PHP eklentilerinin ku
 - ZipArchive (Toplu QR arşivleri için)
 
 ## Ek Gereksinimler
-- Oracle bağlantısı için Oracle Instant Client kurulmalıdır.
-- MSSQL bağlantısı için Microsoft ODBC Driver for SQL Server ve PHP SQLSRV sürücüleri kurulmalıdır.
+- MSSQL Symphony entegrasyonu (ürün senkronizasyonu ve `/kitchen-pos` ekranı) için Microsoft ODBC Driver for SQL Server ve PHP SQLSRV sürücüleri kurulmalıdır.
+- Bağlantı bilgileri Admin > MSSQL Ayarları üzerinden veritabanında saklanır; `.env` değişkeni gerekmez.
 
 Kurulum ve yapılandırma adımlarını dikkatlice takip edin. Herhangi bir eksik eklenti veya yazılım, uygulamanın bazı özelliklerinin çalışmamasına neden olabilir.

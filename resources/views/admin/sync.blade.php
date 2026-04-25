@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 
 @section('content')
 <div class="py-8">
@@ -10,8 +10,8 @@
                         <i class="fas fa-sync mr-2 text-gold"></i>Sync - Urun Senkronizasyonu
                     </h2>
                     <div class="flex flex-wrap gap-3">
-                        <button onclick="fetchFromOracle()" id="btn-oracle" class="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 transition text-sm font-bold {{ $oracleConfigured ? '' : 'opacity-50 cursor-not-allowed' }}" {{ $oracleConfigured ? '' : 'disabled title=Oracle ayarlari yapilandirilmamis' }}>
-                            <i class="fas fa-database mr-1"></i> Oracle'dan Cek
+                        <button onclick="openSymphonyImport()" id="btn-symphony" class="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition text-sm font-bold {{ $symphonyConfigured ? '' : 'opacity-50 cursor-not-allowed' }}" {{ $symphonyConfigured ? '' : 'disabled title=MSSQL_ayarlari_yapilandirilmamis' }}>
+                            <i class="fas fa-file-import mr-1"></i> Symphony İmport
                         </button>
                         <button onclick="fetchFromMssql()" id="btn-mssql" class="px-4 py-2 bg-sky-600 text-white rounded hover:bg-sky-700 transition text-sm font-bold {{ $mssqlConfigured ? '' : 'opacity-50 cursor-not-allowed' }}" {{ $mssqlConfigured ? '' : 'disabled title=MSSQL ayarlari yapilandirilmamis' }}>
                             <i class="fas fa-server mr-1"></i> MSSQL'den Cek
@@ -28,7 +28,7 @@
                 <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <p class="text-sm text-blue-700">
                         <i class="fas fa-info-circle mr-1"></i>
-                        Oracle ve Symphony Restaurant MSSQL kimliklerini tek tek guncelleyebilir veya <strong>Toplu Guncelle</strong> ile isim, fiyat, Oracle ID ve MSSQL ID degisikliklerini onizleyip onaylayabilirsiniz.
+                        Symphony Restaurant MSSQL kimliklerini tek tek guncelleyebilir veya <strong>Toplu Guncelle</strong> ile isim, fiyat ve Product Code degisikliklerini onizleyip onaylayabilirsiniz.
                     </p>
                 </div>
 
@@ -42,8 +42,7 @@
                                 <th class="px-3 py-3 text-left w-16">ID</th>
                                 <th class="px-3 py-3 text-left min-w-48">Urun Adi</th>
                                 <th class="px-3 py-3 text-left w-36">Kategori</th>
-                                <th class="px-3 py-3 text-left w-40">Oracle ID</th>
-                                <th class="px-3 py-3 text-left w-40">MSSQL ID</th>
+                                <th class="px-3 py-3 text-left w-40">Product Code</th>
                                 <th class="px-3 py-3 text-left w-32">Fiyat</th>
                                 <th class="px-3 py-3 text-left w-20">Durum</th>
                                 <th class="px-3 py-3 text-center w-28" id="th-actions">Islem</th>
@@ -67,18 +66,6 @@
                                     @else
                                         <span class="text-gray-400">-</span>
                                     @endif
-                                </td>
-                                <td class="px-3 py-3 font-mono cell-oracle">
-                                    <span class="view-mode oracle-display">
-                                        @if($product->oracle_id)
-                                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">{{ $product->oracle_id }}</span>
-                                        @else
-                                            <span class="bg-gray-100 text-gray-400 px-2 py-1 rounded text-xs">-</span>
-                                        @endif
-                                    </span>
-                                    <input type="text" class="edit-mode hidden w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                                           data-field="oracle_id" value="{{ $product->oracle_id }}" data-original="{{ $product->oracle_id }}"
-                                           placeholder="ORC-1234">
                                 </td>
                                 <td class="px-3 py-3 font-mono cell-mssql">
                                     <span class="view-mode mssql-display">
@@ -106,9 +93,6 @@
                                 </td>
                                 <td class="px-3 py-3 text-center">
                                     <div class="view-mode flex items-center justify-center gap-3">
-                                        <button onclick="editOracleInline({{ $product->id }})" class="inline-oracle-btn text-orange-600 hover:text-orange-800 text-xs" title="Oracle ID duzenle">
-                                            <i class="fas fa-pen"></i>
-                                        </button>
                                         <button onclick="editMssqlInline({{ $product->id }})" class="inline-mssql-btn text-sky-600 hover:text-sky-800 text-xs" title="MSSQL ID duzenle">
                                             <i class="fas fa-server"></i>
                                         </button>
@@ -133,6 +117,28 @@
     </div>
 </div>
 
+<!-- Symphony Import Modal -->
+<div id="symphony-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+        <div class="px-6 py-4 bg-emerald-600 text-white flex justify-between items-center">
+            <h3 class="text-lg font-bold"><i class="fas fa-file-import mr-2"></i>Symphony'den İçe Aktar</h3>
+            <button onclick="closeSymphonyModal()" class="text-emerald-200 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <div class="px-6 py-3 bg-emerald-50 border-b border-emerald-200 text-sm flex flex-wrap gap-4" id="symphony-stats"></div>
+        <div class="p-4 overflow-y-auto flex-1" id="symphony-content"></div>
+        <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center bg-gray-50">
+            <p class="text-sm text-gray-600 font-medium" id="symphony-selected-count">0 ürün seçildi</p>
+            <div class="flex gap-3">
+                <button onclick="closeSymphonyModal()" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100 transition">Kapat</button>
+                <button onclick="importSelected()" id="btn-import-selected" disabled
+                        class="px-6 py-2 bg-emerald-600 text-white font-bold rounded hover:bg-emerald-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
+                    <i class="fas fa-download mr-1"></i> Seçilenleri İçe Aktar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div id="preview-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[80vh] overflow-hidden">
         <div class="px-6 py-4 bg-primary text-white flex justify-between items-center">
@@ -152,40 +158,10 @@
     </div>
 </div>
 
-<div id="oracle-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
-        <div class="px-6 py-4 bg-primary text-white flex justify-between items-center">
-            <h3 class="text-lg font-bold"><i class="fas fa-link mr-2"></i>Oracle ID Guncelle</h3>
-            <button onclick="closeOracleModal()" class="text-gray-300 hover:text-white"><i class="fas fa-times text-xl"></i></button>
-        </div>
-        <div class="p-6">
-            <input type="hidden" id="oracle-product-id">
-            <div class="mb-4">
-                <p class="text-sm text-gray-500 mb-1">Urun:</p>
-                <p class="font-bold text-gray-800" id="oracle-product-name"></p>
-            </div>
-            <div class="mb-4">
-                <p class="text-sm text-gray-500 mb-1">Mevcut Oracle ID:</p>
-                <p class="font-mono text-gray-600" id="oracle-old-value">-</p>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Yeni Oracle ID</label>
-                <input type="text" id="oracle-new-value" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold" placeholder="ORC-1234">
-            </div>
-        </div>
-        <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
-            <button onclick="closeOracleModal()" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100 transition">Iptal</button>
-            <button onclick="saveOracleId()" class="px-6 py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700 transition">
-                <i class="fas fa-save mr-1"></i> Kaydet
-            </button>
-        </div>
-    </div>
-</div>
-
 <div id="mssql-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
         <div class="px-6 py-4 bg-primary text-white flex justify-between items-center">
-            <h3 class="text-lg font-bold"><i class="fas fa-server mr-2"></i>MSSQL ID Guncelle</h3>
+            <h3 class="text-lg font-bold"><i class="fas fa-server mr-2"></i>Product Code Guncelle</h3>
             <button onclick="closeMssqlModal()" class="text-gray-300 hover:text-white"><i class="fas fa-times text-xl"></i></button>
         </div>
         <div class="p-6">
@@ -195,11 +171,11 @@
                 <p class="font-bold text-gray-800" id="mssql-product-name"></p>
             </div>
             <div class="mb-4">
-                <p class="text-sm text-gray-500 mb-1">Mevcut MSSQL ID:</p>
+                <p class="text-sm text-gray-500 mb-1">Mevcut Product Code:</p>
                 <p class="font-mono text-gray-600" id="mssql-old-value">-</p>
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Yeni MSSQL ID</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Yeni Product Code</label>
                 <input type="text" id="mssql-new-value" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold" placeholder="SYM-1234">
             </div>
         </div>
@@ -208,26 +184,6 @@
             <button onclick="saveMssqlId()" class="px-6 py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700 transition">
                 <i class="fas fa-save mr-1"></i> Kaydet
             </button>
-        </div>
-    </div>
-</div>
-
-<div id="oracle-fetch-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden">
-        <div class="px-6 py-4 bg-orange-500 text-white flex justify-between items-center">
-            <h3 class="text-lg font-bold"><i class="fas fa-database mr-2"></i>Oracle Veri Karsilastirma</h3>
-            <button onclick="closeOracleFetch()" class="text-orange-200 hover:text-white"><i class="fas fa-times text-xl"></i></button>
-        </div>
-        <div class="px-6 py-3 bg-orange-50 border-b border-orange-200 flex gap-4 text-sm" id="oracle-stats"></div>
-        <div class="p-6 overflow-y-auto max-h-[55vh]" id="oracle-fetch-content"></div>
-        <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center bg-gray-50">
-            <p class="text-sm text-gray-500" id="oracle-fetch-count"></p>
-            <div class="flex gap-3">
-                <button onclick="closeOracleFetch()" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100 transition">Kapat</button>
-                <button onclick="applyOracleChanges()" id="btn-apply-oracle" class="hidden px-6 py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700 transition">
-                    <i class="fas fa-check mr-1"></i> Degisiklikleri Uygula
-                </button>
-            </div>
         </div>
     </div>
 </div>
@@ -255,8 +211,193 @@
 <script>
 const csrfToken = '{{ csrf_token() }}';
 let pendingUpdates = [];
-let oracleMatchedData = [];
 let mssqlMatchedData = [];
+let symphonyItemsMap = {};
+
+// ─── Symphony Import ──────────────────────────────────────────────────────────
+
+function openSymphonyImport() {
+    const btn = document.getElementById('btn-symphony');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Çekiliyor...';
+
+    fetch('/admin/sync/symphony-fetch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken }
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-file-import mr-1"></i> Symphony İmport';
+        if (!data.success) { showMsg('error', data.error || 'Veri çekilemedi.'); return; }
+        renderSymphonyModal(data);
+        document.getElementById('symphony-modal').classList.remove('hidden');
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-file-import mr-1"></i> Symphony İmport';
+        showMsg('error', 'Bağlantı hatası: ' + err.message);
+    });
+}
+
+function renderSymphonyModal(data) {
+    symphonyItemsMap = {};
+    let totalNew = 0, totalChanged = 0, totalExists = 0;
+
+    data.groups.forEach(g => g.items.forEach(i => {
+        if (i.status === 'new') totalNew++;
+        else if (i.status === 'changed') totalChanged++;
+        else totalExists++;
+    }));
+
+    document.getElementById('symphony-stats').innerHTML =
+        `<span class="text-gray-600 font-medium">${data.total} ürün &bull; ${data.total_groups} grup</span>` +
+        `<span class="text-emerald-700 ml-2"><i class="fas fa-plus-circle mr-1"></i>${totalNew} yeni</span>` +
+        `<span class="text-amber-700 ml-2"><i class="fas fa-edit mr-1"></i>${totalChanged} değişecek</span>` +
+        `<span class="text-gray-500 ml-2"><i class="fas fa-check mr-1"></i>${totalExists} mevcut (değişmez)</span>`;
+
+    let html = '';
+    let itemIndex = 0;
+
+    data.groups.forEach(group => {
+        const groupKey = 'g' + group.name.replace(/[^a-zA-Z0-9]/g, '_');
+        const catBadge = group.category_exists
+            ? `<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded"><i class="fas fa-check mr-1"></i>Kategori var</span>`
+            : `<span class="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded"><i class="fas fa-plus mr-1"></i>Yeni kategori oluşturulacak</span>`;
+
+        const defaultCheckedCount = group.items.filter(i => i.status !== 'exists').length;
+
+        let itemsHtml = '';
+        group.items.forEach(item => {
+            const itemKey = 'i' + (itemIndex++);
+            symphonyItemsMap[itemKey] = item;
+
+            const statusBadge = item.status === 'new'
+                ? `<span class="text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold">Yeni</span>`
+                : item.status === 'changed'
+                ? `<span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold">Değişecek</span>`
+                : `<span class="text-xs bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded">Mevcut</span>`;
+
+            const changesHtml = Object.entries(item.changes || {}).map(([field, vals]) =>
+                `<span class="text-xs text-gray-500 ml-1">${field === 'price' ? 'Fiyat' : 'Ad'}:
+                <span class="line-through text-red-500">${field === 'price' ? parseFloat(vals.old).toFixed(2) + ' TL' : vals.old}</span>
+                → <span class="text-emerald-600 font-bold">${field === 'price' ? parseFloat(vals.new).toFixed(2) + ' TL' : vals.new}</span></span>`
+            ).join('');
+
+            const defaultChecked = item.status !== 'exists' ? 'checked' : '';
+
+            itemsHtml += `
+            <div class="flex items-start gap-3 py-2 border-b border-gray-100 last:border-0 pl-8 pr-4">
+                <input type="checkbox" class="item-check mt-0.5 rounded accent-emerald-600"
+                       data-group="${groupKey}" data-item-key="${itemKey}" ${defaultChecked}
+                       onchange="updateGroupCheckbox('${groupKey}'); updateSelectedCount();">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-mono text-xs text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200">${item.mssql_id}</span>
+                        <span class="text-sm text-gray-800">${item.name}</span>
+                        ${statusBadge}
+                    </div>
+                    <div class="text-xs text-gray-400 mt-0.5">${parseFloat(item.price).toFixed(2)} TL${changesHtml}</div>
+                </div>
+            </div>`;
+        });
+
+        const groupChecked = defaultCheckedCount > 0 ? 'checked' : '';
+
+        html += `
+        <div class="mb-3 border border-gray-200 rounded-lg overflow-hidden">
+            <div class="flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 cursor-pointer select-none" onclick="toggleGroupCollapse('${groupKey}')">
+                <input type="checkbox" class="group-check rounded accent-emerald-600" id="gc-${groupKey}" data-group="${groupKey}"
+                       ${groupChecked} onclick="event.stopPropagation(); toggleAllInGroup('${groupKey}', this.checked);">
+                <i class="fas fa-folder text-amber-500"></i>
+                <span class="font-semibold text-gray-800 flex-1">${group.name}</span>
+                ${catBadge}
+                <span class="text-xs text-gray-400 ml-2">${group.items.length} ürün</span>
+                <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform duration-200" id="chev-${groupKey}"></i>
+            </div>
+            <div id="gi-${groupKey}">${itemsHtml}</div>
+        </div>`;
+    });
+
+    document.getElementById('symphony-content').innerHTML = html || '<div class="text-center py-12 text-gray-400">Veri bulunamadı.</div>';
+
+    // Set indeterminate state on group checkboxes
+    data.groups.forEach(group => {
+        const groupKey = 'g' + group.name.replace(/[^a-zA-Z0-9]/g, '_');
+        const itemChecks = document.querySelectorAll(`.item-check[data-group="${groupKey}"]`);
+        const checked = Array.from(itemChecks).filter(c => c.checked).length;
+        const cb = document.getElementById('gc-' + groupKey);
+        if (cb && checked > 0 && checked < itemChecks.length) cb.indeterminate = true;
+    });
+
+    updateSelectedCount();
+}
+
+function toggleGroupCollapse(groupKey) {
+    const el    = document.getElementById('gi-' + groupKey);
+    const chev  = document.getElementById('chev-' + groupKey);
+    el.classList.toggle('hidden');
+    chev.style.transform = el.classList.contains('hidden') ? 'rotate(-90deg)' : '';
+}
+
+function toggleAllInGroup(groupKey, checked) {
+    document.querySelectorAll(`.item-check[data-group="${groupKey}"]`).forEach(cb => cb.checked = checked);
+    updateSelectedCount();
+}
+
+function updateGroupCheckbox(groupKey) {
+    const itemChecks = document.querySelectorAll(`.item-check[data-group="${groupKey}"]`);
+    const checkedCount = Array.from(itemChecks).filter(c => c.checked).length;
+    const cb = document.getElementById('gc-' + groupKey);
+    if (!cb) return;
+    if (checkedCount === 0) { cb.checked = false; cb.indeterminate = false; }
+    else if (checkedCount === itemChecks.length) { cb.checked = true; cb.indeterminate = false; }
+    else { cb.checked = false; cb.indeterminate = true; }
+}
+
+function updateSelectedCount() {
+    const count = document.querySelectorAll('.item-check:checked').length;
+    document.getElementById('symphony-selected-count').textContent = count + ' ürün seçildi';
+    document.getElementById('btn-import-selected').disabled = count === 0;
+}
+
+function importSelected() {
+    const items = Array.from(document.querySelectorAll('.item-check:checked'))
+        .map(cb => symphonyItemsMap[cb.dataset.itemKey])
+        .filter(Boolean);
+    if (items.length === 0) return;
+
+    const btn = document.getElementById('btn-import-selected');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> İçe Aktarılıyor...';
+
+    fetch('/admin/sync/symphony-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+        body: JSON.stringify({ items })
+    })
+    .then(r => r.json())
+    .then(data => {
+        closeSymphonyModal();
+        if (data.success) {
+            showMsg('success', data.message);
+            setTimeout(() => location.reload(), 1800);
+        } else {
+            showMsg('error', data.message || 'İçe aktarma hatası.');
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-download mr-1"></i> Seçilenleri İçe Aktar';
+        showMsg('error', 'Hata: ' + err.message);
+    });
+}
+
+function closeSymphonyModal() {
+    document.getElementById('symphony-modal').classList.add('hidden');
+}
+
+// ─── Mevcut fonksiyonlar ─────────────────────────────────────────────────────
 
 function showMsg(type, text) {
     const el = document.getElementById('msg-' + type);
@@ -279,8 +420,6 @@ function cancelBulk() {
     document.querySelectorAll('.edit-mode').forEach(el => {
         el.classList.add('hidden');
         el.value = el.dataset.original;
-        el.classList.remove('border-yellow-400', 'bg-yellow-50');
-        el.classList.add('border-gray-300');
     });
     document.getElementById('btn-bulk').classList.remove('hidden');
     document.getElementById('btn-cancel').classList.add('hidden');
@@ -327,7 +466,7 @@ function previewChanges() {
 }
 
 function renderPreview(preview) {
-    const fieldLabels = { name: 'Urun Adi', price: 'Fiyat', oracle_id: 'Oracle ID', mssql_id: 'MSSQL ID' };
+    const fieldLabels = { name: 'Urun Adi', price: 'Fiyat', mssql_id: 'Product Code' };
     const html = preview.map(item => {
         const changesHtml = Object.entries(item.changes).map(([field, vals]) => {
             const label = fieldLabels[field] || field;
@@ -368,9 +507,6 @@ function applyChanges() {
 function updateRowDisplay(row, values) {
     if (values.name !== undefined) row.querySelector('.cell-name .view-mode').textContent = values.name;
     if (values.price !== undefined) row.querySelector('.cell-price .view-mode').textContent = parseFloat(values.price).toFixed(2) + ' TL';
-    if (values.oracle_id !== undefined) {
-        row.querySelector('.oracle-display').innerHTML = values.oracle_id ? `<span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">${values.oracle_id}</span>` : '<span class="bg-gray-100 text-gray-400 px-2 py-1 rounded text-xs">-</span>';
-    }
     if (values.mssql_id !== undefined) {
         row.querySelector('.mssql-display').innerHTML = values.mssql_id ? `<span class="bg-sky-100 text-sky-800 px-2 py-1 rounded text-xs">${values.mssql_id}</span>` : '<span class="bg-gray-100 text-gray-400 px-2 py-1 rounded text-xs">-</span>';
     }
@@ -381,32 +517,6 @@ function updateRowDisplay(row, values) {
             input.dataset.original = values[field] || '';
         }
     });
-}
-
-function editOracleInline(productId) {
-    const row = document.querySelector(`tr[data-id="${productId}"]`);
-    document.getElementById('oracle-product-id').value = productId;
-    document.getElementById('oracle-product-name').textContent = row.querySelector('.cell-name .view-mode').textContent.trim();
-    const current = row.querySelector('input[data-field="oracle_id"]').dataset.original;
-    document.getElementById('oracle-old-value').textContent = current || '-';
-    document.getElementById('oracle-new-value').value = current || '';
-    document.getElementById('oracle-modal').classList.remove('hidden');
-}
-
-function closeOracleModal() { document.getElementById('oracle-modal').classList.add('hidden'); }
-
-function saveOracleId() {
-    const productId = document.getElementById('oracle-product-id').value;
-    fetch(`/admin/sync/oracle/${productId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-        body: JSON.stringify({ oracle_id: document.getElementById('oracle-new-value').value || null })
-    }).then(r => r.json()).then(data => {
-        closeOracleModal();
-        showMsg('success', 'Oracle ID guncellendi.');
-        const row = document.querySelector(`tr[data-id="${productId}"]`);
-        if (row) updateRowDisplay(row, { oracle_id: data.new_oracle_id });
-    }).catch(err => showMsg('error', 'Hata: ' + err.message));
 }
 
 function editMssqlInline(productId) {
@@ -423,78 +533,17 @@ function closeMssqlModal() { document.getElementById('mssql-modal').classList.ad
 
 function saveMssqlId() {
     const productId = document.getElementById('mssql-product-id').value;
+    const value = document.getElementById('mssql-new-value').value;
     fetch(`/admin/sync/mssql/${productId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-        body: JSON.stringify({ mssql_id: document.getElementById('mssql-new-value').value || null })
+        body: JSON.stringify({ mssql_id: value === '' ? null : value })
     }).then(r => r.json()).then(data => {
         closeMssqlModal();
-        showMsg('success', 'MSSQL ID guncellendi.');
+        showMsg('success', 'Product Code guncellendi.');
         const row = document.querySelector(`tr[data-id="${productId}"]`);
         if (row) updateRowDisplay(row, { mssql_id: data.new_mssql_id });
     }).catch(err => showMsg('error', 'Hata: ' + err.message));
-}
-
-function fetchFromOracle() {
-    const btn = document.getElementById('btn-oracle');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Baglaniyor...';
-    fetch('/admin/sync/fetch-oracle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken }
-    }).then(r => r.json()).then(data => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-database mr-1"></i> Oracle\'dan Cek';
-        if (!data.success) return showMsg('error', data.error);
-        oracleMatchedData = data.matched.filter(item => item.has_changes);
-        renderOracleFetch(data);
-        document.getElementById('oracle-fetch-modal').classList.remove('hidden');
-    }).catch(err => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-database mr-1"></i> Oracle\'dan Cek';
-        showMsg('error', 'Oracle baglanti hatasi: ' + err.message);
-    });
-}
-
-function renderOracleFetch(data) {
-    document.getElementById('oracle-stats').innerHTML = `<span class="text-orange-700">Oracle: <strong>${data.total_oracle}</strong> urun</span><span class="text-blue-700">Eslesen: <strong>${data.total_matched}</strong></span><span class="text-green-700">Degisiklik: <strong>${data.total_with_changes}</strong></span><span class="text-gray-500">Eslesmeyen: <strong>${data.unmatched.length}</strong></span>`;
-    let html = '';
-    if (oracleMatchedData.length > 0) {
-        html += oracleMatchedData.map(item => `<div class="mb-3 p-4 border border-orange-200 rounded-lg bg-orange-50/50"><div class="flex items-center gap-2 mb-1"><span class="font-mono text-orange-600 font-bold text-xs">${item.oracle_id}</span><span class="font-semibold text-gray-800">${item.local_name}</span><span class="text-xs text-gray-400">(#${item.local_id})</span></div>${Object.entries(item.changes).map(([field, vals]) => `<div class="flex items-center gap-3 py-2 border-b border-gray-100 last:border-0"><span class="text-xs text-gray-500 w-20">${field === 'name' ? 'Urun Adi' : 'Fiyat'}</span><span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs line-through">${field === 'price' ? parseFloat(vals.old).toFixed(2) + ' TL' : vals.old}</span><i class="fas fa-arrow-right text-gray-400 text-xs"></i><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">${field === 'price' ? parseFloat(vals.new).toFixed(2) + ' TL' : vals.new}</span></div>`).join('')}</div>`).join('');
-    }
-    if (data.unmatched.length > 0) {
-        html += '<h4 class="font-bold text-gray-900 mt-6 mb-3">Eslesmeyen Oracle Urunleri</h4><div class="grid grid-cols-1 md:grid-cols-2 gap-2">';
-        html += data.unmatched.map(item => `<div class="p-2 border border-gray-200 rounded bg-gray-50 text-sm"><span class="font-mono text-gray-500">${item.oracle_id}</span> - <span>${item.oracle_name}</span> <span class="text-gray-400 ml-1">${parseFloat(item.oracle_price).toFixed(2)} TL</span></div>`).join('');
-        html += '</div>';
-    }
-    if (html === '') html = '<div class="text-center py-8 text-gray-500"><p class="text-lg font-bold">Tum urunler guncel.</p></div>';
-    document.getElementById('oracle-fetch-content').innerHTML = html;
-    document.getElementById('oracle-fetch-count').textContent = data.total_with_changes + ' urunde guncelleme mevcut';
-    document.getElementById('btn-apply-oracle').classList.toggle('hidden', oracleMatchedData.length === 0);
-}
-
-function closeOracleFetch() { document.getElementById('oracle-fetch-modal').classList.add('hidden'); }
-
-function applyOracleChanges() {
-    const updates = oracleMatchedData.map(item => {
-        const update = { local_id: item.local_id };
-        if (item.changes.name) update.name = item.changes.name.new;
-        if (item.changes.price) update.price = item.changes.price.new;
-        return update;
-    });
-    fetch('/admin/sync/apply-oracle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-        body: JSON.stringify({ updates })
-    }).then(r => r.json()).then(data => {
-        closeOracleFetch();
-        showMsg('success', 'Oracle degisiklikleri uygulandi.');
-        data.results.forEach(item => {
-            if (!item.changed) return;
-            const row = document.querySelector(`tr[data-id="${item.id}"]`);
-            if (row) updateRowDisplay(row, item.new);
-        });
-    }).catch(err => showMsg('error', 'Oracle guncelleme hatasi: ' + err.message));
 }
 
 function fetchFromMssql() {

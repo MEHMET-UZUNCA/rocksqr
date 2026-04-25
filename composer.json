@@ -10,8 +10,7 @@
         "laravel/breeze": "v2.4.1",
         "laravel/framework": "^11.0",
         "laravel/tinker": "^2.9",
-        "smalot/pdfparser": "^2.12",
-        "yajra/laravel-datatables-oracle": "^11.0"
+        "smalot/pdfparser": "^2.12"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

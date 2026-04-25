@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Str;
 
 class SyncController extends Controller
 {
@@ -14,10 +15,10 @@ class SyncController extends Controller
     {
         $products = Product::with('category')->orderBy('id')->get();
 
-        $oracleConfigured = Setting::get('oracle_host', '') !== '' && Setting::get('oracle_table', '') !== '';
-        $mssqlConfigured = Setting::get('mssql_host', '') !== '' && Setting::get('mssql_database', '') !== '' && Setting::get('mssql_table', '') !== '';
+        $mssqlConfigured = Setting::get('mssql_host', '') !== '' && Setting::get('mssql_database', '') !== '' && trim((string) Setting::get('mssql_custom_query', '')) !== '';
+        $symphonyConfigured = Setting::get('mssql_host', '') !== '' && Setting::get('mssql_database', '') !== '' && trim((string) Setting::get('mssql_custom_query', '')) !== '';
 
-        return view('admin.sync', compact('products', 'oracleConfigured', 'mssqlConfigured'));
+        return view('admin.sync', compact('products', 'mssqlConfigured', 'symphonyConfigured'));
     }
 
     public function apiProducts()
@@ -27,188 +28,12 @@ class SyncController extends Controller
                 'id' => $product->id,
                 'name' => $product->name,
                 'price' => $product->price,
-                'oracle_id' => $product->oracle_id,
                 'mssql_id' => $product->mssql_id,
                 'is_available' => $product->is_available,
             ];
         });
 
         return response()->json(['products' => $products]);
-    }
-
-    /**
-     * Oracle'dan ürün verilerini çek ve mevcut ürünlerle eşleştir
-     */
-    public function fetchOracle()
-    {
-        $host = Setting::get('oracle_host', '');
-        $port = Setting::get('oracle_port', '1521');
-        $service = Setting::get('oracle_service', '');
-        $username = Setting::get('oracle_username', '');
-        $password = Setting::get('oracle_password', '');
-        $table = Setting::get('oracle_table', '');
-        $colId = Setting::get('oracle_column_id', 'ID');
-        $colName = Setting::get('oracle_column_name', 'NAME');
-        $colPrice = Setting::get('oracle_column_price', 'PRICE');
-        $colCategory = Setting::get('oracle_column_category', 'CATEGORY');
-        $colSubcategory = Setting::get('oracle_column_subcategory', 'SUBCATEGORY');
-
-        if (!$host || !$service || !$table) {
-            return response()->json(['success' => false, 'error' => 'Oracle bağlantı ayarları eksik. Ayarlar sayfasından yapılandırın.'], 422);
-        }
-
-        try {
-            // Decrypt password
-            $decryptedPassword = '';
-            if ($password) {
-                try {
-                    $decryptedPassword = decrypt($password);
-                } catch (\Exception $e) {
-                    $decryptedPassword = $password;
-                }
-            }
-
-            // Dynamic Oracle connection
-            Config::set('database.connections.oracle_sync', [
-                'driver' => 'oracle',
-                'host' => $host,
-                'port' => $port,
-                'database' => '',
-                'service_name' => $service,
-                'username' => $username,
-                'password' => $decryptedPassword,
-                'charset' => 'AL32UTF8',
-                'prefix' => '',
-            ]);
-
-            // Try OCI8 PDO connection directly
-            $tns = "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={$host})(PORT={$port}))(CONNECT_DATA=(SERVICE_NAME={$service})))";
-            $pdo = new \PDO("oci:dbname={$tns};charset=AL32UTF8", $username, $decryptedPassword);
-            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-
-            $sql = "SELECT {$colId}, {$colName}, {$colPrice}, {$colCategory}, {$colSubcategory} FROM {$table}";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute();
-            $oracleProducts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-            // Match with local products by oracle_id
-            $localProducts = Product::whereNotNull('oracle_id')->where('oracle_id', '!=', '')->get()->keyBy('oracle_id');
-
-            $matched = [];
-            $unmatched = [];
-
-            foreach ($oracleProducts as $op) {
-                $oracleId = (string)($op[$colId] ?? $op[strtoupper($colId)] ?? $op[strtolower($colId)] ?? '');
-                $oracleName = $op[$colName] ?? $op[strtoupper($colName)] ?? $op[strtolower($colName)] ?? '';
-                $oraclePrice = (float)($op[$colPrice] ?? $op[strtoupper($colPrice)] ?? $op[strtolower($colPrice)] ?? 0);
-                $oracleCategory = $op[$colCategory] ?? $op[strtoupper($colCategory)] ?? $op[strtolower($colCategory)] ?? '';
-                $oracleSubcategory = $op[$colSubcategory] ?? $op[strtoupper($colSubcategory)] ?? $op[strtolower($colSubcategory)] ?? '';
-
-                if ($localProducts->has($oracleId)) {
-                    $local = $localProducts->get($oracleId);
-                    $changes = [];
-
-                    if ($oracleName && $oracleName !== $local->name) {
-                        $changes['name'] = ['old' => $local->name, 'new' => $oracleName];
-                    }
-                    if ($oraclePrice > 0 && (float)$oraclePrice !== (float)$local->price) {
-                        $changes['price'] = ['old' => (float)$local->price, 'new' => $oraclePrice];
-                    }
-
-                    $matched[] = [
-                        'local_id' => $local->id,
-                        'oracle_id' => $oracleId,
-                        'local_name' => $local->name,
-                        'oracle_name' => $oracleName,
-                        'local_price' => (float)$local->price,
-                        'oracle_price' => $oraclePrice,
-                        'oracle_category' => $oracleCategory,
-                        'oracle_subcategory' => $oracleSubcategory,
-                        'has_changes' => !empty($changes),
-                        'changes' => $changes,
-                    ];
-                } else {
-                    $unmatched[] = [
-                        'oracle_id' => $oracleId,
-                        'oracle_name' => $oracleName,
-                        'oracle_price' => $oraclePrice,
-                        'oracle_category' => $oracleCategory,
-                        'oracle_subcategory' => $oracleSubcategory,
-                    ];
-                }
-            }
-
-            return response()->json([
-                'success' => true,
-                'matched' => $matched,
-                'unmatched' => $unmatched,
-                'total_oracle' => count($oracleProducts),
-                'total_matched' => count($matched),
-                'total_with_changes' => count(array_filter($matched, fn($m) => $m['has_changes'])),
-            ]);
-
-        } catch (\PDOException $e) {
-            return response()->json(['success' => false, 'error' => 'Oracle bağlantı hatası: ' . $e->getMessage()], 500);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'error' => 'Hata: ' . $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * Oracle'dan gelen verileri uygula
-     */
-    public function applyOracle(Request $request)
-    {
-        $request->validate([
-            'updates' => 'required|array',
-            'updates.*.local_id' => 'required|exists:products,id',
-            'updates.*.name' => 'nullable|string|max:255',
-            'updates.*.price' => 'nullable|numeric|min:0',
-        ]);
-
-        $results = [];
-        foreach ($request->updates as $update) {
-            $product = Product::find($update['local_id']);
-            $old = ['name' => $product->name, 'price' => $product->price];
-            $data = [];
-
-            if (!empty($update['name'])) {
-                $data['name'] = $update['name'];
-            }
-            if (isset($update['price']) && $update['price'] !== null) {
-                $data['price'] = $update['price'];
-            }
-
-            if (!empty($data)) {
-                $product->update($data);
-                $product->refresh();
-            }
-
-            $results[] = [
-                'id' => $product->id,
-                'old' => $old,
-                'new' => ['name' => $product->name, 'price' => $product->price],
-                'changed' => !empty($data),
-            ];
-        }
-
-        return response()->json(['success' => true, 'results' => $results]);
-    }
-
-    public function updateOracleId(Request $request, Product $product)
-    {
-        $request->validate([
-            'oracle_id' => 'nullable|string|max:255',
-        ]);
-
-        $old = $product->oracle_id;
-        $product->update(['oracle_id' => $request->oracle_id]);
-
-        return response()->json([
-            'success' => true,
-            'old_oracle_id' => $old,
-            'new_oracle_id' => $product->oracle_id,
-        ]);
     }
 
     public function updateMssqlId(Request $request, Product $product)
@@ -234,7 +59,6 @@ class SyncController extends Controller
             'updates.*.id' => 'required|exists:products,id',
             'updates.*.name' => 'nullable|string|max:255',
             'updates.*.price' => 'nullable|numeric|min:0',
-            'updates.*.oracle_id' => 'nullable|string|max:255',
             'updates.*.mssql_id' => 'nullable|string|max:255',
         ]);
 
@@ -244,7 +68,6 @@ class SyncController extends Controller
             $old = [
                 'name' => $product->name,
                 'price' => $product->price,
-                'oracle_id' => $product->oracle_id,
                 'mssql_id' => $product->mssql_id,
             ];
 
@@ -254,9 +77,6 @@ class SyncController extends Controller
             }
             if (isset($update['price']) && $update['price'] !== '') {
                 $data['price'] = $update['price'];
-            }
-            if (array_key_exists('oracle_id', $update)) {
-                $data['oracle_id'] = $update['oracle_id'];
             }
             if (array_key_exists('mssql_id', $update)) {
                 $data['mssql_id'] = $update['mssql_id'];
@@ -273,7 +93,6 @@ class SyncController extends Controller
                 'new' => [
                     'name' => $product->name,
                     'price' => $product->price,
-                    'oracle_id' => $product->oracle_id,
                     'mssql_id' => $product->mssql_id,
                 ],
                 'changed' => !empty($data),
@@ -290,7 +109,6 @@ class SyncController extends Controller
             'updates.*.id' => 'required|exists:products,id',
             'updates.*.name' => 'nullable|string|max:255',
             'updates.*.price' => 'nullable|numeric|min:0',
-            'updates.*.oracle_id' => 'nullable|string|max:255',
             'updates.*.mssql_id' => 'nullable|string|max:255',
         ]);
 
@@ -304,9 +122,6 @@ class SyncController extends Controller
             }
             if (isset($update['price']) && $update['price'] !== '' && (float)$update['price'] !== (float)$product->price) {
                 $changes['price'] = ['old' => $product->price, 'new' => (float)$update['price']];
-            }
-            if (array_key_exists('oracle_id', $update) && $update['oracle_id'] !== $product->oracle_id) {
-                $changes['oracle_id'] = ['old' => $product->oracle_id, 'new' => $update['oracle_id']];
             }
             if (array_key_exists('mssql_id', $update) && $update['mssql_id'] !== $product->mssql_id) {
                 $changes['mssql_id'] = ['old' => $product->mssql_id, 'new' => $update['mssql_id']];
@@ -341,8 +156,8 @@ class SyncController extends Controller
         $incomeCenterFilter = trim((string) Setting::get('mssql_income_center_filter', ''));
         $customQuery = trim((string) Setting::get('mssql_custom_query', ''));
 
-        if (!$host || !$database || !$table) {
-            return response()->json(['success' => false, 'error' => 'MSSQL bağlantı ayarları eksik. MSSQL ayarları sayfasından yapılandırın.'], 422);
+        if (!$host || !$database || $customQuery === '') {
+            return response()->json(['success' => false, 'error' => 'MSSQL bağlantı ayarları eksik. Özel SQL sorgusu girilmemiş.'], 422);
         }
 
         try {
@@ -358,50 +173,29 @@ class SyncController extends Controller
             $pdo = new \PDO("sqlsrv:Server={$host},{$port};Database={$database};TrustServerCertificate=1", $username, $decryptedPassword);
             $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-            if ($customQuery !== '') {
-                $stmt = $pdo->prepare($customQuery);
-            } else {
-                $quotedTable = $this->quoteSqlServerTable($table);
-                $sql = sprintf(
-                    'SELECT %s, %s, %s, %s, %s, %s FROM %s',
-                    $this->quoteSqlServerIdentifier($colId),
-                    $this->quoteSqlServerIdentifier($colName),
-                    $this->quoteSqlServerIdentifier($colPrice),
-                    $this->quoteSqlServerIdentifier($colGroup),
-                    $this->quoteSqlServerIdentifier($colSubgroup),
-                    $this->quoteSqlServerIdentifier($colIncomeCenter),
-                    $quotedTable
-                );
-
-                if ($incomeCenterFilter !== '') {
-                    $sql .= sprintf(
-                        ' WHERE LTRIM(RTRIM(CONVERT(NVARCHAR(255), %s))) = :income_center_filter',
-                        $this->quoteSqlServerIdentifier($colIncomeCenter)
-                    );
-                }
-
-                $stmt = $pdo->prepare($sql);
-
-                if ($incomeCenterFilter !== '') {
-                    $stmt->bindValue(':income_center_filter', $incomeCenterFilter);
-                }
-            }
-
+            $stmt = $pdo->prepare($customQuery);
             $stmt->execute();
             $mssqlProducts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Advanced post-fetch income center filter
+            if ($incomeCenterFilter !== '') {
+                $mssqlProducts = $this->applyIncomeCenterFilter($mssqlProducts, $colIncomeCenter, $incomeCenterFilter);
+            }
 
             $localProducts = Product::whereNotNull('mssql_id')->where('mssql_id', '!=', '')->get()->keyBy('mssql_id');
 
             $matched = [];
             $unmatched = [];
 
+            $mssqlProducts = $this->dedupeByExternalId($mssqlProducts, $colId);
+
             foreach ($mssqlProducts as $row) {
-                $externalId = (string) $this->resolveMssqlValue($row, [$colId, 'external_id', 'id', 'mssql_id', 'product_id', 'menu_item_id'], '');
-                $externalName = (string) $this->resolveMssqlValue($row, [$colName, 'product_name', 'name', 'mssql_name', 'item_name'], '');
-                $externalPrice = (float) $this->resolveMssqlValue($row, [$colPrice, 'price', 'mssql_price', 'sales_price', 'product_price'], 0);
-                $externalGroup = (string) $this->resolveMssqlValue($row, [$colGroup, 'product_group', 'group_name', 'major_group', 'main_group'], '');
-                $externalSubgroup = (string) $this->resolveMssqlValue($row, [$colSubgroup, 'subgroup', 'sub_group', 'family_group'], '');
-                $externalIncomeCenter = (string) $this->resolveMssqlValue($row, [$colIncomeCenter, 'rvc', 'income_center', 'revenue_center', 'revenue_centre'], '');
+                $externalId = (string) $this->resolveMssqlValue($row, [$colId, 'external_id', 'id', 'mssql_id', 'product_id', 'menu_item_id', 'ProductCode', 'product_code'], '');
+                $externalName = (string) $this->resolveMssqlValue($row, [$colName, 'product_name', 'name', 'mssql_name', 'item_name', 'ProductName'], '');
+                $externalPrice = (float) $this->resolveMssqlValue($row, [$colPrice, 'price', 'mssql_price', 'sales_price', 'product_price', 'Price'], 0);
+                $externalGroup = (string) $this->resolveMssqlValue($row, [$colGroup, 'product_group', 'group_name', 'major_group', 'main_group', 'FamilyGroup'], '');
+                $externalSubgroup = (string) $this->resolveMssqlValue($row, [$colSubgroup, 'subgroup', 'sub_group', 'family_group', 'FamilyGroup'], '');
+                $externalIncomeCenter = (string) $this->resolveMssqlValue($row, [$colIncomeCenter, 'rvc', 'income_center', 'revenue_center', 'revenue_centre', 'PriceLevel'], '');
 
                 if ($localProducts->has($externalId)) {
                     $local = $localProducts->get($externalId);
@@ -492,6 +286,243 @@ class SyncController extends Controller
         }
 
         return response()->json(['success' => true, 'results' => $results]);
+    }
+
+    public function symphonyFetch()
+    {
+        $host               = Setting::get('mssql_host', '');
+        $port               = Setting::get('mssql_port', '1433');
+        $database           = Setting::get('mssql_database', '');
+        $username           = Setting::get('mssql_username', '');
+        $password           = Setting::get('mssql_password', '');
+        $table              = Setting::get('mssql_table', '');
+        $colId              = Setting::get('mssql_column_id', 'ID');
+        $colName            = Setting::get('mssql_column_name', 'NAME');
+        $colPrice           = Setting::get('mssql_column_price', 'PRICE');
+        $colGroup           = Setting::get('mssql_column_group', 'PRODUCT_GROUP');
+        $colSubgroup        = Setting::get('mssql_column_subgroup', 'SUBGROUP');
+        $colIncomeCenter    = Setting::get('mssql_column_income_center', 'RVC');
+        $incomeCenterFilter = trim((string) Setting::get('mssql_income_center_filter', ''));
+        $customQuery        = trim((string) Setting::get('mssql_custom_query', ''));
+
+        if (!$host || !$database || $customQuery === '') {
+            return response()->json(['success' => false, 'error' => 'MSSQL ayarları eksik. Özel SQL sorgusu girilmemiş.'], 422);
+        }
+
+        try {
+            $decryptedPassword = '';
+            if ($password) {
+                try { $decryptedPassword = decrypt($password); } catch (\Exception $e) { $decryptedPassword = $password; }
+            }
+
+            $pdo = new \PDO("sqlsrv:Server={$host},{$port};Database={$database};TrustServerCertificate=1", $username, $decryptedPassword);
+            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+            $stmt = $pdo->prepare($customQuery);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            if ($incomeCenterFilter !== '') {
+                $rows = $this->applyIncomeCenterFilter($rows, $colIncomeCenter, $incomeCenterFilter);
+            }
+
+            // Dedupe: aynı ProductCode birden fazla fiyat seviyesi (HierStrucID) ile gelirse,
+            // en yüksek HierStrucID (RVC > Property > Enterprise) önceliklidir.
+            $rows = $this->dedupeByExternalId($rows, $colId);
+
+            $localProducts = Product::whereNotNull('mssql_id')->where('mssql_id', '!=', '')->with('category')->get()->keyBy('mssql_id');
+            $existingCatNames = Category::whereNull('deleted_at')->pluck('name')
+                ->map(fn ($n) => strtolower(trim($n)))->flip()->toArray();
+
+            $groups = [];
+            foreach ($rows as $row) {
+                $externalId    = (string)  $this->resolveMssqlValue($row, [$colId, 'external_id', 'id', 'mssql_id', 'product_id', 'ProductCode', 'product_code'], '');
+                $externalName  = (string)  $this->resolveMssqlValue($row, [$colName, 'name', 'product_name', 'item_name', 'ProductName'], '');
+                $externalPrice = (float)   $this->resolveMssqlValue($row, [$colPrice, 'price', 'sales_price', 'Price'], 0);
+                $externalGroup = (string)  $this->resolveMssqlValue($row, [$colGroup, 'family_group', 'product_group', 'group_name', 'major_group', 'FamilyGroup'], '');
+                $externalSub   = (string)  $this->resolveMssqlValue($row, [$colSubgroup, 'family_group', 'subgroup', 'sub_group', 'FamilyGroup'], '');
+
+                // family_group = subgroup if present, else group
+                $categoryName = trim($externalSub ?: $externalGroup ?: 'Kategorisiz');
+
+                if ($externalId === '' || $externalName === '') continue;
+
+                $status  = 'new';
+                $localId = null;
+                $changes = [];
+
+                if ($localProducts->has($externalId)) {
+                    $local   = $localProducts->get($externalId);
+                    $localId = $local->id;
+                    if ($externalName !== $local->name) {
+                        $changes['name'] = ['old' => $local->name, 'new' => $externalName];
+                    }
+                    if ($externalPrice > 0 && abs($externalPrice - (float) $local->price) > 0.001) {
+                        $changes['price'] = ['old' => (float) $local->price, 'new' => $externalPrice];
+                    }
+                    $status = empty($changes) ? 'exists' : 'changed';
+                }
+
+                if (!isset($groups[$categoryName])) {
+                    $groups[$categoryName] = [
+                        'name'             => $categoryName,
+                        'category_exists'  => isset($existingCatNames[strtolower($categoryName)]),
+                        'items'            => [],
+                    ];
+                }
+
+                $groups[$categoryName]['items'][] = [
+                    'mssql_id'     => $externalId,
+                    'name'         => $externalName,
+                    'price'        => $externalPrice,
+                    'family_group' => $categoryName,
+                    'status'       => $status,
+                    'local_id'     => $localId,
+                    'changes'      => $changes,
+                ];
+            }
+
+            // Sort: groups with new/changed items first
+            uasort($groups, function ($a, $b) {
+                $aHas = count(array_filter($a['items'], fn ($i) => $i['status'] !== 'exists'));
+                $bHas = count(array_filter($b['items'], fn ($i) => $i['status'] !== 'exists'));
+                return $bHas <=> $aHas;
+            });
+
+            return response()->json([
+                'success'       => true,
+                'groups'        => array_values($groups),
+                'total'         => count($rows),
+                'total_groups'  => count($groups),
+            ]);
+        } catch (\PDOException $e) {
+            return response()->json(['success' => false, 'error' => 'MSSQL bağlantı hatası: ' . $e->getMessage()], 500);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => 'Hata: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function symphonyImport(Request $request)
+    {
+        $request->validate([
+            'items'                => 'required|array|min:1',
+            'items.*.mssql_id'     => 'required|string|max:255',
+            'items.*.name'         => 'required|string|max:255',
+            'items.*.price'        => 'required|numeric|min:0',
+            'items.*.family_group' => 'required|string|max:255',
+        ]);
+
+        $createdProducts   = 0;
+        $updatedProducts   = 0;
+        $createdCategories = 0;
+        $categoryCache     = [];
+
+        foreach ($request->items as $item) {
+            $groupName = trim($item['family_group']);
+
+            if (!isset($categoryCache[$groupName])) {
+                $category = Category::withTrashed()->whereRaw('LOWER(TRIM(name)) = ?', [strtolower($groupName)])->first();
+                if ($category) {
+                    if ($category->trashed()) $category->restore();
+                } else {
+                    $baseSlug = Str::slug($groupName);
+                    $slug     = $baseSlug ?: 'kategori-' . uniqid();
+                    $suffix   = 1;
+                    while (Category::where('slug', $slug)->exists()) {
+                        $slug = $baseSlug . '-' . $suffix++;
+                    }
+                    $category = Category::create([
+                        'name'       => $groupName,
+                        'slug'       => $slug,
+                        'is_active'  => true,
+                        'sort_order' => 0,
+                    ]);
+                    $createdCategories++;
+                }
+                $categoryCache[$groupName] = $category->id;
+            }
+
+            $categoryId = $categoryCache[$groupName];
+            $existing   = Product::where('mssql_id', $item['mssql_id'])->first();
+
+            if ($existing) {
+                $existing->update([
+                    'name'        => $item['name'],
+                    'price'       => $item['price'],
+                    'category_id' => $categoryId,
+                ]);
+                $updatedProducts++;
+            } else {
+                Product::create([
+                    'name'         => $item['name'],
+                    'price'        => $item['price'],
+                    'mssql_id'     => $item['mssql_id'],
+                    'category_id'  => $categoryId,
+                    'is_available' => true,
+                    'sort_order'   => 0,
+                ]);
+                $createdProducts++;
+            }
+        }
+
+        return response()->json([
+            'success'            => true,
+            'created_products'   => $createdProducts,
+            'updated_products'   => $updatedProducts,
+            'created_categories' => $createdCategories,
+            'message'            => "{$createdProducts} yeni ürün eklendi, {$updatedProducts} ürün güncellendi, {$createdCategories} yeni kategori oluşturuldu.",
+        ]);
+    }
+
+    private function applyIncomeCenterFilter(array $rows, string $colIncomeCenter, string $filter): array
+    {
+        $needle  = strtolower(trim($filter));
+        $isWild  = str_contains($needle, '*');
+        $pattern = $isWild ? '/^' . str_replace('\\*', '.*', preg_quote($needle, '/')) . '$/iu' : null;
+
+        return array_values(array_filter($rows, function ($row) use ($colIncomeCenter, $needle, $isWild, $pattern) {
+            $value = strtolower(trim((string) $this->resolveMssqlValue(
+                $row,
+                [$colIncomeCenter, 'rvc', 'income_center', 'revenue_center', 'revenue_centre', 'PriceLevel'],
+                ''
+            )));
+            if ($value === '') return false;
+            return $isWild ? (bool) preg_match($pattern, $value) : ($value === $needle);
+        }));
+    }
+
+    /**
+     * Aynı external_id (ProductCode) için birden fazla satır geldiğinde,
+     * en yüksek HierStrucID/PriceLevelID önceliklidir (RVC > Property > Enterprise).
+     * Symphony fiyat sorgusu her seviye için ayrı satır döndürdüğü için gereklidir.
+     */
+    private function dedupeByExternalId(array $rows, string $colId): array
+    {
+        $byId = [];
+        foreach ($rows as $row) {
+            $id = (string) $this->resolveMssqlValue(
+                $row,
+                [$colId, 'external_id', 'id', 'mssql_id', 'product_id', 'menu_item_id', 'ProductCode', 'product_code'],
+                ''
+            );
+            if ($id === '') continue;
+
+            $level = (int) $this->resolveMssqlValue(
+                $row,
+                ['PriceLevelID', 'price_level_id', 'HierStrucID', 'hier_struc_id'],
+                0
+            );
+
+            if (!isset($byId[$id]) || $level > $byId[$id]['_level']) {
+                $row['_level'] = $level;
+                $byId[$id] = $row;
+            }
+        }
+
+        return array_values(array_map(function ($r) {
+            unset($r['_level']);
+            return $r;
+        }, $byId));
     }
 
     private function quoteSqlServerIdentifier(string $identifier): string

@@ -9,6 +9,11 @@ class WaiterCall extends Model
 {
     use HasFactory;
 
+    public function getConnectionName()
+    {
+        return config('database.waiter_calls_connection', config('database.default'));
+    }
+
     protected $fillable = [
         'table_no',
         'status',

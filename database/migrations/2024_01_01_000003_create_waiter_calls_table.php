@@ -7,7 +7,9 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('waiter_calls', function (Blueprint $table) {
+        $connection = config('database.waiter_calls_connection', config('database.default'));
+
+        Schema::connection($connection)->create('waiter_calls', function (Blueprint $table) {
             $table->id();
             $table->integer('table_no');
             $table->enum('status', ['pending', 'attended'])->default('pending');
@@ -19,6 +21,8 @@ return new class extends Migration {
 
     public function down(): void
     {
-        Schema::dropIfExists('waiter_calls');
+        $connection = config('database.waiter_calls_connection', config('database.default'));
+
+        Schema::connection($connection)->dropIfExists('waiter_calls');
     }
 };

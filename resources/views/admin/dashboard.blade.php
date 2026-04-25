@@ -48,8 +48,11 @@
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Hızlı Erişim</h3>
                         <div class="space-y-2">
-                            <a href="{{ route('kitchen') }}" class="block px-4 py-3 bg-red-700 text-white rounded hover:bg-red-800 transition">
-                                <i class="fas fa-tv mr-2"></i> Mutfak Ekranı (KDS)
+                            <a href="{{ route('bar') }}" class="block px-4 py-3 bg-red-700 text-white rounded hover:bg-red-800 transition">
+                                <i class="fas fa-wine-glass mr-2"></i> Bar Ekrani (KDS)
+                            </a>
+                            <a href="{{ route('kitchen') }}" class="block px-4 py-3 bg-primary text-white rounded hover:bg-light-primary transition">
+                                <i class="fas fa-tv mr-2 text-gold"></i> Kitchen Ekrani (KDS)
                             </a>
                             <a href="{{ route('admin.categories.index') }}" class="block px-4 py-3 bg-primary text-white rounded hover:bg-light-primary transition">
                                 <i class="fas fa-folder mr-2 text-gold"></i> Kategorileri Yönet

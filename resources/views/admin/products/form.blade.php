@@ -83,16 +83,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Oracle ID <span class="text-gray-400 text-xs">(harici sistem entegrasyonu)</span></label>
-                        <input type="text" name="oracle_id" 
-                               value="{{ old('oracle_id', $product->oracle_id ?? '') }}"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                               placeholder="Örn: ORC-1234">
-                        <p class="text-xs text-gray-500 mt-1">Oracle POS ürün ID'si. Sync işleminde eşleştirme için kullanılır.</p>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">MSSQL ID <span class="text-gray-400 text-xs">(Symphony entegrasyonu)</span></label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Product Code <span class="text-gray-400 text-xs">(MSSQL ID / Symphony entegrasyonu)</span></label>
                         <input type="text" name="mssql_id"
                                value="{{ old('mssql_id', $product->mssql_id ?? '') }}"
                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
@@ -107,6 +98,25 @@
                                    class="rounded">
                             <span class="ml-2 text-sm text-gray-700">Satışta</span>
                         </label>
+                    </div>
+
+                    <div class="border-t pt-4">
+                        <p class="text-sm font-medium text-gray-700 mb-2">KDS / Servis Yönlendirme</p>
+                        <div class="flex gap-6">
+                            <label class="flex items-center">
+                                <input type="checkbox" name="show_in_kitchen" value="1"
+                                       {{ old('show_in_kitchen', $product->show_in_kitchen ?? true) ? 'checked' : '' }}
+                                       class="rounded">
+                                <span class="ml-2 text-sm text-gray-700"><i class="fas fa-utensils mr-1 text-amber-600"></i>Mutfak ekranında görünsün</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="show_in_bar" value="1"
+                                       {{ old('show_in_bar', $product->show_in_bar ?? false) ? 'checked' : '' }}
+                                       class="rounded">
+                                <span class="ml-2 text-sm text-gray-700"><i class="fas fa-wine-glass mr-1 text-purple-600"></i>Bar ekranında görünsün</span>
+                            </label>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Yiyecekler için mutfak, içecekler için bar işaretlenmelidir. İkisi de işaretliyse her iki ekrana düşer.</p>
                     </div>
 
                     <div class="flex gap-4">

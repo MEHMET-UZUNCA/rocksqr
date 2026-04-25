@@ -15,11 +15,22 @@ A production-level Laravel 11 QR Menu and Restaurant Management System with cust
 
 🔐 **Admin Features**
 - Category CRUD with sorting
-- Product CRUD with photo upload
-- Kitchen display screen (live orders)
+- Product CRUD with photo upload (with Product Code - MSSQL ID display)
+- Kitchen & Bar display screens (live orders with real-time updates via SSE)
+- **Symphony POS Kitchen Screen** (`/kitchen-pos`): live read-only board powered by the MSSQL KDS query (CheckNumber grouped, kitchen messages support, audio alert, complete/undo with 24h history)
+- Table number shown on kitchen order cards
 - Order status management (new → preparing → ready → completed)
-- Waiter call management
-- Oracle database sync preparation
+- Undo ready functionality with configurable time window
+- Waiter call management with admin notifications (call button is also available below the mobile cart)
+- MSSQL Symphony database product sync (bulk update & preview)
+  - Tabbed MSSQL Settings: separate connection + custom SQL for **Products (Symphony)** and **KDS (Kitchen)**
+  - **Query Preview** button runs the custom SELECT/WITH and shows the first 100 rows in a modal
+  - ProductCode (mssql_id) used as a stable key — re-sync updates existing products and inserts new ones (no deletes)
+  - Automatic deduplication for multi-price-level rows (RVC > Property > Enterprise)
+- Customizable kitchen & bar screen titles
+- Bar completed orders display limit configuration
+- Screen auto-clear at scheduled time each day
+- QR code generation & bulk table labeling (A4 print template, archive, ZIP download)
 
 🎨 **Design**
 - Luxury theme with dark (#1A1A2E) and gold (#D4A574) colors
@@ -28,19 +39,23 @@ A production-level Laravel 11 QR Menu and Restaurant Management System with cust
 
 ## Tech Stack
 
-- **Backend**: Laravel 11
-- **Database**: MySQL
-- **Frontend**: Blade Templates, Tailwind CSS
-- **Auth**: Laravel Breeze
-- **Storage**: Laravel Storage (Local filesystem)
-- **Optional**: Oracle database integration ready
+- **Backend**: Laravel 11 with PHP 8.2+
+- **Database**: MySQL (qr_menu) - primary application database
+- **External Database**: MSSQL (Symphony Restaurant) - product sync via PDO
+- **Frontend**: Blade Templates, Tailwind CSS, Font Awesome 6.4.0
+- **Real-time**: Server-Sent Events (SSE) with fallback polling for kitchen/bar screens
+- **Auth**: Laravel Breeze (email/password authentication)
+- **QR Codes**: endroid/qr-code library
+- **Storage**: Laravel Storage (Local filesystem for product photos)
 
 ## System Requirements
 
 - PHP 8.2+
-- MySQL 5.7+
+- MySQL 5.7+ (for application data)
+- MSSQL Server (optional, for Symphony integration)
 - Composer
 - Node.js 16+ (for frontend build tools)
+- PDO MySQL & PDO MSSQL extensions enabled (if using Symphony sync)
 
 ## Installation
 
@@ -67,6 +82,9 @@ DB_DATABASE=qr_menu
 DB_USERNAME=root
 DB_PASSWORD=your_password
 ```
+
+**Optional: MSSQL Symphony Integration**
+If using the MSSQL product sync or Symphony POS kitchen screen, configure via **Admin → MSSQL Settings** after database setup (no .env variables needed — settings are stored in the database). The Products and KDS tabs are independent and each has its own host/port/db/user/password and SQL query.
 
 ### 3. Database Setup
 
@@ -120,8 +138,7 @@ Access:
 │   │       │   ├── CategoryController.php
 │   │       │   ├── ProductController.php
 │   │       │   ├── OrderController.php
-│   │       │   ├── WaiterCallController.php
-│   │       │   └── OracleController.php
+│   │       │   └── WaiterCallController.php
 │   ├── Models/
 │   │   ├── Category.php
 │   │   ├── Product.php
@@ -147,7 +164,7 @@ Access:
 - id, name, slug, description, sort_order, is_active, created_at, updated_at, deleted_at
 
 ### Products Table
-- id, category_id, name, description, price, photo_path, sort_order, is_available, oracle_id, created_at, updated_at, deleted_at
+- id, category_id, name, description, price, photo_path, sort_order, is_available, mssql_id, created_at, updated_at, deleted_at
 
 ### Orders Table
 - id, table_no, total_price, order_note, status (new/preparing/ready/completed), items_json, completed_at, created_at, updated_at
@@ -176,8 +193,9 @@ Access:
 4. **Products**: Add/edit/delete products with photos
 5. **Orders**: View all orders, change status
 6. **Kitchen Screen**: Live view of pending orders at `/admin/orders/kitchen/screen`
-7. **Waiter Calls**: View and mark waiter calls as attended
-8. **Oracle Sync**: Prepare products from Oracle database (configuration ready)
+7. **Symphony POS Kitchen Screen**: Live MSSQL-driven view at `/kitchen-pos` (cross-linked with the local kitchen screen)
+8. **Waiter Calls**: View and mark waiter calls as attended
+9. **MSSQL Sync**: Pull products from Symphony via the configured custom query (Admin → MSSQL Settings → Products tab)
 
 ## Kitchen Screen
 
@@ -196,32 +214,15 @@ Access at: `http://localhost:8000/admin/orders/kitchen`
 - Supported formats: JPEG, PNG, JPG, GIF
 - Symlink created via `artisan storage:link`
 
-## Oracle Database Integration
+## MSSQL Symphony Integration
 
-Configuration is prepared for Oracle connection:
+All connection details are managed in the database via **Admin → MSSQL Settings** — no `.env` variables required.
 
-### Connection Details
-- Host: `192.168.0.10`
-- Port: `1521`
-- Database: `ORCL`
-- Set credentials in `.env`:
+### Tabs
+- **Products (Symphony)**: connection + custom SELECT used by the product sync. Supports PascalCase aliases `ProductCode`, `ProductName`, `FamilyGroup`, `Price`, `PriceLevel`, `PriceLevelID`. `ProductCode` is stored on `products.mssql_id` and used as the upsert key.
+- **KDS (Kitchen)**: independent connection + custom SELECT used by the Symphony POS Kitchen Screen (`/kitchen-pos`). Expected columns include `CheckNumber`, `TableNumber`, `RvcName`, `MajGrp`, etc. Rows with `MajGrp = 99` are treated as kitchen messages; messages without a check number are surfaced as flash banners on top of the screen.
 
-```env
-ORACLE_DB_USERNAME=your_username
-ORACLE_DB_PASSWORD=your_password
-```
-
-### Implementation
-To complete Oracle integration:
-
-1. Install Oracle driver:
-```bash
-composer require laravel-doctrine/orm
-```
-
-2. Implement actual Oracle queries in `OracleController@fetchFromOracle()`
-
-3. Use admin panel at `/admin/oracle` to sync products
+Each tab has its own **Test Connection** and **Preview Query** (first 100 rows, SELECT/WITH only) buttons.
 
 ## API Endpoints
 
@@ -240,7 +241,8 @@ composer require laravel-doctrine/orm
 - `POST /admin/orders/{order}/status` - Update order status
 - `GET /admin/waiter-calls` - Waiter calls
 - `POST /admin/waiter-calls/{call}/attended` - Mark attended
-- `GET /admin/oracle` - Oracle sync interface
+- `GET /admin/mssql-settings` - MSSQL Symphony / KDS settings (tabs)
+- `GET /kitchen-pos` - Symphony POS Kitchen Screen
 
 ## Production Checklist
 
@@ -252,7 +254,7 @@ composer require laravel-doctrine/orm
 - [ ] Configure MAIL settings for order notifications (optional)
 - [ ] Set up proper backups for database and uploads
 - [ ] Use HTTPS in production
-- [ ] Set `ORACLE_DB_*` credentials if using Oracle sync
+- [ ] Configure MSSQL Symphony / KDS connections from Admin → MSSQL Settings if using sync or `/kitchen-pos`
 - [ ] Run `php artisan config:cache` and `php artisan route:cache`
 
 ## Troubleshooting

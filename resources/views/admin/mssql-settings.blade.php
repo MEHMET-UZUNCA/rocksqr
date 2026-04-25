@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="py-12">
-    <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+    <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
             <div class="p-6 bg-white border-b border-gray-200">
                 <h2 class="text-2xl font-bold text-gray-900 mb-6">
@@ -12,159 +12,148 @@
                 <div class="mb-6 p-4 bg-sky-50 border border-sky-200 rounded-lg">
                     <p class="text-sm text-sky-700">
                         <i class="fas fa-info-circle mr-1"></i>
-                        Symphony Restaurant MSSQL veritabanısından ürün, ürün grubu, fiyat ve gelir merkezi verilerini çekmek için bağlantı bilgilerini girin.
-                        Şifre şifreli olarak saklanır. Sync sayfasından önizleme ile veri karşılaştırabilirsiniz.
+                        İki ayrı bağlantı yapılandırılır: <strong>Ürün</strong> (Symphony menüsü) ve <strong>KDS</strong> (Mutfak ekranı sorguları).
+                        Her bağlantı için ayrı host, kullanıcı ve özel SQL sorgusu girilebilir. Şifreler şifreli saklanır.
                     </p>
                 </div>
 
-                <form action="{{ route('admin.mssql-settings.update') }}" method="POST">
-                    @csrf
-                    @method('PUT')
-
-                    <h3 class="text-sm font-bold text-gray-700 mb-3">
-                        <i class="fas fa-server mr-1"></i>Bağlantı Bilgileri
-                    </h3>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <div>
-                            <label for="mssql_host" class="block text-sm font-semibold text-gray-700 mb-2">Host / IP</label>
-                            <input type="text" name="mssql_host" id="mssql_host" value="{{ old('mssql_host', $settings['mssql_host']) }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold" placeholder="192.168.0.9">
-                        </div>
-                        <div>
-                            <label for="mssql_port" class="block text-sm font-semibold text-gray-700 mb-2">Port</label>
-                            <input type="text" name="mssql_port" id="mssql_port" value="{{ old('mssql_port', $settings['mssql_port']) }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold" placeholder="1433">
-                        </div>
-                    </div>
-
-                    <div class="mb-6">
-                        <label for="mssql_database" class="block text-sm font-semibold text-gray-700 mb-2">Veritabanı</label>
-                        <input type="text" name="mssql_database" id="mssql_database" value="{{ old('mssql_database', $settings['mssql_database']) }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold" placeholder="Datastore">
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <div>
-                            <label for="mssql_username" class="block text-sm font-semibold text-gray-700 mb-2">Kullanıcı Adı</label>
-                            <input type="text" name="mssql_username" id="mssql_username" value="{{ old('mssql_username', $settings['mssql_username']) }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold" placeholder="rocks">
-                        </div>
-                        <div>
-                            <label for="mssql_password" class="block text-sm font-semibold text-gray-700 mb-2">Şifre</label>
-                            <input type="password" name="mssql_password" id="mssql_password" value="{{ old('mssql_password', $settings['mssql_password']) }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold" placeholder="••••••••">
-                        </div>
-                    </div>
-
-                    <hr class="my-6 border-gray-200">
-
-                    <h3 class="text-sm font-bold text-gray-700 mb-3">
-                        <i class="fas fa-table mr-1"></i>Tablo ve Kolon Eşleme
-                    </h3>
-
-                    <div class="mb-6">
-                        <label for="mssql_table" class="block text-sm font-semibold text-gray-700 mb-2">Tablo / View Adı</label>
-                        <input type="text" name="mssql_table" id="mssql_table" value="{{ old('mssql_table', $settings['mssql_table']) }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold" placeholder="dbo.Products">
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div>
-                            <label for="mssql_column_id" class="block text-sm font-semibold text-gray-700 mb-2">ID Kolonu</label>
-                            <input type="text" name="mssql_column_id" id="mssql_column_id" value="{{ old('mssql_column_id', $settings['mssql_column_id']) }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold" placeholder="ID">
-                        </div>
-                        <div>
-                            <label for="mssql_column_name" class="block text-sm font-semibold text-gray-700 mb-2">Ürün Adı Kolonu</label>
-                            <input type="text" name="mssql_column_name" id="mssql_column_name" value="{{ old('mssql_column_name', $settings['mssql_column_name']) }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold" placeholder="NAME">
-                        </div>
-                        <div>
-                            <label for="mssql_column_price" class="block text-sm font-semibold text-gray-700 mb-2">Fiyat Kolonu</label>
-                            <input type="text" name="mssql_column_price" id="mssql_column_price" value="{{ old('mssql_column_price', $settings['mssql_column_price']) }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold" placeholder="PRICE">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div>
-                            <label for="mssql_column_group" class="block text-sm font-semibold text-gray-700 mb-2">Ürün Grubu Kolonu</label>
-                            <input type="text" name="mssql_column_group" id="mssql_column_group" value="{{ old('mssql_column_group', $settings['mssql_column_group']) }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold" placeholder="PRODUCT_GROUP">
-                        </div>
-                        <div>
-                            <label for="mssql_column_subgroup" class="block text-sm font-semibold text-gray-700 mb-2">Alt Grup Kolonu</label>
-                            <input type="text" name="mssql_column_subgroup" id="mssql_column_subgroup" value="{{ old('mssql_column_subgroup', $settings['mssql_column_subgroup']) }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold" placeholder="SUBGROUP">
-                        </div>
-                        <div>
-                            <label for="mssql_column_income_center" class="block text-sm font-semibold text-gray-700 mb-2">Gelir Merkezi / RVC Kolonu</label>
-                            <input type="text" name="mssql_column_income_center" id="mssql_column_income_center" value="{{ old('mssql_column_income_center', $settings['mssql_column_income_center']) }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold" placeholder="RVC">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <div>
-                            <label for="mssql_income_center_filter" class="block text-sm font-semibold text-gray-700 mb-2">RVC Filtresi</label>
-                            <input type="text" name="mssql_income_center_filter" id="mssql_income_center_filter" value="{{ old('mssql_income_center_filter', $settings['mssql_income_center_filter']) }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold" placeholder="POOLBAR">
-                            <p class="text-xs text-gray-400 mt-1">Tablo yapısı uygunsa sadece bu RVC'ye ait ürün ve fiyatlar çekilir.</p>
-                        </div>
-                        <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                            <p class="text-sm text-amber-800 font-semibold mb-1">Karmaşık Symphony yapısı için</p>
-                            <p class="text-xs text-amber-700">Eğer ürün, fiyat ve RVC farklı tablolardaysa aşağıdaki özel sorgu alanını kullanın. Sorgu sonucu en az <strong>external_id</strong>, <strong>name</strong> ve <strong>price</strong> döndürmeli.</p>
-                        </div>
-                    </div>
-
-                    <div class="mb-6">
-                        <label for="mssql_custom_query" class="block text-sm font-semibold text-gray-700 mb-2">Özel SQL Sorgusu</label>
-                        <textarea name="mssql_custom_query" id="mssql_custom_query" rows="8" class="w-full border border-gray-300 rounded-lg px-4 py-2 font-mono text-sm focus:ring-2 focus:ring-gold focus:border-gold" placeholder="SELECT item_id AS external_id, item_name AS name, price AS price, major_group AS product_group, sub_group AS subgroup, rvc AS rvc FROM ... WHERE rvc = 'POOLBAR'">{{ old('mssql_custom_query', $settings['mssql_custom_query']) }}</textarea>
-                        <p class="text-xs text-gray-400 mt-1">Alias destekleri: <strong>external_id</strong>, <strong>name</strong>, <strong>price</strong>, <strong>product_group</strong>, <strong>subgroup</strong>, <strong>rvc</strong>.</p>
-                    </div>
-
-                    <button type="submit" class="w-full py-3 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-700 transition">
-                        <i class="fas fa-save mr-2"></i>MSSQL Ayarlarını Kaydet
+                <!-- Tab Nav -->
+                <div class="flex flex-wrap gap-1 mb-6 border-b border-gray-200">
+                    <button type="button" data-tab="product" class="tab-btn active-tab px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 border-sky-600 text-sky-700 bg-sky-50">
+                        <i class="fas fa-utensils mr-1"></i>Ürün (Symphony)
                     </button>
-                </form>
-
-                <hr class="my-6 border-gray-200">
-
-                <div>
-                    <button type="button" id="testConnectionBtn" onclick="testConnection()" class="w-full py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition">
-                        <i class="fas fa-plug mr-2"></i>Bağlantıyı Test Et
+                    <button type="button" data-tab="kds" class="tab-btn px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-sky-600 hover:bg-sky-50">
+                        <i class="fas fa-fire mr-1"></i>KDS (Mutfak)
                     </button>
-                    <div id="testResult" class="mt-4 hidden">
-                        <div id="testResultContent" class="p-4 rounded-lg text-sm font-medium"></div>
-                    </div>
+                </div>
+
+                {{-- ============ ÜRÜN (Symphony) ============ --}}
+                <div data-section="product" class="tab-pane">
+                    <form action="{{ route('admin.mssql-settings.update') }}" method="POST">
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="section" value="product">
+                        @include('admin.partials.mssql-section', [
+                            'section'    => 'product',
+                            'prefix'     => 'mssql',
+                            'title'      => 'Ürün (Symphony)',
+                            'icon'       => 'fa-utensils',
+                            'color'      => 'sky',
+                            'showRvc'    => true,
+                            'queryHint'  => 'Sorgu sonucundaki kolonlar (alias) önemlidir.',
+                            'aliasList'  => true,
+                            'settings'   => $settings,
+                        ])
+                        <button type="submit" class="w-full py-3 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-700 transition mt-6">
+                            <i class="fas fa-save mr-2"></i>Ürün Ayarlarını Kaydet
+                        </button>
+                    </form>
+                </div>
+
+                {{-- ============ KDS ============ --}}
+                <div data-section="kds" class="tab-pane hidden">
+                    <form action="{{ route('admin.mssql-settings.update') }}" method="POST">
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="section" value="kds">
+                        @include('admin.partials.mssql-section', [
+                            'section'    => 'kds',
+                            'prefix'     => 'mssql_kds',
+                            'title'      => 'KDS (Mutfak Ekranı)',
+                            'icon'       => 'fa-fire',
+                            'color'      => 'orange',
+                            'showRvc'    => false,
+                            'queryHint'  => 'KDS için açık siparişleri/üretim hattını döndüren SQL sorgusu.',
+                            'aliasList'  => false,
+                            'settings'   => $settings,
+                        ])
+                        <button type="submit" class="w-full py-3 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-700 transition mt-6">
+                            <i class="fas fa-save mr-2"></i>KDS Ayarlarını Kaydet
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Önizleme Modal -->
+<div id="previewModal" class="fixed inset-0 z-50 hidden bg-black/60 p-2 sm:p-4">
+    <div class="bg-white rounded-xl shadow-2xl flex flex-col mx-auto" style="width:98vw;height:96vh;max-width:none;">
+        <div class="flex items-center justify-between p-4 border-b border-gray-200 shrink-0">
+            <h3 class="text-lg font-bold text-gray-800">
+                <i class="fas fa-table mr-2 text-indigo-600"></i>SQL Sorgu Önizlemesi
+                <span id="previewMeta" class="ml-2 text-sm font-normal text-gray-500"></span>
+            </h3>
+            <button type="button" onclick="closePreviewModal()" class="text-gray-400 hover:text-gray-700">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-4 overflow-auto flex-1 min-h-0">
+            <div id="previewLoading" class="text-center py-12 text-gray-500 hidden">
+                <i class="fas fa-spinner fa-spin text-3xl mb-3"></i>
+                <p>Sorgu çalıştırılıyor...</p>
+            </div>
+            <div id="previewError" class="hidden bg-red-50 border border-red-300 text-red-800 p-4 rounded-lg text-sm"></div>
+            <div id="previewTableWrap" class="hidden overflow-auto border border-gray-200 rounded-lg w-full"></div>
+        </div>
+        <div class="p-3 border-t border-gray-200 flex justify-end gap-2 bg-gray-50 rounded-b-xl shrink-0">
+            <button type="button" onclick="closePreviewModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Kapat</button>
+        </div>
+    </div>
+</div>
+
 <script>
-function testConnection() {
-    const btn = document.getElementById('testConnectionBtn');
-    const resultDiv = document.getElementById('testResult');
-    const resultContent = document.getElementById('testResultContent');
+// ===== Tab geçişleri =====
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('active-tab', 'border-sky-600', 'text-sky-700', 'bg-sky-50');
+            b.classList.add('border-transparent', 'text-gray-500');
+        });
+        btn.classList.add('active-tab', 'border-sky-600', 'text-sky-700', 'bg-sky-50');
+        btn.classList.remove('border-transparent', 'text-gray-500');
+        document.querySelectorAll('.tab-pane').forEach(p => {
+            p.classList.toggle('hidden', p.dataset.section !== tab);
+        });
+    });
+});
+
+// Kayıt sonrası ilgili sekmeye dön
+@if(session('active_tab'))
+    document.querySelector('.tab-btn[data-tab="{{ session('active_tab') }}"]')?.click();
+@endif
+
+// ===== Test Bağlantısı =====
+function testConnection(section, prefix) {
+    const btn = document.getElementById(prefix + '_testBtn');
+    const resultDiv = document.getElementById(prefix + '_testResult');
+    const resultContent = document.getElementById(prefix + '_testResultContent');
 
     btn.disabled = true;
+    const origHtml = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Test ediliyor...';
     resultDiv.classList.add('hidden');
 
     fetch('{{ route("admin.mssql-settings.test") }}', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
         body: JSON.stringify({
-            mssql_host: document.getElementById('mssql_host').value,
-            mssql_port: document.getElementById('mssql_port').value,
-            mssql_database: document.getElementById('mssql_database').value,
-            mssql_username: document.getElementById('mssql_username').value,
-            mssql_password: document.getElementById('mssql_password').value
+            section: section,
+            mssql_host: document.getElementById(prefix + '_host').value,
+            mssql_port: document.getElementById(prefix + '_port').value,
+            mssql_database: document.getElementById(prefix + '_database').value,
+            mssql_username: document.getElementById(prefix + '_username').value,
+            mssql_password: document.getElementById(prefix + '_password').value
         })
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
         resultDiv.classList.remove('hidden');
-        if (data.success) {
-            resultContent.className = 'p-4 rounded-lg text-sm font-medium bg-green-50 border border-green-300 text-green-800';
-            resultContent.innerHTML = '<i class="fas fa-check-circle mr-2"></i>' + data.message;
-        } else {
-            resultContent.className = 'p-4 rounded-lg text-sm font-medium bg-red-50 border border-red-300 text-red-800';
-            resultContent.innerHTML = '<i class="fas fa-times-circle mr-2"></i>' + data.message;
-        }
+        resultContent.className = 'p-4 rounded-lg text-sm font-medium ' +
+            (data.success ? 'bg-green-50 border border-green-300 text-green-800' : 'bg-red-50 border border-red-300 text-red-800');
+        resultContent.innerHTML = (data.success ? '<i class="fas fa-check-circle mr-2"></i>' : '<i class="fas fa-times-circle mr-2"></i>') + (data.message || '');
     })
     .catch(() => {
         resultDiv.classList.remove('hidden');
@@ -173,8 +162,102 @@ function testConnection() {
     })
     .finally(() => {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-plug mr-2"></i>Bağlantıyı Test Et';
+        btn.innerHTML = origHtml;
     });
+}
+
+// ===== Sorgu Önizleme =====
+function previewQuery(section, prefix, queryFieldId) {
+    const btn = document.getElementById(prefix + '_previewBtn');
+    const modal = document.getElementById('previewModal');
+    const loading = document.getElementById('previewLoading');
+    const errorBox = document.getElementById('previewError');
+    const tableWrap = document.getElementById('previewTableWrap');
+    const meta = document.getElementById('previewMeta');
+
+    const query = (document.getElementById(queryFieldId)?.value || '').trim();
+    if (!query) {
+        alert('Önce SQL Sorgusu alanına bir sorgu yazın.');
+        return;
+    }
+
+    modal.classList.remove('hidden');
+    loading.classList.remove('hidden');
+    errorBox.classList.add('hidden');
+    tableWrap.classList.add('hidden');
+    tableWrap.innerHTML = '';
+    meta.textContent = '';
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Yükleniyor...';
+
+    fetch('{{ route("admin.mssql-settings.preview") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+        body: JSON.stringify({
+            section: section,
+            mssql_host: document.getElementById(prefix + '_host').value,
+            mssql_port: document.getElementById(prefix + '_port').value,
+            mssql_database: document.getElementById(prefix + '_database').value,
+            mssql_username: document.getElementById(prefix + '_username').value,
+            mssql_password: document.getElementById(prefix + '_password').value,
+            mssql_custom_query: query,
+            limit: 100
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        loading.classList.add('hidden');
+        if (!data.success) {
+            errorBox.textContent = data.message || 'Bilinmeyen hata.';
+            errorBox.className = 'bg-red-50 border border-red-300 text-red-800 p-4 rounded-lg text-sm';
+            errorBox.classList.remove('hidden');
+            return;
+        }
+        meta.textContent = `(${data.row_count} satır, max ${data.limit})`;
+        if (!data.rows || data.rows.length === 0) {
+            errorBox.textContent = 'Sorgu sonuç döndürmedi.';
+            errorBox.className = 'bg-yellow-50 border border-yellow-300 text-yellow-800 p-4 rounded-lg text-sm';
+            errorBox.classList.remove('hidden');
+            return;
+        }
+        const cols = data.columns || Object.keys(data.rows[0]);
+        let html = '<table class="min-w-full text-xs"><thead class="bg-gray-100 sticky top-0"><tr>';
+        cols.forEach(c => {
+            html += `<th class="px-3 py-2 text-left font-semibold text-gray-700 border-b border-gray-200 whitespace-nowrap">${escapeHtml(c)}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+        data.rows.forEach((row, idx) => {
+            html += `<tr class="${idx % 2 ? 'bg-gray-50' : 'bg-white'} hover:bg-indigo-50">`;
+            cols.forEach(c => {
+                const v = row[c];
+                const txt = (v === null || v === undefined) ? '<span class="text-gray-400 italic">NULL</span>' : escapeHtml(String(v));
+                html += `<td class="px-3 py-1.5 border-b border-gray-100 whitespace-nowrap">${txt}</td>`;
+            });
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        tableWrap.innerHTML = html;
+        tableWrap.classList.remove('hidden');
+    })
+    .catch(err => {
+        loading.classList.add('hidden');
+        errorBox.textContent = 'İstek başarısız: ' + err.message;
+        errorBox.className = 'bg-red-50 border border-red-300 text-red-800 p-4 rounded-lg text-sm';
+        errorBox.classList.remove('hidden');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+    });
+}
+
+function closePreviewModal() {
+    document.getElementById('previewModal').classList.add('hidden');
+}
+
+function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 }
 </script>
 @endsection
