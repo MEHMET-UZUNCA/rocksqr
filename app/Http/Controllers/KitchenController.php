@@ -291,9 +291,9 @@ class KitchenController extends Controller
             $pdo = new \PDO("sqlsrv:Server={$host},{$port};Database={$database};TrustServerCertificate=1", $username, $actualPassword);
             $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-            // -- yorum satırları ve \r\n ODBC Driver 18'de SQLSTATE[42000] verebilir
+            // -- yorum sat., \r\n ve trailing ; ODBC Driver 18'de SQLSTATE[42000] verebilir
             $lines = explode("\n", str_replace("\r\n", "\n", $query));
-            $query = implode("\n", array_filter($lines, fn($l) => !preg_match('/^\s*--/', $l)));
+            $query = rtrim(trim(implode("\n", array_filter($lines, fn($l) => !preg_match('/^\s*--/', $l)))), ';');
 
             $stmt = $pdo->query($query);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -514,9 +514,9 @@ class KitchenController extends Controller
             $pdo = new \PDO("sqlsrv:Server={$host},{$port};Database={$database};TrustServerCertificate=1", $username, $actualPassword);
             $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-            // -- yorum satırları ve \r\n ODBC Driver 18'de SQLSTATE[42000] verebilir
+            // -- yorum sat., \r\n ve trailing ; ODBC Driver 18'de SQLSTATE[42000] verebilir
             $lines = explode("\n", str_replace("\r\n", "\n", $query));
-            $query = implode("\n", array_filter($lines, fn($l) => !preg_match('/^\s*--/', $l)));
+            $query = rtrim(trim(implode("\n", array_filter($lines, fn($l) => !preg_match('/^\s*--/', $l)))), ';');
 
             $stmt = $pdo->query($query);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -581,9 +581,9 @@ class KitchenController extends Controller
             $pdo = new \PDO("sqlsrv:Server={$host},{$port};Database={$database};TrustServerCertificate=1", $username, $actualPassword);
             $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-            // -- yorum satırları ve \r\n ODBC Driver 18'de SQLSTATE[42000] verebilir
+            // -- yorum sat., \r\n ve trailing ; ODBC Driver 18'de SQLSTATE[42000] verebilir
             $lines = explode("\n", str_replace("\r\n", "\n", $query));
-            $query = implode("\n", array_filter($lines, fn($l) => !preg_match('/^\s*--/', $l)));
+            $query = rtrim(trim(implode("\n", array_filter($lines, fn($l) => !preg_match('/^\s*--/', $l)))), ';');
 
             $stmt = $pdo->query($query);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -1021,8 +1021,10 @@ class KitchenController extends Controller
             $pdo = new \PDO("sqlsrv:Server={$host},{$port};Database={$database};TrustServerCertificate=1", $username, $actualPassword);
             $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-            // Parametre kullanılmıyor; prepare() SQLSRV'de comment'li sorgularda
-            // SQLSTATE[42000] verebileceğinden doğrudan query() ile çalıştırıyoruz.
+            // -- yorum sat., \r\n ve trailing ; ODBC Driver 18'de SQLSTATE[42000] verebilir
+            $lines = explode("\n", str_replace("\r\n", "\n", $query));
+            $query = rtrim(trim(implode("\n", array_filter($lines, fn($l) => !preg_match('/^\s*--/', $l)))), ';');
+
             $stmt = $pdo->query($query);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
