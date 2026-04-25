@@ -1004,8 +1004,9 @@ class KitchenController extends Controller
             $pdo = new \PDO("sqlsrv:Server={$host},{$port};Database={$database};TrustServerCertificate=1", $username, $actualPassword);
             $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-            $stmt = $pdo->prepare($query);
-            $stmt->execute();
+            // Parametre kullanılmıyor; prepare() SQLSRV'de comment'li sorgularda
+            // SQLSTATE[42000] verebileceğinden doğrudan query() ile çalıştırıyoruz.
+            $stmt = $pdo->query($query);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             $checks = [];
