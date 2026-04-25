@@ -261,6 +261,20 @@
             .catch(err => console.error(err));
         }
 
+        function markQrDelivered(orderId) {
+            fetch(`/kitchen/orders/${orderId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ status: 'completed' })
+            })
+            .then(r => r.json())
+            .then(() => fetchData())
+            .catch(err => console.error(err));
+        }
+
         function renderReadyOrders(readyOrders, readyLimit = null) {
             const bar   = document.getElementById('ready-bar');
             const list  = document.getElementById('ready-orders-list');
@@ -302,7 +316,7 @@
 
                 const deliveredHtml = isSymphony
                     ? `<button onclick="markSymphonyDelivered('${order.group_key}')" class="mt-2 w-full py-1 bg-emerald-600 hover:bg-emerald-700 rounded text-white font-bold text-xs"><i class="fas fa-truck mr-1"></i>Servis Edildi</button>`
-                    : '';
+                    : `<button onclick="markQrDelivered(${order.id})" class="mt-2 w-full py-1 bg-emerald-600 hover:bg-emerald-700 rounded text-white font-bold text-xs"><i class="fas fa-truck mr-1"></i>Servis Edildi</button>`;
 
                 const sourceBadge = isSymphony
                     ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYMPHONY</span>`

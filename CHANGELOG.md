@@ -52,6 +52,12 @@ RocksQR; **QR menü (müşteri)**, **Mutfak/Bar ekranları (personel)** ve **Sym
 
 ---
 
+## v1.0.21 - 2026-04-25
+
+### Eklenenler
+- **QR siparişlerin "Servis Edildi" butonu**: Bar ekranındaki yeşil **"SİPARİŞ HAZIR — SERVİSE GÖTÜR"** şeridindeki QR kartlarına da artık **`Servis Edildi`** butonu eklendi (Symphony kartlarında zaten vardı).
+  - Tıklanınca sipariş `kitchen_status='completed'` olur ve **Tamamlanan Siparişler** bölümüne düşer.
+
 ## v1.0.20 - 2026-04-25
 
 ### Eklenenler
