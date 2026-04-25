@@ -165,15 +165,24 @@
                 </div>
             `).join('');
 
+            const _checkNo = order.check_number || '';
+            const _tableNo = order.table_no || '';
             const messagesHtml = (order.messages || []).length > 0 ? `
                 <div class="mx-4 mb-2 p-2 bg-yellow-900/40 border border-yellow-500/60 rounded-lg">
                     <div class="text-xs text-yellow-400 font-bold uppercase mb-1">
                         <i class="fas fa-bullhorn mr-1"></i>Mutfak Mesajlari
                     </div>
                     ${(order.messages || []).map(m => `
-                        <div class="text-yellow-200 text-sm py-0.5">
-                            <span class="text-yellow-400">${m.qty > 1 ? 'x'+m.qty+' ' : ''}</span>${escapeHtml(m.name)}
-                            ${m.note ? ` <span class="text-yellow-400/80">— ${escapeHtml(m.note)}</span>` : ''}
+                        <div class="flex items-center justify-between gap-2 py-1 border-b border-yellow-500/20 last:border-0">
+                            <div class="text-yellow-200 text-sm flex-1 min-w-0">
+                                <span class="text-yellow-400">${m.qty > 1 ? 'x'+m.qty+' ' : ''}</span>${escapeHtml(m.name)}
+                                ${m.note ? ` <span class="text-yellow-400/80">— ${escapeHtml(m.note)}</span>` : ''}
+                            </div>
+                            <button onclick="completeOrder('checkless_msg', ${JSON.stringify('M' + (m.item_id || ''))}, ${JSON.stringify(_checkNo)}, ${JSON.stringify(_tableNo)})"
+                                    class="flex-shrink-0 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 rounded text-white text-xs font-bold"
+                                    title="Mesaji onayla / kaldir">
+                                <i class="fas fa-check mr-1"></i>Onayla
+                            </button>
                         </div>
                     `).join('')}
                 </div>
@@ -220,14 +229,6 @@
                 </div>
             `).join('');
 
-            const symBadge = order.symphony_processed
-                ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-700 text-emerald-100" title="Symphony POS'a manuel girildi"><i class="fas fa-check mr-1"></i>SYMPHONY OK</span>`
-                : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-700 text-red-100 animate-pulse" title="Symphony POS'a henüz işlenmedi"><i class="fas fa-exclamation mr-1"></i>SYMPHONY?</span>`;
-
-            const symBtn = order.symphony_processed
-                ? `<button onclick="toggleSymphony(${order.qr_order_id})" class="flex-1 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs font-bold text-gray-300"><i class="fas fa-undo mr-1"></i>Symphony işaretini kaldır</button>`
-                : `<button onclick="toggleSymphony(${order.qr_order_id})" class="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-xs font-bold text-white"><i class="fas fa-database mr-1"></i>Symphony'e işlendi</button>`;
-
             return `
             <div class="bg-purple-950/40 rounded-lg border-2 border-purple-500 qr-card overflow-hidden">
                 <div class="flex items-center justify-between px-4 py-2 bg-purple-900/40">
@@ -236,7 +237,6 @@
                             <i class="fas fa-qrcode mr-1"></i>Masa ${escapeHtml(order.table_no || '-')}
                         </span>
                         <span class="px-2 py-1 rounded text-xs font-bold bg-purple-700 text-white">QR #${order.qr_order_id}</span>
-                        ${symBadge}
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="px-2 py-1 rounded text-xs ${timeBg}">${fmtElapsed(elapsed)}</span>
@@ -246,9 +246,8 @@
                 <div class="px-4 py-1 text-xs text-purple-300 border-b border-purple-800"><i class="fas fa-mobile-screen mr-1"></i>QR Menu siparişi</div>
                 ${order.order_note ? `<div class="mx-4 mt-2 p-2 bg-yellow-900/40 border border-yellow-500/60 rounded text-yellow-200 text-xs"><i class="fas fa-sticky-note mr-1"></i>${escapeHtml(order.order_note)}</div>` : ''}
                 <div class="px-4 py-3 text-sm text-purple-100">${itemsHtml || '<div class="text-gray-500 text-center py-2">Urun yok</div>'}</div>
-                <div class="px-4 py-2 border-t border-purple-800 flex gap-2">
-                    ${symBtn}
-                    <button onclick="confirmQr(${order.qr_order_id})" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-bold text-white">
+                <div class="px-4 py-2 border-t border-purple-800">
+                    <button onclick="confirmQr(${order.qr_order_id})" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-bold text-white">
                         <i class="fas fa-check-circle mr-1"></i>Onayla → Servis
                     </button>
                 </div>
@@ -328,11 +327,6 @@
             postJson('/kitchen-pos/qr/' + orderId + '/undo', {}, 'PATCH')
                 .then(d => { if (d && d.success === false) alert(d.message || 'Geri alınamadı.'); fetchOnce(); })
                 .catch(e => console.error(e));
-        }
-
-        function toggleSymphony(orderId) {
-            postJson('/kitchen-pos/qr/' + orderId + '/symphony', {}, 'PATCH')
-                .then(() => fetchOnce()).catch(e => console.error(e));
         }
 
         function render(data) {

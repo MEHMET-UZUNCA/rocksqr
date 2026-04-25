@@ -371,6 +371,28 @@ class KitchenController extends Controller
                 }
             }
 
+            // Onaylanan (kullanıcı tarafından "kaldırılan") mutfak mesajlarını filtrele.
+            // group_key formatı: 'M' + item_id  (kitchen-pos.blade.php Onayla butonu).
+            // Sadece son 12 saatte onaylananları dikkate al — eski item_id'lerin tekrar kullanılma riskine karşı.
+            $completedMsgKeys = DB::table('kitchen_pos_completions')
+                ->where('kind', 'checkless_msg')
+                ->where('completed_at', '>=', now()->subHours(12))
+                ->pluck('group_key')
+                ->all();
+            if (!empty($completedMsgKeys)) {
+                $completedMsgKeys = array_flip($completedMsgKeys);
+                foreach ($checks as $k => $chk) {
+                    $checks[$k]['messages'] = array_values(array_filter(
+                        $chk['messages'],
+                        fn ($m) => !isset($completedMsgKeys['M' . ($m['item_id'] ?? '')])
+                    ));
+                }
+                $checkless = array_values(array_filter(
+                    $checkless,
+                    fn ($m) => !isset($completedMsgKeys['M' . ($m['item_id'] ?? '')])
+                ));
+            }
+
             // En yeni order önce
             uasort($checks, function ($a, $b) {
                 return strcmp((string) $b['order_time'], (string) $a['order_time']);
