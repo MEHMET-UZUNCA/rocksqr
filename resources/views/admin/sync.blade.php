@@ -859,26 +859,59 @@ function renderMssqlFetch(data) {
 
     if (data.unmatched.length > 0) {
         html += `
-        <div class="mt-5 pt-4 border-t border-gray-200">
-            <div class="flex items-center gap-2 mb-3">
-                <i class="fas fa-unlink text-orange-500"></i>
-                <h4 class="font-bold text-gray-700 text-sm">Eşleşmeyen MSSQL Ürünleri
-                    <span class="ml-1 text-xs font-normal text-gray-400">${data.unmatched.length} adet — bu ürünlerin Product Code'u henüz atanmamış</span>
-                </h4>
+        <div class="mt-5 pt-4 border-t border-gray-200" id="unmatched-section">
+            <div class="flex flex-wrap items-center gap-3 mb-3">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-unlink text-orange-500"></i>
+                    <h4 class="font-bold text-gray-700 text-sm">Eşleşmeyen MSSQL Ürünleri</h4>
+                    <span class="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-0.5 rounded-full">${data.unmatched.length}</span>
+                    <span class="text-xs text-gray-400">Product Code henüz atanmamış</span>
+                </div>
+                <div class="ml-auto flex items-center gap-2">
+                    <button onclick="unmatchedSelectAll(true)" class="px-2 py-1 bg-orange-500 text-white text-xs font-bold rounded hover:bg-orange-600">
+                        <i class="fas fa-check-square mr-1"></i>Tümünü Seç
+                    </button>
+                    <button onclick="unmatchedSelectAll(false)" class="px-2 py-1 bg-gray-400 text-white text-xs font-bold rounded hover:bg-gray-500">
+                        <i class="far fa-square mr-1"></i>Seçimi Kaldır
+                    </button>
+                    <div class="relative">
+                        <input type="text" id="unmatched-search" placeholder="Ara…" oninput="filterUnmatched()"
+                            class="pl-6 pr-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-orange-400 w-36">
+                        <i class="fas fa-search absolute left-1.5 top-1.5 text-gray-400 text-[10px]"></i>
+                    </div>
+                </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">` +
-        data.unmatched.map(item => `
-            <div class="p-3 border border-orange-200 rounded-lg bg-orange-50 text-sm">
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="font-mono text-xs text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded border border-orange-200">${item.mssql_id}</span>
-                    <span class="font-medium text-gray-700 truncate text-xs">${item.mssql_name}</span>
-                </div>
-                <div class="flex items-center gap-2 mt-1">
-                    <span class="text-xs text-gray-600 font-semibold">${parseFloat(item.mssql_price).toFixed(2)} ₺</span>
-                    ${item.mssql_group ? `<span class="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">${item.mssql_group}</span>` : ''}
-                </div>
-            </div>`).join('') +
-        `</div></div>`;
+            <div class="overflow-x-auto rounded-lg border border-orange-200">
+              <table class="w-full text-sm" id="unmatched-table">
+                <thead class="bg-orange-500 text-white text-xs uppercase tracking-wide">
+                  <tr>
+                    <th class="px-3 py-2.5 w-10 text-center">
+                        <input type="checkbox" id="unmatched-th-check" class="rounded" onclick="unmatchedSelectAll(this.checked)">
+                    </th>
+                    <th class="px-3 py-2.5 text-left w-36">MSSQL ID</th>
+                    <th class="px-3 py-2.5 text-left">Ürün Adı</th>
+                    <th class="px-3 py-2.5 text-left w-28">Fiyat</th>
+                    <th class="px-3 py-2.5 text-left w-36">Grup</th>
+                    <th class="px-3 py-2.5 text-left w-32">Gelir Merkezi</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-orange-100">` +
+        data.unmatched.map((item, idx) => `
+                <tr class="hover:bg-orange-50 unmatched-row" id="unmatched-row-${idx}" data-name="${item.mssql_name.toLowerCase()}">
+                  <td class="px-3 py-2.5 text-center">
+                      <input type="checkbox" class="mssql-unmatched-check rounded accent-orange-500" data-idx="${idx}" onchange="updateUnmatchedSelectedCount()">
+                  </td>
+                  <td class="px-3 py-2.5">
+                      <span class="font-mono text-xs text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded border border-orange-200">${item.mssql_id}</span>
+                  </td>
+                  <td class="px-3 py-2.5 font-medium text-gray-800">${item.mssql_name}</td>
+                  <td class="px-3 py-2.5 text-gray-700 font-semibold text-xs">${parseFloat(item.mssql_price).toFixed(2)} ₺</td>
+                  <td class="px-3 py-2.5">${item.mssql_group ? `<span class="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs">${item.mssql_group}</span>` : '<span class="text-gray-300">—</span>'}</td>
+                  <td class="px-3 py-2.5">${item.mssql_income_center ? `<span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-xs">${item.mssql_income_center}</span>` : '<span class="text-gray-300">—</span>'}</td>
+                </tr>`).join('') +
+        `       </tbody></table></div>
+            <div class="mt-2 text-xs text-gray-500 text-right" id="unmatched-count-label"></div>
+        </div>`;
     }
 
     document.getElementById('mssql-fetch-content').innerHTML = html;
@@ -890,6 +923,33 @@ function mssqlSelectAll(checked) {
     const th = document.getElementById('mssql-th-check');
     if (th) th.checked = checked;
     updateMssqlSelectedCount();
+}
+
+function unmatchedSelectAll(checked) {
+    document.querySelectorAll('.mssql-unmatched-check').forEach(cb => cb.checked = checked);
+    const th = document.getElementById('unmatched-th-check');
+    if (th) { th.checked = checked; th.indeterminate = false; }
+    updateUnmatchedSelectedCount();
+}
+
+function updateUnmatchedSelectedCount() {
+    const total  = document.querySelectorAll('.mssql-unmatched-check:not(.hidden)').length;
+    const count  = document.querySelectorAll('.mssql-unmatched-check:checked').length;
+    const label  = document.getElementById('unmatched-count-label');
+    if (label) label.textContent = count > 0 ? `${count} satır seçildi` : '';
+    const th = document.getElementById('unmatched-th-check');
+    if (th) {
+        th.checked      = count === total && total > 0;
+        th.indeterminate = count > 0 && count < total;
+    }
+}
+
+function filterUnmatched() {
+    const q = (document.getElementById('unmatched-search').value || '').toLowerCase();
+    document.querySelectorAll('.unmatched-row').forEach(row => {
+        row.classList.toggle('hidden', q !== '' && !row.dataset.name.includes(q));
+    });
+    updateUnmatchedSelectedCount();
 }
 
 function updateMssqlSelectedCount() {
