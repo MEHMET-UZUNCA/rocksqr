@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.18 - 2026-04-25
+
+### Düzeltildi
+- Bar ekranındaki Symphony sipariş kartlarında saat alanı **`YYYY-MM-DD HH:MM:SS`** formatında görünüyordu — artık QR kartlarıyla aynı şekilde sadece **`HH:MM:SS`** gösteriliyor.
+
 ## v1.0.17 - 2026-04-25
 
 ### Değişenler

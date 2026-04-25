@@ -513,7 +513,7 @@
                     ...o,
                     source: 'symphony',
                     bar_status: 'approved',
-                    created_at: o.order_time || '',
+                    created_at: (o.order_time || '').slice(-8), // sadece HH:MM:SS
                 }));
                 const allOrders = [...qrOrders, ...symOrders].sort((a, b) => {
                     return (a.seconds_ago || 0) - (b.seconds_ago || 0);
