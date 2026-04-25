@@ -700,8 +700,11 @@ class KitchenController extends Controller
                 ];
             }
 
-            // QR + Symphony birleşik aktif liste (QR'lar üstte görünsün kı garson hemen Symphony'e işlesin)
+            // QR + Symphony birleşik aktif liste (en yeni sipariş ilk sırada)
             $activeOrders = array_merge($qrCards, $symphonyOrders);
+            usort($activeOrders, function ($a, $b) {
+                return strcmp((string) ($b['order_time'] ?? ''), (string) ($a['order_time'] ?? ''));
+            });
 
             // Symphony tamamlama kaydı (sadece read-only Symphony hesapları içindi; QR akışı artık Order tablosu üzerinden ilerliyor)
             // Geriye uyumluluk için tablo dursun ama artık UI'da gösterilmiyor.
