@@ -291,8 +291,11 @@ class KitchenController extends Controller
             $pdo = new \PDO("sqlsrv:Server={$host},{$port};Database={$database};TrustServerCertificate=1", $username, $actualPassword);
             $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-            $stmt = $pdo->prepare($query);
-            $stmt->execute();
+            // -- yorum satırları ve \r\n ODBC Driver 18'de SQLSTATE[42000] verebilir
+            $lines = explode("\n", str_replace("\r\n", "\n", $query));
+            $query = implode("\n", array_filter($lines, fn($l) => !preg_match('/^\s*--/', $l)));
+
+            $stmt = $pdo->query($query);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             $get = function (array $row, array $candidates, $default = null) {
@@ -510,8 +513,12 @@ class KitchenController extends Controller
             }
             $pdo = new \PDO("sqlsrv:Server={$host},{$port};Database={$database};TrustServerCertificate=1", $username, $actualPassword);
             $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-            $stmt = $pdo->prepare($query);
-            $stmt->execute();
+
+            // -- yorum satırları ve \r\n ODBC Driver 18'de SQLSTATE[42000] verebilir
+            $lines = explode("\n", str_replace("\r\n", "\n", $query));
+            $query = implode("\n", array_filter($lines, fn($l) => !preg_match('/^\s*--/', $l)));
+
+            $stmt = $pdo->query($query);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             $check = $request->input('check');
@@ -574,8 +581,11 @@ class KitchenController extends Controller
             $pdo = new \PDO("sqlsrv:Server={$host},{$port};Database={$database};TrustServerCertificate=1", $username, $actualPassword);
             $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-            $stmt = $pdo->prepare($query);
-            $stmt->execute();
+            // -- yorum satırları ve \r\n ODBC Driver 18'de SQLSTATE[42000] verebilir
+            $lines = explode("\n", str_replace("\r\n", "\n", $query));
+            $query = implode("\n", array_filter($lines, fn($l) => !preg_match('/^\s*--/', $l)));
+
+            $stmt = $pdo->query($query);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             $checks  = [];
@@ -994,6 +1004,13 @@ class KitchenController extends Controller
             }
             $query = str_replace('{{RVC}}', $rvcFilter, $query);
         }
+
+        // ODBC Driver 18: -- yorum satırları (özellikle Türkçe karakter içerenler)
+        // ve \r\n satır sonları SQLSTATE[42000] "nonspecific error" verebiliyor.
+        // Yorum satırlarını kaldır ve satır sonlarını normalize et.
+        $lines = explode("\n", str_replace("\r\n", "\n", $query));
+        $lines = array_filter($lines, fn($l) => !preg_match('/^\s*--/', $l));
+        $query = implode("\n", $lines);
 
         try {
             $actualPassword = '';
