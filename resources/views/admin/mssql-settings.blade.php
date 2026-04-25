@@ -12,7 +12,7 @@
                 <div class="mb-6 p-4 bg-sky-50 border border-sky-200 rounded-lg">
                     <p class="text-sm text-sky-700">
                         <i class="fas fa-info-circle mr-1"></i>
-                        İki ayrı bağlantı yapılandırılır: <strong>Ürün</strong> (Symphony menüsü) ve <strong>KDS</strong> (Mutfak ekranı sorguları).
+                        İki ayrı bağlantı yapılandırılır: <strong>Ürün</strong> (Symphony menüsü), <strong>KDS</strong> (Mutfak ekranı) ve <strong>BDS</strong> (Bar ekranı).
                         Her bağlantı için ayrı host, kullanıcı ve özel SQL sorgusu girilebilir. Şifreler şifreli saklanır.
                     </p>
                 </div>
@@ -24,6 +24,9 @@
                     </button>
                     <button type="button" data-tab="kds" class="tab-btn px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-sky-600 hover:bg-sky-50">
                         <i class="fas fa-fire mr-1"></i>KDS (Mutfak)
+                    </button>
+                    <button type="button" data-tab="bds" class="tab-btn px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-sky-600 hover:bg-sky-50">
+                        <i class="fas fa-glass-martini-alt mr-1"></i>BDS (Bar)
                     </button>
                 </div>
 
@@ -69,6 +72,29 @@
                         ])
                         <button type="submit" class="w-full py-3 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-700 transition mt-6">
                             <i class="fas fa-save mr-2"></i>KDS Ayarlarını Kaydet
+                        </button>
+                    </form>
+                </div>
+
+                {{-- ============ BDS ============ --}}
+                <div data-section="bds" class="tab-pane hidden">
+                    <form action="{{ route('admin.mssql-settings.update') }}" method="POST">
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="section" value="bds">
+                        @include('admin.partials.mssql-section', [
+                            'section'    => 'bds',
+                            'prefix'     => 'mssql_bds',
+                            'title'      => 'BDS (Bar Ekranı)',
+                            'icon'       => 'fa-glass-martini-alt',
+                            'color'      => 'amber',
+                            'showRvc'    => false,
+                            'queryHint'  => 'Bar ekranı için Symphony\'den açık bar siparişlerini döndüren SQL sorgusu. Beklenen kolonlar: TableNo, ItemName, Qty, OrderTime, CheckNumber (kolonları kendi sorgunuza göre adın).',
+                            'aliasList'  => false,
+                            'settings'   => $settings,
+                        ])
+                        <button type="submit" class="w-full py-3 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-700 transition mt-6">
+                            <i class="fas fa-save mr-2"></i>BDS Ayarlarını Kaydet
                         </button>
                     </form>
                 </div>

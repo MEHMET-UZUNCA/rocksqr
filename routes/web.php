@@ -25,6 +25,7 @@ Route::get('/order/{order}/success', [MenuController::class, 'orderSuccess'])->n
 // Display Screens (public - no auth required)
 Route::get('/bar', [KitchenController::class, 'bar'])->name('bar');
 Route::get('/bar/api/orders', [KitchenController::class, 'barApiOrders'])->name('bar.api');
+Route::get('/bar/api/symphony', [KitchenController::class, 'barApiSymphony'])->name('bar.api.symphony');
 Route::patch('/bar/orders/{order}/status', [KitchenController::class, 'barUpdateStatus'])->name('bar.order.status');
 Route::post('/bar/symphony/delivered', [KitchenController::class, 'barSymphonyDelivered'])->name('bar.symphony.delivered');
 Route::patch('/bar/waiter-calls/{waiterCall}/attend', [KitchenController::class, 'attendWaiterCall'])->name('bar.waiter.attend');

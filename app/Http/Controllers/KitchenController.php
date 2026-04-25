@@ -205,7 +205,120 @@ class KitchenController extends Controller
             ->update(['delivered_at' => now()]);
         return response()->json(['success' => true]);
     }
+    /**
+     * BDS: Symphony'den canlı bar siparişlerini çeker (ayrı SQL sorgusu).
+     * Beklenen kolon adları (case-insensitive, fallback'li):
+     *   TableNo / TableNumber / MASA
+     *   ItemName / Name / ProductName
+     *   Qty / Quantity / ADET
+     *   OrderTime / ItemTime / Time
+     *   CheckNumber / CheckNum / ADISYON
+     *   Note / RefInfo / MessageNote (opsiyonel)
+     */
+    public function barApiSymphony()
+    {
+        $host     = (string) Setting::get('mssql_bds_host', Setting::get('mssql_kds_host', ''));
+        $port     = (string) Setting::get('mssql_bds_port', Setting::get('mssql_kds_port', '1433'));
+        $database = (string) Setting::get('mssql_bds_database', Setting::get('mssql_kds_database', ''));
+        $username = (string) Setting::get('mssql_bds_username', Setting::get('mssql_kds_username', ''));
+        $password = (string) Setting::get('mssql_bds_password', '') ?: (string) Setting::get('mssql_kds_password', '');
+        $query    = trim((string) Setting::get('mssql_bds_query', ''));
 
+        if ($query === '' || !$host || !$database || !$username) {
+            return response()->json([
+                'success' => false,
+                'message' => 'BDS MSSQL ayarları/sorgusu eksik. Önce Admin → MSSQL Ayarları → BDS sekmesinden tanımlayın.',
+                'orders'  => [],
+            ], 200);
+        }
+
+        try {
+            $actualPassword = '';
+            if ($password) {
+                try { $actualPassword = decrypt($password); } catch (\Exception $e) { $actualPassword = $password; }
+            }
+
+            $pdo = new \PDO("sqlsrv:Server={$host},{$port};Database={$database};TrustServerCertificate=1", $username, $actualPassword);
+            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+            $stmt = $pdo->prepare($query);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $get = function (array $row, array $candidates, $default = null) {
+                foreach ($candidates as $c) {
+                    foreach ([$c, strtoupper($c), strtolower($c), ucfirst(strtolower($c))] as $k) {
+                        if (array_key_exists($k, $row) && $row[$k] !== null && $row[$k] !== '') {
+                            return $row[$k];
+                        }
+                    }
+                }
+                return $default;
+            };
+
+            $groups = [];
+            foreach ($rows as $row) {
+                $tableNo   = (string) $get($row, ['TableNo', 'TableNumber', 'MASA', 'table_no'], '');
+                $checkNum  = $get($row, ['CheckNumber', 'CheckNum', 'ADISYON', 'check_number'], null);
+                $itemName  = (string) $get($row, ['ItemName', 'ProductName', 'Name', 'item_name'], '');
+                $qty       = (int) $get($row, ['Qty', 'Quantity', 'ADET', 'qty'], 1);
+                $orderTime = $get($row, ['OrderTime', 'ItemTime', 'Time', 'order_time'], null);
+                $note      = (string) $get($row, ['Note', 'RefInfo', 'MessageNote', 'note'], '');
+
+                $key = $checkNum !== null && $checkNum !== '' ? 'C' . $checkNum : 'T' . $tableNo;
+                if (!isset($groups[$key])) {
+                    $groups[$key] = [
+                        'group_key'    => $key,
+                        'table_no'     => $tableNo,
+                        'check_number' => $checkNum,
+                        'order_time'   => $orderTime,
+                        'items'        => [],
+                    ];
+                }
+                if ($orderTime && (!$groups[$key]['order_time'] || strcmp((string) $orderTime, (string) $groups[$key]['order_time']) < 0)) {
+                    $groups[$key]['order_time'] = $orderTime;
+                }
+                $groups[$key]['items'][] = [
+                    'name' => $itemName,
+                    'qty'  => max(1, $qty),
+                    'note' => $note,
+                ];
+            }
+
+            // En eski sipariş üstte (en uzun bekleyen önce)
+            uasort($groups, fn ($a, $b) => strcmp((string) $a['order_time'], (string) $b['order_time']));
+
+            $out = [];
+            foreach ($groups as $g) {
+                $secondsAgo = 0;
+                if ($g['order_time']) {
+                    try { $secondsAgo = max(0, (int) \Carbon\Carbon::parse($g['order_time'])->diffInSeconds(now())); }
+                    catch (\Exception $e) { $secondsAgo = 0; }
+                }
+                $out[] = [
+                    'source'       => 'symphony',
+                    'group_key'    => $g['group_key'],
+                    'table_no'     => $g['table_no'],
+                    'check_number' => $g['check_number'],
+                    'order_time'   => $g['order_time'],
+                    'seconds_ago'  => $secondsAgo,
+                    'items'        => array_values($g['items']),
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'orders'  => $out,
+                'count'   => count($out),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'BDS sorgu hatası: ' . $e->getMessage(),
+                'orders'  => [],
+            ], 200);
+        }
+    }
     public function kitchenApiOrders()
     {
         $completedLimit = (int) Setting::get('kitchen_completed_display', 6);

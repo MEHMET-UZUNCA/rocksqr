@@ -81,6 +81,23 @@
     </div>
 
     <main class="p-4">
+        <!-- Symphony BDS canlı siparişler (read-only, sadece bilgi) -->
+        <div id="symphony-section" class="hidden mb-6">
+            <h2 class="text-lg font-semibold text-blue-300 mb-3 flex items-center gap-2">
+                <i class="fas fa-server"></i>
+                Symphony POS Siparişleri
+                <span id="symphony-count" class="text-xs bg-blue-700/50 px-2 py-0.5 rounded-full text-blue-200"></span>
+                <span class="text-xs text-gray-400 font-normal">(POS'tan canlı, otomatik güncellenir)</span>
+            </h2>
+            <div id="symphony-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"></div>
+        </div>
+
+        <!-- QR Menu yeni siparişler (onay gerekir) -->
+        <h2 class="text-lg font-semibold text-purple-300 mb-3 flex items-center gap-2 hidden" id="qr-section-title">
+            <i class="fas fa-qrcode"></i>
+            QR Menu Siparişleri
+            <span class="text-xs text-gray-400 font-normal">(Onayla → Symphony'e işle)</span>
+        </h2>
         <div id="orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
         <div id="no-orders" class="hidden text-center py-20">
             <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
@@ -461,42 +478,96 @@
             }).join('');
         }
 
+        function renderSymphonyOrders(symphonyOrders) {
+            const section = document.getElementById('symphony-section');
+            const grid    = document.getElementById('symphony-grid');
+            const count   = document.getElementById('symphony-count');
+
+            if (!symphonyOrders || symphonyOrders.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+            section.classList.remove('hidden');
+            count.textContent = symphonyOrders.length + ' adisyon';
+
+            grid.innerHTML = symphonyOrders.map(o => {
+                const secs = o.seconds_ago || 0;
+                const mins = Math.floor(secs / 60);
+                const timeStr = String(Math.floor(secs / 3600)).padStart(2,'0') + ':'
+                              + String(Math.floor((secs % 3600) / 60)).padStart(2,'0') + ':'
+                              + String(secs % 60).padStart(2,'0');
+                // Renk eşikleri: <5dk yeşil, 5-10dk sarı, 10+dk kırmızı
+                let cardCls, badgeCls;
+                if (mins >= 10)      { cardCls = 'bg-red-950/60 border-red-500';        badgeCls = 'bg-red-600'; }
+                else if (mins >= 5)  { cardCls = 'bg-yellow-900/40 border-yellow-500';  badgeCls = 'bg-yellow-600'; }
+                else                 { cardCls = 'bg-blue-950/40 border-blue-500';      badgeCls = 'bg-green-600'; }
+
+                const itemsHtml = (o.items || []).map(it =>
+                    `<div class="flex justify-between text-xs py-0.5 border-b border-gray-700/40">
+                        <span class="truncate pr-1">${it.name || ''}</span>
+                        <span class="font-bold text-blue-200 shrink-0">x${it.qty || 1}</span>
+                    </div>`
+                ).join('');
+                const checkLabel = o.check_number ? '#' + o.check_number : 'Adisyonsuz';
+
+                return `
+                <div class="rounded-lg border-2 p-3 ${cardCls}">
+                    <div class="flex items-center justify-between mb-1">
+                        <div class="flex items-center gap-1">
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYMPHONY</span>
+                            <span class="font-bold text-base text-white">${o.table_no ? 'M ' + o.table_no : '—'}</span>
+                            <span class="text-[10px] text-gray-400">${checkLabel}</span>
+                        </div>
+                        <span class="text-xs ${badgeCls} px-2 py-0.5 rounded text-white font-bold">${timeStr}</span>
+                    </div>
+                    <div class="text-xs">${itemsHtml}</div>
+                </div>`;
+            }).join('');
+        }
+
         function fetchData() {
-            fetch('/bar/api/orders')
-                .then(r => r.json())
-                .then(data => {
-                    const currentOrderIds = data.orders.map(o => o.id);
-                    const currentWaiterIds = data.waiter_calls.map(c => c.id);
+            Promise.all([
+                fetch('/bar/api/orders').then(r => r.json()).catch(() => null),
+                fetch('/bar/api/symphony').then(r => r.json()).catch(() => null),
+            ]).then(([data, sym]) => {
+                if (!data) return;
+                const currentOrderIds = data.orders.map(o => o.id);
+                const currentWaiterIds = data.waiter_calls.map(c => c.id);
 
-                    if (!isFirstLoad) {
-                        const newOrders = currentOrderIds.filter(id => !previousOrderIds.includes(id));
-                        if (newOrders.length > 0) {
-                            playOrderSound();
-                        }
-
-                        const newCalls = currentWaiterIds.filter(id => !previousWaiterIds.includes(id));
-                        if (newCalls.length > 0) {
-                            playWaiterSound();
-                        }
+                if (!isFirstLoad) {
+                    const newOrders = currentOrderIds.filter(id => !previousOrderIds.includes(id));
+                    if (newOrders.length > 0) {
+                        playOrderSound();
                     }
 
-                    const currentReadyIds = (data.ready_orders || []).map(o => o.id);
-                    if (!isFirstLoad) {
-                        const newReady = currentReadyIds.filter(id => !previousReadyIds.includes(id));
-                        if (newReady.length > 0) playReadySound();
+                    const newCalls = currentWaiterIds.filter(id => !previousWaiterIds.includes(id));
+                    if (newCalls.length > 0) {
+                        playWaiterSound();
                     }
+                }
 
-                    previousOrderIds  = currentOrderIds;
-                    previousWaiterIds = currentWaiterIds;
-                    previousReadyIds  = currentReadyIds;
-                    isFirstLoad = false;
+                const currentReadyIds = (data.ready_orders || []).map(o => o.id);
+                if (!isFirstLoad) {
+                    const newReady = currentReadyIds.filter(id => !previousReadyIds.includes(id));
+                    if (newReady.length > 0) playReadySound();
+                }
 
-                    renderOrders(data.orders);
-                    renderReadyOrders(data.ready_orders || [], data.ready_orders_limit || null);
-                    renderCompletedOrders(data.completed_orders || [], data.completed_orders_limit || null);
-                    renderWaiterCalls(data.waiter_calls);
-                })
-                .catch(err => console.error('Fetch error:', err));
+                previousOrderIds  = currentOrderIds;
+                previousWaiterIds = currentWaiterIds;
+                previousReadyIds  = currentReadyIds;
+                isFirstLoad = false;
+
+                renderOrders(data.orders);
+                renderReadyOrders(data.ready_orders || [], data.ready_orders_limit || null);
+                renderCompletedOrders(data.completed_orders || [], data.completed_orders_limit || null);
+                renderWaiterCalls(data.waiter_calls);
+
+                renderSymphonyOrders(sym && sym.orders ? sym.orders : []);
+
+                // QR başlığı sadece QR siparişi varsa görünsün
+                const qrTitle = document.getElementById('qr-section-title');
+                if (qrTitle) qrTitle.classList.toggle('hidden', (data.orders || []).length === 0);
+            }).catch(err => console.error('Fetch error:', err));
         }
 
         fetchData();

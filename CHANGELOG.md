@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.0.16 - 2026-04-25
+
+### Eklenenler
+- **BDS (Bar Display System) — yeni MSSQL ayarı sekmesi**:
+  - Admin → MSSQL Ayarları altında **BDS (Bar)** sekmesi eklendi (Ürün ve KDS yanında 3. sekme)
+  - Kendi host/port/db/user/pwd alanları (boş bırakılırsa otomatik KDS bağlantısını kullanır)
+  - Kendi özel SQL sorgusu (Symphony'den canlı bar siparişlerini çekmek için)
+  - **Test Bağlantısı** ve **Önizleme** butonları çalışır
+- **Bar ekranında Symphony POS canlı siparişleri**:
+  - Üstte ayrı **"Symphony POS Siparişleri"** bölümü (mavi tema, `SYMPHONY` rozetli kartlar)
+  - Onayla butonu YOK — POS'a zaten girilmiş, sadece görsel takip
+  - Renk eşikleri: **<5dk yeşil**, **5–10dk sarı**, **10dk+ kırmızı**
+  - Her 5 saniyede otomatik güncellenir
+- Beklenen kolon adları (case-insensitive): `TableNo`, `ItemName`, `Qty`, `OrderTime`, `CheckNumber`, `Note`
+- Yeni route: `GET /bar/api/symphony`
+
 ## v1.0.15 - 2026-04-25
 
 ### Eklenenler
