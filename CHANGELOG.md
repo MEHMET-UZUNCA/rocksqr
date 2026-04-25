@@ -52,6 +52,11 @@ RocksQR; **QR menü (müşteri)**, **Mutfak/Bar ekranları (personel)** ve **Sym
 
 ---
 
+## v1.0.23 - 2026-04-25
+
+### Değişenler
+- **Bar ekranı: "Geri Al" butonu kaldırıldı**: Yeşil "SİPARİŞ HAZIR — SERVİSE GÖTÜR" şeridindeki kartlardaki sarı **`Geri Al`** butonu kaldırıldı. Geri alma sadece mutfak (KDS) ekranından yapılır; bar yalnızca **`Servis Edildi`** ile akışı sonlandırır.
+
 ## v1.0.22 - 2026-04-25
 
 ### Düzeltildi

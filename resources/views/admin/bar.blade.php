@@ -306,13 +306,7 @@
                 const hasNote = order.order_note && order.order_note.trim() !== '';
 
                 let undoHtml = '';
-                if (order.can_undo_ready) {
-                    if (isSymphony) {
-                        undoHtml = `<button onclick="undoSymphonyReady('${order.group_key}')" class="mt-2 w-full py-1 bg-amber-500 hover:bg-amber-600 rounded text-black font-bold text-xs">Geri Al (${order.undo_remaining_seconds}s)</button>`;
-                    } else {
-                        undoHtml = `<button onclick="undoReady(${order.id})" class="mt-2 w-full py-1 bg-amber-500 hover:bg-amber-600 rounded text-black font-bold text-xs">Geri Al (${order.undo_remaining_seconds}s)</button>`;
-                    }
-                }
+                // Bar ekraninda Geri Al butonu kaldirildi (sadece KDS'de gorunsun).
 
                 const deliveredHtml = isSymphony
                     ? `<button onclick="markSymphonyDelivered('${order.group_key}')" class="mt-2 w-full py-1 bg-emerald-600 hover:bg-emerald-700 rounded text-white font-bold text-xs"><i class="fas fa-truck mr-1"></i>Servis Edildi</button>`
