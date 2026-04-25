@@ -47,14 +47,24 @@
             <div class="flex flex-wrap items-center gap-2">
                 <button onclick="openSymphonyImport()" id="btn-symphony"
                     class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-sm font-semibold {{ $symphonyConfigured ? '' : 'opacity-50 cursor-not-allowed' }}"
-                    {{ $symphonyConfigured ? '' : 'disabled' }}>
+                    {{ $symphonyConfigured ? '' : 'disabled title="MSSQL bağlantı ayarları eksik (Ayarlar → MSSQL)"' }}>
                     <i class="fas fa-file-import mr-1.5"></i> Symphony İmport
                 </button>
                 <button onclick="fetchFromMssql()" id="btn-mssql"
                     class="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition text-sm font-semibold {{ $mssqlConfigured ? '' : 'opacity-50 cursor-not-allowed' }}"
-                    {{ $mssqlConfigured ? '' : 'disabled' }}>
+                    {{ $mssqlConfigured ? '' : 'disabled title="MSSQL bağlantı ayarları veya Özel SQL sorgusu eksik (Ayarlar → MSSQL)"' }}>
                     <i class="fas fa-rotate mr-1.5"></i> MSSQL Sync
                 </button>
+
+                {{-- Debug: göster hangi ayarlar eksik --}}
+                @if(!$symphonyConfigured || !$mssqlConfigured)
+                <span class="text-xs text-red-500 border border-red-300 rounded px-2 py-1 bg-red-50">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    @if(!$symphonyConfigured) MSSQL Host/DB eksik.@endif
+                    @if(!$mssqlConfigured) Özel SQL sorgusu eksik.@endif
+                    <a href="{{ route('admin.mssql-settings') }}" class="underline font-bold ml-1">MSSQL Ayarları →</a>
+                </span>
+                @endif
             </div>
             <div class="flex items-center gap-2">
                 <div class="relative">

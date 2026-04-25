@@ -17,7 +17,7 @@ class SyncController extends Controller
         $categories = Category::with('parent')->orderBy('parent_id')->orderBy('sort_order')->orderBy('name')->get();
 
         $mssqlConfigured = Setting::get('mssql_host', '') !== '' && Setting::get('mssql_database', '') !== '' && trim((string) Setting::get('mssql_custom_query', '')) !== '';
-        $symphonyConfigured = Setting::get('mssql_host', '') !== '' && Setting::get('mssql_database', '') !== '' && trim((string) Setting::get('mssql_custom_query', '')) !== '';
+        $symphonyConfigured = Setting::get('mssql_host', '') !== '' && Setting::get('mssql_database', '') !== '';
 
         return view('admin.sync', compact('products', 'categories', 'mssqlConfigured', 'symphonyConfigured'));
     }
