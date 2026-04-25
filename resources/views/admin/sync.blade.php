@@ -138,15 +138,27 @@
                             <input type="checkbox" class="row-check rounded accent-sky-600" value="{{ $product->id }}" onchange="onRowCheck()">
                         </td>
                         <td class="px-4 py-2.5 font-mono font-bold text-gold text-sm">{{ $product->id }}</td>
-                        <td class="px-4 py-2.5 font-mono cell-mssql">
-                            <span class="mssql-display">
-                                @if($product->mssql_id)
-                                    <span class="bg-sky-100 text-sky-800 px-2 py-0.5 rounded text-xs font-medium">{{ $product->mssql_id }}</span>
-                                @else
-                                    <span class="inline-flex items-center gap-1 text-orange-500 text-xs"><i class="fas fa-exclamation-circle text-[10px]"></i> Yok</span>
-                                @endif
-                            </span>
-                            <input type="hidden" data-field="mssql_id" value="{{ $product->mssql_id }}" data-original="{{ $product->mssql_id }}">
+                        <td class="px-4 py-2.5 cell-mssql" id="mssql-cell-{{ $product->id }}">
+                            <div class="mssql-view flex items-center gap-1.5 group">
+                                <span class="mssql-display">
+                                    @if($product->mssql_id)
+                                        <span class="bg-sky-100 text-sky-800 px-2 py-0.5 rounded text-xs font-mono font-medium">{{ $product->mssql_id }}</span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 text-orange-500 text-xs"><i class="fas fa-exclamation-circle text-[10px]"></i> Yok</span>
+                                    @endif
+                                </span>
+                            </div>
+                            <div class="mssql-edit hidden items-center gap-1">
+                                <input type="text" class="mssql-input px-2 py-0.5 border border-sky-400 rounded text-xs w-32 font-mono focus:ring-1 focus:ring-sky-400 focus:outline-none"
+                                       value="{{ $product->mssql_id }}" placeholder="Kod girin…"
+                                       onkeydown="if(event.key==='Enter')saveMssqlInline({{ $product->id }});if(event.key==='Escape')cancelMssqlEdit({{ $product->id }})">
+                                <button onclick="saveMssqlInline({{ $product->id }})" class="p-1 text-green-600 hover:text-green-800" title="Kaydet">
+                                    <i class="fas fa-check text-xs"></i>
+                                </button>
+                                <button onclick="cancelMssqlEdit({{ $product->id }})" class="p-1 text-red-400 hover:text-red-600" title="İptal">
+                                    <i class="fas fa-times text-xs"></i>
+                                </button>
+                            </div>
                         </td>
                         <td class="px-4 py-2.5 cell-name">
                             <span class="view-mode font-medium text-gray-800">{{ $product->name }}</span>
@@ -187,9 +199,9 @@
                             @endif
                         </td>
                         <td class="px-4 py-2.5 text-center">
-                            <button onclick="editMssqlInline({{ $product->id }})"
-                                class="p-1.5 rounded text-sky-500 hover:text-sky-700 hover:bg-sky-50 transition" title="Product Code düzenle">
-                                <i class="fas fa-qrcode text-sm"></i>
+                            <button onclick="startMssqlEdit({{ $product->id }})"
+                                class="p-1.5 rounded text-gray-400 hover:text-sky-600 hover:bg-sky-50 transition" title="Product Code düzenle">
+                                <i class="fas fa-pen text-xs"></i>
                             </button>
                         </td>
                     </tr>
@@ -211,14 +223,19 @@
             <button onclick="closeMssqlPanel()" class="text-sky-200 hover:text-white"><i class="fas fa-times text-lg"></i></button>
         </div>
         <div class="px-5 py-2.5 bg-sky-50 border-b border-sky-200 flex flex-wrap gap-4 text-sm" id="mssql-stats"></div>
-        <div class="px-5 py-2 border-b border-gray-200 bg-gray-50 flex items-center gap-3">
+        <div class="px-5 py-2 border-b border-gray-200 bg-gray-50 flex flex-wrap items-center gap-3">
             <button onclick="mssqlSelectAll(true)" class="px-3 py-1 bg-sky-600 text-white text-xs font-bold rounded hover:bg-sky-700">
                 <i class="fas fa-check-square mr-1"></i>Tümünü Seç
             </button>
             <button onclick="mssqlSelectAll(false)" class="px-3 py-1 bg-gray-400 text-white text-xs font-bold rounded hover:bg-gray-500">
                 <i class="far fa-square mr-1"></i>Seçimi Kaldır
             </button>
-            <span class="text-xs text-gray-500">Yalnızca değişiklik olan satırlar listelenmiştir. Otomatik olarak seçili gelir.</span>
+            <span class="text-xs text-gray-400 italic">Yalnızca değişiklik olan ürünler listelenir.</span>
+            <div class="relative ml-auto">
+                <input type="text" id="mssql-search" placeholder="Ürün adı ara…" oninput="filterMssqlPanel()"
+                    class="pl-7 pr-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-sky-400 w-44">
+                <i class="fas fa-search absolute left-2 top-1.5 text-gray-400 text-[10px]"></i>
+            </div>
         </div>
         <div class="p-4 overflow-x-auto" id="mssql-fetch-content"></div>
         <div class="px-5 py-3.5 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
@@ -282,35 +299,6 @@
     </div>
 </div>
 
-<div id="mssql-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
-        <div class="px-6 py-4 bg-primary text-white flex justify-between items-center">
-            <h3 class="text-lg font-bold"><i class="fas fa-server mr-2"></i>Product Code Guncelle</h3>
-            <button onclick="closeMssqlModal()" class="text-gray-300 hover:text-white"><i class="fas fa-times text-xl"></i></button>
-        </div>
-        <div class="p-6">
-            <input type="hidden" id="mssql-product-id">
-            <div class="mb-4">
-                <p class="text-sm text-gray-500 mb-1">Urun:</p>
-                <p class="font-bold text-gray-800" id="mssql-product-name"></p>
-            </div>
-            <div class="mb-4">
-                <p class="text-sm text-gray-500 mb-1">Mevcut Product Code:</p>
-                <p class="font-mono text-gray-600" id="mssql-old-value">-</p>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Yeni Product Code</label>
-                <input type="text" id="mssql-new-value" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold" placeholder="SYM-1234">
-            </div>
-        </div>
-        <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
-            <button onclick="closeMssqlModal()" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100 transition">Iptal</button>
-            <button onclick="saveMssqlId()" class="px-6 py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700 transition">
-                <i class="fas fa-save mr-1"></i> Kaydet
-            </button>
-        </div>
-    </div>
-</div>
 
 
 <script>
@@ -712,30 +700,49 @@ function updateRowDisplay(row, values) {
     });
 }
 
-function editMssqlInline(productId) {
-    const row = document.querySelector(`tr[data-id="${productId}"]`);
-    document.getElementById('mssql-product-id').value = productId;
-    document.getElementById('mssql-product-name').textContent = row.querySelector('.cell-name .view-mode').textContent.trim();
-    const current = row.querySelector('input[data-field="mssql_id"]').dataset.original;
-    document.getElementById('mssql-old-value').textContent = current || '-';
-    document.getElementById('mssql-new-value').value = current || '';
-    document.getElementById('mssql-modal').classList.remove('hidden');
+function startMssqlEdit(productId) {
+    // Önce açık olan diğer inline editleri kapat
+    document.querySelectorAll('.mssql-edit').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.mssql-view').forEach(el => el.classList.remove('hidden'));
+    const cell = document.getElementById('mssql-cell-' + productId);
+    if (!cell) return;
+    cell.querySelector('.mssql-view').classList.add('hidden');
+    const editDiv = cell.querySelector('.mssql-edit');
+    editDiv.classList.remove('hidden');
+    editDiv.classList.add('flex');
+    const inp = cell.querySelector('.mssql-input');
+    inp.focus();
+    inp.select();
 }
 
-function closeMssqlModal() { document.getElementById('mssql-modal').classList.add('hidden'); }
+function cancelMssqlEdit(productId) {
+    const cell = document.getElementById('mssql-cell-' + productId);
+    if (!cell) return;
+    cell.querySelector('.mssql-view').classList.remove('hidden');
+    const editDiv = cell.querySelector('.mssql-edit');
+    editDiv.classList.add('hidden');
+    editDiv.classList.remove('flex');
+}
 
-function saveMssqlId() {
-    const productId = document.getElementById('mssql-product-id').value;
-    const value = document.getElementById('mssql-new-value').value;
+function saveMssqlInline(productId) {
+    const cell = document.getElementById('mssql-cell-' + productId);
+    if (!cell) return;
+    const value = cell.querySelector('.mssql-input').value.trim();
     fetch(`/admin/sync/mssql/${productId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
         body: JSON.stringify({ mssql_id: value === '' ? null : value })
     }).then(r => r.json()).then(data => {
-        closeMssqlModal();
-        showMsg('success', 'Product Code guncellendi.');
+        const display = cell.querySelector('.mssql-display');
+        if (data.new_mssql_id) {
+            display.innerHTML = `<span class="bg-sky-100 text-sky-800 px-2 py-0.5 rounded text-xs font-mono font-medium">${data.new_mssql_id}</span>`;
+        } else {
+            display.innerHTML = `<span class="inline-flex items-center gap-1 text-orange-500 text-xs"><i class="fas fa-exclamation-circle text-[10px]"></i> Yok</span>`;
+        }
+        cancelMssqlEdit(productId);
         const row = document.querySelector(`tr[data-id="${productId}"]`);
-        if (row) updateRowDisplay(row, { mssql_id: data.new_mssql_id });
+        if (row) row.dataset.code = data.new_mssql_id ? 'has' : 'missing';
+        showMsg('success', 'Product Code güncellendi.');
     }).catch(err => showMsg('error', 'Hata: ' + err.message));
 }
 
@@ -763,53 +770,115 @@ function fetchFromMssql() {
 }
 
 function renderMssqlFetch(data) {
-    document.getElementById('mssql-stats').innerHTML = `<span class="text-sky-700">MSSQL: <strong>${data.total_mssql}</strong> urun</span><span class="text-blue-700">Eslesen: <strong>${data.total_matched}</strong></span><span class="text-green-700">Degisiklik: <strong>${data.total_with_changes}</strong></span><span class="text-gray-500">Eslesmeyen: <strong>${data.unmatched.length}</strong></span>${data.income_center_filter ? `<span class="text-emerald-700">RVC: <strong>${data.income_center_filter}</strong></span>` : ''}${data.custom_query_used ? `<span class="text-amber-700">Ozel SQL kullanildi</span>` : ''}`;
+    // Stats
+    document.getElementById('mssql-stats').innerHTML = `
+        <span class="flex items-center gap-1.5">
+            <span class="w-6 h-6 rounded-full bg-sky-200 text-sky-800 text-xs font-bold flex items-center justify-center">${data.total_mssql}</span>
+            <span class="text-sky-700 font-semibold">MSSQL toplam</span>
+        </span>
+        <span class="flex items-center gap-1.5">
+            <span class="w-6 h-6 rounded-full bg-blue-200 text-blue-800 text-xs font-bold flex items-center justify-center">${data.total_matched}</span>
+            <span class="text-blue-700 font-semibold">Eşleşen</span>
+        </span>
+        <span class="flex items-center gap-1.5">
+            <span class="w-6 h-6 rounded-full bg-amber-200 text-amber-800 text-xs font-bold flex items-center justify-center">${data.total_with_changes}</span>
+            <span class="text-amber-700 font-semibold">Güncellenecek</span>
+        </span>
+        <span class="flex items-center gap-1.5">
+            <span class="w-6 h-6 rounded-full bg-orange-200 text-orange-700 text-xs font-bold flex items-center justify-center">${data.unmatched.length}</span>
+            <span class="text-gray-500">Eşleşmeyen</span>
+        </span>
+        ${data.income_center_filter ? `<span class="text-xs bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded ml-2">RVC: ${data.income_center_filter}</span>` : ''}
+        ${data.custom_query_used ? `<span class="text-xs bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded ml-2">Özel SQL</span>` : ''}`;
 
     let html = '';
+
     if (mssqlMatchedData.length > 0) {
         html += `
-        <div class="overflow-x-auto border border-sky-200 rounded-lg">
-          <table class="w-full text-sm">
-            <thead class="bg-sky-100 text-sky-900">
+        <div class="overflow-x-auto rounded-lg border border-sky-200">
+          <table class="w-full text-sm" id="mssql-compare-table">
+            <thead class="bg-sky-600 text-white text-xs uppercase tracking-wide">
               <tr>
-                <th class="px-3 py-2 w-10 text-center"><input type="checkbox" id="mssql-th-check" class="rounded accent-sky-600" onclick="mssqlSelectAll(this.checked)" checked></th>
-                <th class="px-3 py-2 text-left w-28">MSSQL ID</th>
-                <th class="px-3 py-2 text-left">Ürün (Yerel)</th>
-                <th class="px-3 py-2 text-left">Eski Ad / Fiyat</th>
-                <th class="px-3 py-2 text-left">Yeni Ad / Fiyat (MSSQL)</th>
-                <th class="px-3 py-2 text-left w-44">Grup / Gelir Merkezi</th>
+                <th class="px-3 py-2.5 w-10 text-center">
+                    <input type="checkbox" id="mssql-th-check" class="rounded" onclick="mssqlSelectAll(this.checked)" checked>
+                </th>
+                <th class="px-3 py-2.5 text-left w-32">Product Code</th>
+                <th class="px-3 py-2.5 text-left">Yerel Ürün</th>
+                <th class="px-3 py-2.5 text-left w-56">Ad Değişimi</th>
+                <th class="px-3 py-2.5 text-left w-44">Fiyat Değişimi</th>
+                <th class="px-3 py-2.5 text-left w-36">Grup</th>
               </tr>
             </thead>
-            <tbody>` +
+            <tbody class="divide-y divide-sky-100">` +
             mssqlMatchedData.map((item, idx) => {
-                const oldName  = item.changes.name  ? item.changes.name.old  : item.local_name;
-                const newName  = item.changes.name  ? item.changes.name.new  : item.local_name;
-                const oldPrice = item.changes.price ? parseFloat(item.changes.price.old).toFixed(2) + ' TL' : '—';
-                const newPrice = item.changes.price ? parseFloat(item.changes.price.new).toFixed(2) + ' TL' : '—';
-                const nameCell = item.changes.name
-                    ? `<span class="line-through text-red-500">${oldName}</span><br><span class="text-emerald-700 font-bold">${newName}</span>`
-                    : `<span class="text-gray-400 text-xs">değişmiyor</span>`;
-                const oldCell = `<div>${item.changes.name ? `<span class="line-through text-red-500">${oldName}</span>` : '<span class="text-gray-400">—</span>'}</div><div class="text-xs ${item.changes.price ? 'line-through text-red-500' : 'text-gray-400'}">${oldPrice}</div>`;
-                const newCell = `<div>${item.changes.name ? `<span class="text-emerald-700 font-bold">${newName}</span>` : '<span class="text-gray-400">—</span>'}</div><div class="text-xs ${item.changes.price ? 'text-emerald-700 font-bold' : 'text-gray-400'}">${newPrice}</div>`;
+                const nameChange = item.changes.name
+                    ? `<div class="flex flex-col gap-0.5">
+                         <span class="text-red-500 line-through text-xs leading-tight">${item.changes.name.old}</span>
+                         <span class="text-emerald-700 font-bold text-xs leading-tight">${item.changes.name.new}</span>
+                       </div>`
+                    : `<span class="text-gray-300 text-xs">—</span>`;
+                const priceChange = item.changes.price
+                    ? `<div class="flex items-center gap-1.5 flex-wrap">
+                         <span class="text-red-500 line-through text-xs">${parseFloat(item.changes.price.old).toFixed(2)} ₺</span>
+                         <i class="fas fa-arrow-right text-gray-300 text-[9px]"></i>
+                         <span class="text-emerald-700 font-bold text-xs">${parseFloat(item.changes.price.new).toFixed(2)} ₺</span>
+                       </div>`
+                    : `<span class="text-gray-300 text-xs">—</span>`;
+                const changeBadge = [item.changes.name ? 'Ad' : '', item.changes.price ? 'Fiyat' : '']
+                    .filter(Boolean).map(f => `<span class="bg-amber-100 text-amber-700 px-1 py-0.5 rounded text-[10px] font-bold">${f}</span>`).join('');
                 return `
-                <tr class="border-t border-sky-100 hover:bg-sky-50">
-                  <td class="px-3 py-2 text-center"><input type="checkbox" class="mssql-check rounded accent-sky-600" data-idx="${idx}" checked onchange="updateMssqlSelectedCount()"></td>
-                  <td class="px-3 py-2"><span class="font-mono text-xs bg-sky-100 text-sky-800 px-1.5 py-0.5 rounded">${item.mssql_id}</span></td>
-                  <td class="px-3 py-2"><div class="font-medium text-gray-800">${item.local_name}</div><div class="text-xs text-gray-400">#${item.local_id}</div></td>
-                  <td class="px-3 py-2">${oldCell}</td>
-                  <td class="px-3 py-2">${newCell}</td>
-                  <td class="px-3 py-2"><div class="flex flex-col gap-1">${item.mssql_group ? `<span class="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs">${item.mssql_group}</span>` : ''}${item.mssql_subgroup ? `<span class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded text-xs">${item.mssql_subgroup}</span>` : ''}${item.mssql_income_center ? `<span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-xs">${item.mssql_income_center}</span>` : ''}</div></td>
+                <tr class="hover:bg-sky-50 mssql-compare-row" id="mssql-row-${idx}" data-name="${item.local_name.toLowerCase()}">
+                  <td class="px-3 py-2.5 text-center">
+                      <input type="checkbox" class="mssql-check rounded accent-sky-600" data-idx="${idx}" checked onchange="updateMssqlSelectedCount()">
+                  </td>
+                  <td class="px-3 py-2.5">
+                      <span class="font-mono text-xs bg-sky-50 text-sky-800 px-1.5 py-0.5 rounded border border-sky-200">${item.mssql_id}</span>
+                  </td>
+                  <td class="px-3 py-2.5">
+                      <div class="font-medium text-gray-800 text-sm leading-tight">${item.local_name}</div>
+                      <div class="flex items-center gap-1 mt-0.5 text-xs text-gray-400">#${item.local_id} ${changeBadge}</div>
+                  </td>
+                  <td class="px-3 py-2.5">${nameChange}</td>
+                  <td class="px-3 py-2.5">${priceChange}</td>
+                  <td class="px-3 py-2.5">
+                      <div class="flex flex-col gap-0.5">
+                          ${item.mssql_group ? `<span class="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs">${item.mssql_group}</span>` : ''}
+                          ${item.mssql_income_center ? `<span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-xs">${item.mssql_income_center}</span>` : ''}
+                      </div>
+                  </td>
                 </tr>`;
             }).join('') +
             `</tbody></table></div>`;
     } else {
-        html += '<div class="text-center py-8 text-gray-500"><p class="text-lg font-bold">Tum urunler guncel.</p></div>';
+        html += `<div class="text-center py-14">
+            <i class="fas fa-check-circle text-5xl text-emerald-400 mb-3 block"></i>
+            <p class="text-lg font-bold text-gray-700">Tüm ürünler güncel!</p>
+            <p class="text-sm text-gray-400 mt-1">MSSQL ile yerel ürünler arasında fark bulunamadı.</p>
+        </div>`;
     }
 
     if (data.unmatched.length > 0) {
-        html += '<h4 class="font-bold text-gray-900 mt-6 mb-3">Eşleşmeyen MSSQL Ürünleri</h4><div class="grid grid-cols-1 md:grid-cols-2 gap-2">';
-        html += data.unmatched.map(item => `<div class="p-3 border border-gray-200 rounded bg-gray-50 text-sm"><div><span class="font-mono text-gray-500">${item.mssql_id}</span> - <span>${item.mssql_name}</span></div><div class="text-gray-400 mt-1">${parseFloat(item.mssql_price).toFixed(2)} TL</div><div class="flex flex-wrap gap-1 mt-2">${item.mssql_group ? `<span class="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs">${item.mssql_group}</span>` : ''}${item.mssql_subgroup ? `<span class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded text-xs">${item.mssql_subgroup}</span>` : ''}${item.mssql_income_center ? `<span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-xs">${item.mssql_income_center}</span>` : ''}</div></div>`).join('');
-        html += '</div>';
+        html += `
+        <div class="mt-5 pt-4 border-t border-gray-200">
+            <div class="flex items-center gap-2 mb-3">
+                <i class="fas fa-unlink text-orange-500"></i>
+                <h4 class="font-bold text-gray-700 text-sm">Eşleşmeyen MSSQL Ürünleri
+                    <span class="ml-1 text-xs font-normal text-gray-400">${data.unmatched.length} adet — bu ürünlerin Product Code'u henüz atanmamış</span>
+                </h4>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">` +
+        data.unmatched.map(item => `
+            <div class="p-3 border border-orange-200 rounded-lg bg-orange-50 text-sm">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="font-mono text-xs text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded border border-orange-200">${item.mssql_id}</span>
+                    <span class="font-medium text-gray-700 truncate text-xs">${item.mssql_name}</span>
+                </div>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="text-xs text-gray-600 font-semibold">${parseFloat(item.mssql_price).toFixed(2)} ₺</span>
+                    ${item.mssql_group ? `<span class="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">${item.mssql_group}</span>` : ''}
+                </div>
+            </div>`).join('') +
+        `</div></div>`;
     }
 
     document.getElementById('mssql-fetch-content').innerHTML = html;
@@ -835,6 +904,14 @@ function updateMssqlSelectedCount() {
         th.checked = (count === total && total > 0);
         th.indeterminate = (count > 0 && count < total);
     }
+}
+
+function filterMssqlPanel() {
+    const q = (document.getElementById('mssql-search').value || '').toLowerCase();
+    document.querySelectorAll('.mssql-compare-row').forEach(row => {
+        row.classList.toggle('hidden', q !== '' && !row.dataset.name.includes(q));
+    });
+    updateMssqlSelectedCount();
 }
 
 function closeMssqlPanel() {
