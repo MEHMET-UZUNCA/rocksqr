@@ -177,22 +177,22 @@
             const borderClass = isNew ? 'new-order border-gold' : 'border-blue-500';
 
             const itemsHtml = (order.items || []).map(it => `
-                <div class="flex justify-between items-start py-2 border-b border-gray-700">
+                <div class="flex justify-between items-start py-1 border-b border-gray-700">
                     <div class="flex-1 min-w-0">
                         <div class="text-lg leading-tight"><span class="text-gold font-bold text-xl">x${it.qty}</span> <span class="font-semibold">${escapeHtml(it.name)}</span></div>
-                        ${it.note ? `<div class="text-sm text-yellow-300 mt-1"><i class="fas fa-comment-dots mr-1"></i>${escapeHtml(it.note)}</div>` : ''}
+                        ${it.note ? `<div class="text-sm text-yellow-300"><i class="fas fa-comment-dots mr-1"></i>${escapeHtml(it.note)}</div>` : ''}
                     </div>
                     <div class="text-xs text-gray-500 ml-2 flex-shrink-0">${formatTime(it.item_time)}</div>
                 </div>
             `).join('');
 
             const messagesHtml = (order.messages || []).length > 0 ? `
-                <div class="mx-4 mb-2 p-3 bg-yellow-900/40 border border-yellow-500/60 rounded-lg">
-                    <div class="text-sm text-yellow-400 font-bold uppercase mb-2">
+                <div class="mx-4 mb-2 p-2 bg-yellow-900/40 border border-yellow-500/60 rounded-lg">
+                    <div class="text-xs text-yellow-400 font-bold uppercase mb-1">
                         <i class="fas fa-bullhorn mr-1"></i>Mutfak Mesajlari
                     </div>
                     ${(order.messages || []).map(m => `
-                        <div class="py-1.5 border-b border-yellow-500/20 last:border-0">
+                        <div class="py-1 border-b border-yellow-500/20 last:border-0">
                             <div class="text-yellow-100 text-lg leading-tight font-semibold">
                                 <span class="text-yellow-300 font-bold">${m.qty > 1 ? 'x'+m.qty+' ' : ''}</span>${escapeHtml(m.name)}
                                 ${m.note ? ` <span class="text-yellow-300/90 text-base">— ${escapeHtml(m.note)}</span>` : ''}
@@ -242,7 +242,7 @@
             const timeBg = minTotal > 15 ? 'bg-red-600' : minTotal > 10 ? 'bg-yellow-600' : 'bg-green-600';
 
             const itemsHtml = (order.items || []).map(it => `
-                <div class="flex justify-between items-start py-2 border-b border-gray-700">
+                <div class="flex justify-between items-start py-1 border-b border-gray-700">
                     <div class="flex-1 min-w-0">
                         <div class="text-lg leading-tight"><span class="text-purple-300 font-bold text-xl">x${it.qty}</span> <span class="font-semibold">${escapeHtml(it.name)}</span></div>
                     </div>
