@@ -231,10 +231,15 @@
                 <i class="far fa-square mr-1"></i>Seçimi Kaldır
             </button>
             <span class="text-xs text-gray-400 italic">Yalnızca değişiklik olan ürünler listelenir.</span>
-            <div class="relative ml-auto">
+            <div class="relative ml-auto flex items-center gap-2">
                 <input type="text" id="mssql-search" placeholder="Ürün adı ara…" oninput="filterMssqlPanel()"
                     class="pl-7 pr-3 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-sky-400 w-44">
                 <i class="fas fa-search absolute left-2 top-1.5 text-gray-400 text-[10px]"></i>
+                <span class="text-xs text-gray-600 font-semibold" id="mssql-fetch-count-top"></span>
+                <button onclick="applyMssqlChanges()" id="btn-apply-mssql-top" disabled
+                    class="px-4 py-1.5 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition text-xs disabled:opacity-40 disabled:cursor-not-allowed">
+                    <i class="fas fa-check mr-1"></i> Seçilenleri Güncelle
+                </button>
             </div>
         </div>
         <div class="p-4 overflow-x-auto" id="mssql-fetch-content"></div>
@@ -850,14 +855,60 @@ function renderMssqlFetch(data) {
             }).join('') +
             `</tbody></table></div>`;
     } else {
-        html += `<div class="text-center py-14">
+        const hasUnmatched = data.unmatched && data.unmatched.length > 0;
+        html += `<div class="text-center py-10">
             <i class="fas fa-check-circle text-5xl text-emerald-400 mb-3 block"></i>
-            <p class="text-lg font-bold text-gray-700">Tüm ürünler güncel!</p>
-            <p class="text-sm text-gray-400 mt-1">MSSQL ile yerel ürünler arasında fark bulunamadı.</p>
+            <p class="text-lg font-bold text-gray-700">Eşleşen ürünlerde değişiklik yok.</p>
+            <p class="text-sm text-gray-400 mt-1">${hasUnmatched ? `<span class="text-orange-500 font-semibold">${data.unmatched.length} eşleşmeyen MSSQL ürünü</span> var — aşağıda listelenmiştir.` : 'MSSQL ile yerel ürünler tamamen uyumlu.'}</p>
         </div>`;
     }
 
     if (data.unmatched.length > 0) {
+        // Gruplara ayır
+        const unmatchedGroups = {};
+        data.unmatched.forEach((item, idx) => {
+            const grp = item.mssql_group || item.mssql_subgroup || 'Gruplandırılmamış';
+            if (!unmatchedGroups[grp]) unmatchedGroups[grp] = [];
+            unmatchedGroups[grp].push({ ...item, _idx: idx });
+        });
+        const groupKeys = Object.keys(unmatchedGroups).sort();
+
+        let groupsHtml = '';
+        groupKeys.forEach(grpName => {
+            const items = unmatchedGroups[grpName];
+            const grpKey = 'ug_' + grpName.replace(/[^a-zA-Z0-9]/g, '_');
+            let rowsHtml = items.map(item => `
+                <tr class="hover:bg-orange-50 unmatched-row" data-name="${item.mssql_name.toLowerCase()}" data-group="${grpKey}">
+                  <td class="px-3 py-2 text-center">
+                      <input type="checkbox" class="mssql-unmatched-check rounded accent-orange-500" data-idx="${item._idx}"
+                             data-group="${grpKey}" onchange="updateUnmatchedGroup('${grpKey}'); updateUnmatchedSelectedCount();">
+                  </td>
+                  <td class="px-3 py-2">
+                      <span class="font-mono text-xs text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded border border-orange-200">${item.mssql_id}</span>
+                  </td>
+                  <td class="px-3 py-2 font-medium text-gray-800 text-sm">${item.mssql_name}</td>
+                  <td class="px-3 py-2 text-gray-700 font-semibold text-xs">${parseFloat(item.mssql_price).toFixed(2)} ₺</td>
+                  <td class="px-3 py-2">${item.mssql_income_center ? `<span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-xs">${item.mssql_income_center}</span>` : '<span class="text-gray-300">—</span>'}</td>
+                </tr>`).join('');
+
+            groupsHtml += `
+            <div class="mb-2 border border-orange-200 rounded-lg overflow-hidden">
+                <div class="flex items-center gap-3 px-4 py-2.5 bg-orange-50 hover:bg-orange-100 cursor-pointer select-none" onclick="toggleUnmatchedGroup('${grpKey}')">
+                    <input type="checkbox" class="unmatched-group-check rounded accent-orange-500" id="ugc-${grpKey}" data-group="${grpKey}"
+                           onclick="event.stopPropagation(); toggleAllInUnmatchedGroup('${grpKey}', this.checked);">
+                    <i class="fas fa-folder text-orange-400"></i>
+                    <span class="font-semibold text-gray-700 flex-1 text-sm">${grpName}</span>
+                    <span class="text-xs text-gray-400">${items.length} ürün</span>
+                    <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform" id="ugchev-${grpKey}"></i>
+                </div>
+                <div id="ugi-${grpKey}">
+                  <table class="w-full text-sm">
+                    <tbody class="divide-y divide-orange-100">${rowsHtml}</tbody>
+                  </table>
+                </div>
+            </div>`;
+        });
+
         html += `
         <div class="mt-5 pt-4 border-t border-gray-200" id="unmatched-section">
             <div class="flex flex-wrap items-center gap-3 mb-3">
@@ -865,7 +916,7 @@ function renderMssqlFetch(data) {
                     <i class="fas fa-unlink text-orange-500"></i>
                     <h4 class="font-bold text-gray-700 text-sm">Eşleşmeyen MSSQL Ürünleri</h4>
                     <span class="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-0.5 rounded-full">${data.unmatched.length}</span>
-                    <span class="text-xs text-gray-400">Product Code henüz atanmamış</span>
+                    <span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">${groupKeys.length} grup</span>
                 </div>
                 <div class="ml-auto flex items-center gap-2">
                     <button onclick="unmatchedSelectAll(true)" class="px-2 py-1 bg-orange-500 text-white text-xs font-bold rounded hover:bg-orange-600">
@@ -881,35 +932,7 @@ function renderMssqlFetch(data) {
                     </div>
                 </div>
             </div>
-            <div class="overflow-x-auto rounded-lg border border-orange-200">
-              <table class="w-full text-sm" id="unmatched-table">
-                <thead class="bg-orange-500 text-white text-xs uppercase tracking-wide">
-                  <tr>
-                    <th class="px-3 py-2.5 w-10 text-center">
-                        <input type="checkbox" id="unmatched-th-check" class="rounded" onclick="unmatchedSelectAll(this.checked)">
-                    </th>
-                    <th class="px-3 py-2.5 text-left w-36">MSSQL ID</th>
-                    <th class="px-3 py-2.5 text-left">Ürün Adı</th>
-                    <th class="px-3 py-2.5 text-left w-28">Fiyat</th>
-                    <th class="px-3 py-2.5 text-left w-36">Grup</th>
-                    <th class="px-3 py-2.5 text-left w-32">Gelir Merkezi</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-orange-100">` +
-        data.unmatched.map((item, idx) => `
-                <tr class="hover:bg-orange-50 unmatched-row" id="unmatched-row-${idx}" data-name="${item.mssql_name.toLowerCase()}">
-                  <td class="px-3 py-2.5 text-center">
-                      <input type="checkbox" class="mssql-unmatched-check rounded accent-orange-500" data-idx="${idx}" onchange="updateUnmatchedSelectedCount()">
-                  </td>
-                  <td class="px-3 py-2.5">
-                      <span class="font-mono text-xs text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded border border-orange-200">${item.mssql_id}</span>
-                  </td>
-                  <td class="px-3 py-2.5 font-medium text-gray-800">${item.mssql_name}</td>
-                  <td class="px-3 py-2.5 text-gray-700 font-semibold text-xs">${parseFloat(item.mssql_price).toFixed(2)} ₺</td>
-                  <td class="px-3 py-2.5">${item.mssql_group ? `<span class="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs">${item.mssql_group}</span>` : '<span class="text-gray-300">—</span>'}</td>
-                  <td class="px-3 py-2.5">${item.mssql_income_center ? `<span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-xs">${item.mssql_income_center}</span>` : '<span class="text-gray-300">—</span>'}</td>
-                </tr>`).join('') +
-        `       </tbody></table></div>
+            ${groupsHtml}
             <div class="mt-2 text-xs text-gray-500 text-right" id="unmatched-count-label"></div>
         </div>`;
     }
@@ -927,21 +950,37 @@ function mssqlSelectAll(checked) {
 
 function unmatchedSelectAll(checked) {
     document.querySelectorAll('.mssql-unmatched-check').forEach(cb => cb.checked = checked);
-    const th = document.getElementById('unmatched-th-check');
-    if (th) { th.checked = checked; th.indeterminate = false; }
+    document.querySelectorAll('.unmatched-group-check').forEach(cb => { cb.checked = checked; cb.indeterminate = false; });
     updateUnmatchedSelectedCount();
 }
 
+function toggleAllInUnmatchedGroup(grpKey, checked) {
+    document.querySelectorAll(`.mssql-unmatched-check[data-group="${grpKey}"]`).forEach(cb => cb.checked = checked);
+    updateUnmatchedSelectedCount();
+}
+
+function updateUnmatchedGroup(grpKey) {
+    const all   = document.querySelectorAll(`.mssql-unmatched-check[data-group="${grpKey}"]`);
+    const chk   = Array.from(all).filter(c => c.checked).length;
+    const cb    = document.getElementById('ugc-' + grpKey);
+    if (!cb) return;
+    if (chk === 0)            { cb.checked = false; cb.indeterminate = false; }
+    else if (chk === all.length) { cb.checked = true;  cb.indeterminate = false; }
+    else                      { cb.checked = false; cb.indeterminate = true; }
+}
+
+function toggleUnmatchedGroup(grpKey) {
+    const el   = document.getElementById('ugi-' + grpKey);
+    const chev = document.getElementById('ugchev-' + grpKey);
+    if (!el) return;
+    el.classList.toggle('hidden');
+    if (chev) chev.style.transform = el.classList.contains('hidden') ? 'rotate(-90deg)' : '';
+}
+
 function updateUnmatchedSelectedCount() {
-    const total  = document.querySelectorAll('.mssql-unmatched-check:not(.hidden)').length;
-    const count  = document.querySelectorAll('.mssql-unmatched-check:checked').length;
-    const label  = document.getElementById('unmatched-count-label');
-    if (label) label.textContent = count > 0 ? `${count} satır seçildi` : '';
-    const th = document.getElementById('unmatched-th-check');
-    if (th) {
-        th.checked      = count === total && total > 0;
-        th.indeterminate = count > 0 && count < total;
-    }
+    const count = document.querySelectorAll('.mssql-unmatched-check:checked').length;
+    const label = document.getElementById('unmatched-count-label');
+    if (label) label.textContent = count > 0 ? `${count} ürün seçildi` : '';
 }
 
 function filterUnmatched() {
@@ -955,10 +994,13 @@ function filterUnmatched() {
 function updateMssqlSelectedCount() {
     const total = document.querySelectorAll('.mssql-check').length;
     const count = document.querySelectorAll('.mssql-check:checked').length;
-    document.getElementById('mssql-fetch-count').textContent = total === 0
-        ? 'Güncellenecek satır yok'
-        : `${count} / ${total} satır seçildi`;
+    const label = total === 0 ? 'Güncellenecek satır yok' : `${count} / ${total} seçildi`;
+    document.getElementById('mssql-fetch-count').textContent = label;
+    const topLabel = document.getElementById('mssql-fetch-count-top');
+    if (topLabel) topLabel.textContent = total > 0 ? label : '';
     document.getElementById('btn-apply-mssql').disabled = count === 0;
+    const topBtn = document.getElementById('btn-apply-mssql-top');
+    if (topBtn) topBtn.disabled = count === 0;
     const th = document.getElementById('mssql-th-check');
     if (th) {
         th.checked = (count === total && total > 0);
