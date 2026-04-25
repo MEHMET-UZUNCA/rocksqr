@@ -437,8 +437,64 @@ class KitchenController extends Controller
     }
 
     /**
+     * Tan\u0131 endpoint'i: KDS SQL'inin ham satırlarını filtre uygulamadan döndürür.
+     * Kullanım: /kitchen-pos/raw?check=3626  veya  /kitchen-pos/raw?table=12
+     */
+    public function kitchenPosRaw(Request $request)
+    {
+        $host     = (string) Setting::get('mssql_kds_host', '');
+        $port     = (string) Setting::get('mssql_kds_port', '1433');
+        $database = (string) Setting::get('mssql_kds_database', '');
+        $username = (string) Setting::get('mssql_kds_username', '');
+        $password = (string) Setting::get('mssql_kds_password', '');
+        $query    = trim((string) Setting::get('mssql_kds_query', ''));
+
+        if ($query === '' || !$host || !$database || !$username) {
+            return response()->json(['success' => false, 'message' => 'KDS ayarları eksik.'], 200);
+        }
+
+        try {
+            $actualPassword = '';
+            if ($password) {
+                try { $actualPassword = decrypt($password); } catch (\Exception $e) { $actualPassword = $password; }
+            }
+            $pdo = new \PDO("sqlsrv:Server={$host},{$port};Database={$database};TrustServerCertificate=1", $username, $actualPassword);
+            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            $stmt = $pdo->prepare($query);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $check = $request->input('check');
+            $table = $request->input('table');
+
+            if ($check !== null || $table !== null) {
+                $rows = array_values(array_filter($rows, function ($r) use ($check, $table) {
+                    $rChk = null; $rTbl = null;
+                    foreach (['CheckNumber','check_number','ChkNum','CHECKNUMBER','checknumber'] as $k) {
+                        if (array_key_exists($k, $r)) { $rChk = $r[$k]; break; }
+                    }
+                    foreach (['TableNumber','table_number','TABLENUMBER','TableNo','tableno'] as $k) {
+                        if (array_key_exists($k, $r)) { $rTbl = $r[$k]; break; }
+                    }
+                    if ($check !== null && (string) $rChk !== (string) $check) return false;
+                    if ($table !== null && (string) $rTbl !== (string) $table) return false;
+                    return true;
+                }));
+            }
+
+            return response()->json([
+                'success' => true,
+                'count'   => count($rows),
+                'rows'    => $rows,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 200);
+        }
+    }
+
+    /**
      * Symphony POS canlı verisi: kayıtlı KDS sorgusunu çalıştırır,
-     * CheckNumber'a göre gruplar; MajGrp=99 (Mutfak Mesajları) hem grup içinde
+     * CheckNumber'a göre gruplar; MajGrp=1 ve MajGrp=99 (Mutfak Mesajları) hem grup içinde
      * hem de checksiz olarak ayrı bir listede tutulur.
      */
     public function kitchenPosApi()
@@ -502,7 +558,8 @@ class KitchenController extends Controller
                 $majGrp     = (int) $get(['MajGrp', 'maj_grp'], 0);
                 $dtlSeq     = (int) $get(['DtlSeq', 'dtl_seq'], 0);
 
-                $isMessage  = ($majGrp === 99);
+                // Mutfak mesajları: Symphony'de MajGrp 1 ve 99 mesaj/yorum kalemleri için kullanılır
+                $isMessage  = in_array($majGrp, [1, 99], true);
                 $hasCheck   = $checkNum !== null && (int) $checkNum > 0;
 
                 // Mesajlar için benzersiz item_id (Symphony bazen ItemID döndürmez → tüm mesajlar

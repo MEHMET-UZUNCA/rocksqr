@@ -38,6 +38,7 @@ Route::patch('/kitchen/orders/{order}/status', [KitchenController::class, 'kitch
 // Symphony POS tabanlı KDS ekranı (Symphony hesapları read-only, QR siparişleri onaylanabilir)
 Route::get('/kitchen-pos', [KitchenController::class, 'kitchenPos'])->name('kitchen.pos');
 Route::get('/kitchen-pos/api', [KitchenController::class, 'kitchenPosApi'])->name('kitchen.pos.api');
+Route::get('/kitchen-pos/raw', [KitchenController::class, 'kitchenPosRaw'])->name('kitchen.pos.raw');
 Route::post('/kitchen-pos/complete', [KitchenController::class, 'kitchenPosComplete'])->name('kitchen.pos.complete');
 Route::post('/kitchen-pos/uncomplete', [KitchenController::class, 'kitchenPosUncomplete'])->name('kitchen.pos.uncomplete');
 Route::patch('/kitchen-pos/qr/{order}/confirm', [KitchenController::class, 'kitchenPosConfirmQr'])->name('kitchen.pos.qr.confirm');
