@@ -230,8 +230,11 @@
                 ${order.rvc ? `<div class="px-4 py-1 text-xs text-gray-400 border-b border-gray-700"><i class="fas fa-store mr-1"></i>${escapeHtml(order.rvc)}</div>` : ''}
                 ${messagesHtml}
                 <div class="px-4 py-3 text-sm">${itemsHtml || '<div class="text-gray-500 text-center py-2">Urun yok</div>'}</div>
-                <div class="px-4 py-2 border-t border-gray-700 text-center text-xs text-gray-500">
-                    <i class="fas fa-eye mr-1"></i>Symphony POS — sadece görüntüleme
+                <div class="px-4 py-2 border-t border-gray-700">
+                    <button onclick='completeOrder("check", ${JSON.stringify(order.check_number ? String(order.check_number) : ("T" + (order.table_no || "")))}, ${JSON.stringify(order.check_number ? String(order.check_number) : "")}, ${JSON.stringify(String(order.table_no || ""))})'
+                            class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-bold text-white">
+                        <i class="fas fa-check-circle mr-1"></i>Onayla → Servis
+                    </button>
                 </div>
             </div>`;
         }
@@ -275,6 +278,29 @@
         }
 
         function buildCompletedOrderCard(order) {
+            // Onaylanmis Symphony hesabi
+            if (order.is_check) {
+                const gkAttr = escapeHtml(order.group_key || '');
+                const label = order.check_number ? ('Hesap #' + escapeHtml(order.check_number)) : 'Checksiz';
+                return `
+                <div class="bg-gray-800 rounded-lg border-2 border-blue-700 p-3 text-xs">
+                    <div class="flex items-center justify-between mb-1 gap-1">
+                        <span class="font-bold text-blue-300">
+                            <i class="fas fa-receipt mr-1"></i>${label}
+                        </span>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100">
+                            <i class="fas fa-server mr-0.5"></i>SYMPHONY
+                        </span>
+                        <span class="text-gray-500 ml-auto">Masa ${escapeHtml(order.table_no || '-')}</span>
+                    </div>
+                    <p class="text-gray-300 italic">Hesap servise teslim edildi</p>
+                    <button data-uncomplete-key="${gkAttr}"
+                            onclick="uncomplete(this.dataset.uncompleteKey)"
+                            class="mt-2 w-full py-1 bg-amber-500 hover:bg-amber-600 rounded text-black font-bold text-xs">
+                        <i class="fas fa-undo mr-1"></i>Geri Al
+                    </button>
+                </div>`;
+            }
             // Onaylanmis mutfak mesaji (Symphony kaynakli)
             if (order.is_message) {
                 const gkAttr = escapeHtml(order.group_key || '');
@@ -396,6 +422,7 @@
             const messages = data.messages || [];
             const completed = data.completed || [];
             const completedMsgs = data.completed_msgs || [];
+            const completedChecks = data.completed_checks || [];
             const completedLimit = data.completed_limit || 6;
 
             document.getElementById('order-count').textContent = orders.length;
@@ -438,7 +465,7 @@
             const compSect = document.getElementById('completed-section');
             const compGrid = document.getElementById('completed-grid');
             const compBadge = document.getElementById('completed-limit-badge');
-            const allCompleted = [...completed, ...completedMsgs];
+            const allCompleted = [...completed, ...completedMsgs, ...completedChecks];
             if (allCompleted.length > 0) {
                 compSect.classList.remove('hidden');
                 compBadge.textContent = `son ${completedLimit}`;

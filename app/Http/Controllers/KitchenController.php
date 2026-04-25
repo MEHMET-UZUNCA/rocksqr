@@ -398,6 +398,20 @@ class KitchenController extends Controller
                 ));
             }
 
+            // Tamamlanmış Symphony hesaplarını filtrele (group_key = check_number veya 'T'+table_no)
+            $completedCheckKeys = DB::table('kitchen_pos_completions')
+                ->where('kind', 'check')
+                ->pluck('group_key')
+                ->all();
+            if (!empty($completedCheckKeys)) {
+                $completedCheckKeys = array_flip($completedCheckKeys);
+                foreach ($checks as $k => $chk) {
+                    if (isset($completedCheckKeys[$k])) {
+                        unset($checks[$k]);
+                    }
+                }
+            }
+
             // Mesajı + ürünü kalmayan boş Symphony kartlarını listeden çıkar
             $checks = array_filter($checks, fn ($c) => !empty($c['items']) || !empty($c['messages']));
 
@@ -482,6 +496,21 @@ class KitchenController extends Controller
                 ])
                 ->all();
 
+            // Onaylanmış Symphony hesapları (alt panelde "Tamamlananlar" gösterimi için).
+            $completedChecks = DB::table('kitchen_pos_completions')
+                ->where('kind', 'check')
+                ->orderByDesc('completed_at')
+                ->limit($completedLimit)
+                ->get()
+                ->map(fn ($r) => [
+                    'is_check'     => true,
+                    'group_key'    => $r->group_key,
+                    'table_no'     => $r->table_no,
+                    'check_number' => $r->check_number,
+                    'completed_at' => $r->completed_at,
+                ])
+                ->all();
+
             // QR tamamlananlar (kitchen_status=ready) — “servise götür” listesinin ön izlemesi
             $qrCompleted = Order::whereIn('kitchen_status', ['ready', 'completed'])
                 ->where('bar_status', 'approved')
@@ -520,6 +549,7 @@ class KitchenController extends Controller
                 'messages'        => $activeMessages,
                 'completed'       => $qrCompleted,
                 'completed_msgs'  => $completedMsgs,
+                'completed_checks'=> $completedChecks,
                 'completed_limit' => $completedLimit,
                 'fetched_at'      => now()->format('H:i:s'),
                 'count'           => count($activeOrders),
