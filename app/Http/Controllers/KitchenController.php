@@ -944,4 +944,121 @@ class KitchenController extends Controller
         ]);
         return response()->json(['success' => true]);
     }
+
+    /**
+     * Ana Mutfak KDS ekranı (sadece görüntüleme, ayrı veritabanı — AKDS)
+     */
+    public function kitchenAna()
+    {
+        return view('admin.kitchen-ana');
+    }
+
+    /**
+     * Ana Mutfak KDS API — AKDS sorgusu çalıştırır, kartlar halinde döndürür.
+     * Sadece görüntüleme; onaylama/tamamlama işlemi yoktur.
+     */
+    public function kitchenAnaApi()
+    {
+        $host     = (string) Setting::get('mssql_akds_host', '');
+        $port     = (string) Setting::get('mssql_akds_port', '1433');
+        $database = (string) Setting::get('mssql_akds_database', '');
+        $username = (string) Setting::get('mssql_akds_username', '');
+        $password = (string) Setting::get('mssql_akds_password', '');
+        $query    = trim((string) Setting::get('mssql_akds_query', ''));
+
+        if ($query === '' || !$host || !$database || !$username) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ana Mutfak (AKDS) MSSQL ayarları/sorgusu eksik. Admin → MSSQL Ayarları → Ana Mutfak (AKDS) sekmesinden tanımlayın.',
+                'orders'  => [],
+            ], 200);
+        }
+
+        try {
+            $actualPassword = '';
+            if ($password) {
+                try { $actualPassword = decrypt($password); } catch (\Exception $e) { $actualPassword = $password; }
+            }
+
+            $pdo = new \PDO("sqlsrv:Server={$host},{$port};Database={$database};TrustServerCertificate=1", $username, $actualPassword);
+            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+            $stmt = $pdo->prepare($query);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $checks = [];
+
+            foreach ($rows as $row) {
+                $get = function (array $candidates, $default = null) use ($row) {
+                    foreach ($candidates as $c) {
+                        foreach ([$c, strtoupper($c), strtolower($c)] as $k) {
+                            if (array_key_exists($k, $row) && $row[$k] !== null && $row[$k] !== '') {
+                                return $row[$k];
+                            }
+                        }
+                    }
+                    return $default;
+                };
+
+                $checkNum  = $get(['CheckNumber', 'check_number', 'ChkNum'], null);
+                $tableNo   = (string) $get(['TableNumber', 'table_number'], '');
+                $orderTime = $get(['OrderTime', 'order_time'], null);
+                $itemTime  = $get(['ItemTime', 'item_time'], null);
+                $rvc       = $get(['RevenueCenter', 'revenue_center'], '');
+                $covers    = (int) $get(['Covers', 'covers'], 0);
+                $qty       = (int) $get(['Qty', 'qty', 'Quantity'], 1);
+                $name      = (string) $get(['ProductName', 'product_name', 'Name'], '');
+                $note      = (string) $get(['MessageNote', 'message_note', 'RefInfo'], '');
+                $itemId    = $get(['ItemID', 'item_id'], null);
+
+                $groupKey = $checkNum !== null && (int) $checkNum > 0
+                    ? 'C' . $checkNum
+                    : 'T' . $tableNo;
+
+                if (!isset($checks[$groupKey])) {
+                    $checks[$groupKey] = [
+                        'group_key'    => $groupKey,
+                        'check_number' => $checkNum,
+                        'table_no'     => $tableNo,
+                        'rvc'          => $rvc,
+                        'covers'       => $covers,
+                        'order_time'   => $orderTime,
+                        'items'        => [],
+                    ];
+                }
+
+                // Daha eski order_time'ı koru
+                if ($orderTime && (!$checks[$groupKey]['order_time'] || strcmp((string) $orderTime, (string) $checks[$groupKey]['order_time']) < 0)) {
+                    $checks[$groupKey]['order_time'] = $orderTime;
+                }
+
+                $checks[$groupKey]['items'][] = [
+                    'item_id'   => $itemId,
+                    'qty'       => $qty,
+                    'name'      => $name,
+                    'note'      => $note,
+                    'item_time' => $itemTime,
+                ];
+            }
+
+            // En yeni sipariş önce
+            uasort($checks, function ($a, $b) {
+                return strcmp((string) ($b['order_time'] ?? ''), (string) ($a['order_time'] ?? ''));
+            });
+
+            return response()->json([
+                'success'    => true,
+                'orders'     => array_values($checks),
+                'fetched_at' => now()->format('H:i:s'),
+                'count'      => count($checks),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ana Mutfak sorgu hatası: ' . $e->getMessage(),
+                'orders'  => [],
+            ], 200);
+        }
+    }
 }

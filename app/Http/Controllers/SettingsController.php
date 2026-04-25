@@ -145,6 +145,15 @@ class SettingsController extends Controller
             'mssql_bds_password' => Setting::get('mssql_bds_password', '') ? '********' : '',
             'mssql_bds_query' => Setting::get('mssql_bds_query', ''),
             'mssql_bds_rvc_filter' => Setting::get('mssql_bds_rvc_filter', ''),
+
+            // AKDS (Ana Mutfak — sadece görüntüleme ekranı, ayrı veritabanı)
+            'mssql_akds_host' => Setting::get('mssql_akds_host', ''),
+            'mssql_akds_port' => Setting::get('mssql_akds_port', '1433'),
+            'mssql_akds_database' => Setting::get('mssql_akds_database', ''),
+            'mssql_akds_username' => Setting::get('mssql_akds_username', ''),
+            'mssql_akds_password' => Setting::get('mssql_akds_password', '') ? '********' : '',
+            'mssql_akds_query' => Setting::get('mssql_akds_query', ''),
+            'mssql_akds_rvc_filter' => Setting::get('mssql_akds_rvc_filter', ''),
         ];
 
         return view('admin.mssql-settings', compact('settings'));
@@ -204,6 +213,32 @@ class SettingsController extends Controller
             return redirect()->route('admin.mssql-settings')
                 ->with('success', 'Symphony Bar (BDS) ayarları güncellendi.')
                 ->with('active_tab', 'bds');
+        }
+
+        if ($section === 'akds') {
+            $request->validate([
+                'mssql_akds_host'       => 'nullable|string|max:255',
+                'mssql_akds_port'       => 'nullable|string|max:10',
+                'mssql_akds_database'   => 'nullable|string|max:255',
+                'mssql_akds_username'   => 'nullable|string|max:255',
+                'mssql_akds_password'   => 'nullable|string|max:255',
+                'mssql_akds_query'      => 'nullable|string',
+                'mssql_akds_rvc_filter' => 'nullable|string|max:255',
+            ]);
+
+            Setting::set('mssql_akds_host',       trim((string) ($request->mssql_akds_host ?? '')));
+            Setting::set('mssql_akds_port',       trim((string) ($request->mssql_akds_port ?: '1433')));
+            Setting::set('mssql_akds_database',   trim((string) ($request->mssql_akds_database ?? '')));
+            Setting::set('mssql_akds_username',   trim((string) ($request->mssql_akds_username ?? '')));
+            Setting::set('mssql_akds_query',      (string) ($request->mssql_akds_query ?? ''));
+            Setting::set('mssql_akds_rvc_filter', trim((string) ($request->mssql_akds_rvc_filter ?? '')));
+            if ($request->mssql_akds_password && $request->mssql_akds_password !== '********') {
+                Setting::set('mssql_akds_password', encrypt($request->mssql_akds_password));
+            }
+
+            return redirect()->route('admin.mssql-settings')
+                ->with('success', 'Ana Mutfak (AKDS) ayarları güncellendi.')
+                ->with('active_tab', 'akds');
         }
 
         // Default: product (Symphony)

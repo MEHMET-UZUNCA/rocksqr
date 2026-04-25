@@ -44,6 +44,10 @@ Route::post('/kitchen-pos/uncomplete', [KitchenController::class, 'kitchenPosUnc
 Route::patch('/kitchen-pos/qr/{order}/confirm', [KitchenController::class, 'kitchenPosConfirmQr'])->name('kitchen.pos.qr.confirm');
 Route::patch('/kitchen-pos/qr/{order}/undo', [KitchenController::class, 'kitchenPosUndoQr'])->name('kitchen.pos.qr.undo');
 
+// Ana Mutfak KDS ekranı (sadece görüntüleme, ayrı veritabanı)
+Route::get('/kitchen-ana', [KitchenController::class, 'kitchenAna'])->name('kitchen.ana');
+Route::get('/kitchen-ana/api', [KitchenController::class, 'kitchenAnaApi'])->name('kitchen.ana.api');
+
 Route::get('/dashboard', function () {
     return redirect()->route('admin.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');

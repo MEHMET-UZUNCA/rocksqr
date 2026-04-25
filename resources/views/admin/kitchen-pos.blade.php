@@ -57,6 +57,9 @@
             <a href="/kitchen" class="text-gray-400 hover:text-gold transition" title="Yerel KDS ekranı">
                 <i class="fas fa-database mr-1"></i> Yerel
             </a>
+            <a href="/kitchen-ana" class="text-gray-400 hover:text-teal-400 transition" title="Ana Mutfak KDS">
+                <i class="fas fa-tv mr-1"></i> Ana Mutfak
+            </a>
             <button onclick="toggleFullscreen()" class="text-gray-400 hover:text-gold transition" title="Tam ekran (F11)">
                 <i id="fs-icon" class="fas fa-expand"></i>
             </button>

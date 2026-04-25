@@ -12,7 +12,7 @@
                 <div class="mb-6 p-4 bg-sky-50 border border-sky-200 rounded-lg">
                     <p class="text-sm text-sky-700">
                         <i class="fas fa-info-circle mr-1"></i>
-                        Üç bağlantı bağımsız olarak yapılandırılır: <strong>Ürün (Symphony)</strong> — menü senkronizasyonu, <strong>Symphony Mutfak (KDS)</strong> — mutfak ekranı, <strong>Symphony Bar (BDS)</strong> — bar ekranı.
+                        Dört bağlantı bağımsız olarak yapılandırılır: <strong>Ürün (Symphony)</strong> — menü senkronizasyonu, <strong>Symphony Mutfak (KDS)</strong> — mutfak ekranı, <strong>Symphony Bar (BDS)</strong> — bar ekranı, <strong>Ana Mutfak (AKDS)</strong> — sadece görüntüleme ekranı, ayrı veritabanı.
                         Her biri kendi host/kullanıcı/sorgu/RVC filtresiyle ayrı ayrı özelleştirilebilir. Şifreler şifreli saklanır.
                     </p>
                 </div>
@@ -27,6 +27,9 @@
                     </button>
                     <button type="button" data-tab="bds" class="tab-btn px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-sky-600 hover:bg-sky-50">
                         <i class="fas fa-glass-martini-alt mr-1"></i>Symphony Bar (BDS)
+                    </button>
+                    <button type="button" data-tab="akds" class="tab-btn px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-teal-600 hover:bg-teal-50">
+                        <i class="fas fa-tv mr-1"></i>Ana Mutfak (AKDS)
                     </button>
                 </div>
 
@@ -67,12 +70,36 @@
                             'color'      => 'orange',
                             'showRvc'    => true,
                             'rvcField'   => 'mssql_kds_rvc_filter',
-                            'queryHint'  => 'Mutfak için Symphony\''den açık siparişler/üretim hattını döndüren SQL sorgusu.',
+                            'queryHint'  => "Mutfak için Symphony'den açık siparişler/üretim hattını döndüren SQL sorgusu.",
                             'aliasList'  => false,
                             'settings'   => $settings,
                         ])
                         <button type="submit" class="w-full py-3 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-700 transition mt-6">
                             <i class="fas fa-save mr-2"></i>Symphony Mutfak Ayarlarını Kaydet
+                        </button>
+                    </form>
+                </div>
+
+                {{-- ============ AKDS (Ana Mutfak) ============ --}}
+                <div data-section="akds" class="tab-pane hidden">
+                    <form action="{{ route('admin.mssql-settings.update') }}" method="POST">
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="section" value="akds">
+                        @include('admin.partials.mssql-section', [
+                            'section'    => 'akds',
+                            'prefix'     => 'mssql_akds',
+                            'title'      => 'Ana Mutfak — Sadece Görüntüleme (AKDS)',
+                            'icon'       => 'fa-tv',
+                            'color'      => 'teal',
+                            'showRvc'    => true,
+                            'rvcField'   => 'mssql_akds_rvc_filter',
+                            'queryHint'  => "Ana mutfak ekranı için ayrı veritabanından sipariş listesini döndüren SQL sorgusu. Ekran sadece görüntüleme yapar, onaylama/buton yoktur.",
+                            'aliasList'  => false,
+                            'settings'   => $settings,
+                        ])
+                        <button type="submit" class="w-full py-3 bg-teal-600 text-white font-bold rounded-lg hover:bg-teal-700 transition mt-6">
+                            <i class="fas fa-save mr-2"></i>Ana Mutfak Ayarlarını Kaydet
                         </button>
                     </form>
                 </div>

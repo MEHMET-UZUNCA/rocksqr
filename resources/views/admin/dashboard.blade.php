@@ -54,6 +54,12 @@
                             <a href="{{ route('kitchen') }}" class="block px-4 py-3 bg-primary text-white rounded hover:bg-light-primary transition">
                                 <i class="fas fa-tv mr-2 text-gold"></i> Kitchen Ekrani (KDS)
                             </a>
+                            <a href="{{ route('kitchen.pos') }}" class="block px-4 py-3 bg-indigo-800 text-white rounded hover:bg-indigo-900 transition">
+                                <i class="fas fa-fire mr-2"></i> Symphony Mutfak (KDS)
+                            </a>
+                            <a href="{{ route('kitchen.ana') }}" class="block px-4 py-3 bg-teal-700 text-white rounded hover:bg-teal-800 transition">
+                                <i class="fas fa-tv mr-2"></i> Ana Mutfak (AKDS)
+                            </a>
                             <a href="{{ route('admin.categories.index') }}" class="block px-4 py-3 bg-primary text-white rounded hover:bg-light-primary transition">
                                 <i class="fas fa-folder mr-2 text-gold"></i> Kategorileri Yönet
                             </a>
