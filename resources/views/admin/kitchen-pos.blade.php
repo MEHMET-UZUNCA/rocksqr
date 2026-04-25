@@ -255,34 +255,43 @@
         }
 
         function buildCompletedOrderCard(order) {
-            // Onaylanmis mutfak mesaji
+            // Onaylanmis mutfak mesaji (Symphony kaynakli)
             if (order.is_message) {
+                const gkAttr = escapeHtml(order.group_key || '');
                 return `
                 <div class="bg-yellow-900/30 rounded-lg border-2 border-yellow-600/60 p-3 text-xs">
-                    <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center justify-between mb-1 gap-1">
                         <span class="font-bold text-yellow-300">
                             <i class="fas fa-bullhorn mr-1"></i>Mesaj
                         </span>
-                        <span class="text-gray-500">Masa ${escapeHtml(order.table_no || '-')}</span>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100" title="Symphony POS hesabindan">
+                            <i class="fas fa-server mr-0.5"></i>SYMPHONY
+                        </span>
+                        <span class="text-gray-500 ml-auto">Masa ${escapeHtml(order.table_no || '-')}</span>
                     </div>
                     <p class="text-yellow-100 truncate">
                         ${order.qty > 1 ? `<span class="text-yellow-400">x${order.qty}</span> ` : ''}${escapeHtml(order.name || '—')}
                         ${order.note ? ` <span class="text-yellow-400/80">— ${escapeHtml(order.note)}</span>` : ''}
                     </p>
-                    <button onclick="uncomplete(${JSON.stringify(order.group_key)})"
+                    <button data-uncomplete-key="${gkAttr}"
+                            onclick="uncomplete(this.dataset.uncompleteKey)"
                             class="mt-2 w-full py-1 bg-amber-500 hover:bg-amber-600 rounded text-black font-bold text-xs">
                         <i class="fas fa-undo mr-1"></i>Geri Al
                     </button>
                 </div>`;
             }
+            // QR siparis tamamlanmasi
             const items = (order.items || []).map(i => `${i.name} x${i.qty}`).join(', ');
             return `
             <div class="bg-gray-800 rounded-lg border-2 border-emerald-700 p-3 text-xs">
-                <div class="flex items-center justify-between mb-1">
+                <div class="flex items-center justify-between mb-1 gap-1">
                     <span class="font-bold text-emerald-400">
                         <i class="fas fa-qrcode mr-1"></i>QR #${order.qr_order_id}
                     </span>
-                    <span class="text-gray-500">Masa ${escapeHtml(order.table_no || '-')}</span>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-700 text-purple-100" title="QR Menu siparisi">
+                        <i class="fas fa-mobile-screen mr-0.5"></i>QR MENU
+                    </span>
+                    <span class="text-gray-500 ml-auto">Masa ${escapeHtml(order.table_no || '-')}</span>
                 </div>
                 <p class="text-gray-300 truncate">${escapeHtml(items) || '—'}</p>
                 <button onclick="undoQr(${order.qr_order_id})"
