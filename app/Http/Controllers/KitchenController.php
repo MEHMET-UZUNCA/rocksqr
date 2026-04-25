@@ -329,6 +329,12 @@ class KitchenController extends Controller
                 $isMessage  = ($majGrp === 99);
                 $hasCheck   = $checkNum !== null && (int) $checkNum > 0;
 
+                // Mesajlar için benzersiz item_id (Symphony bazen ItemID döndürmez → tüm mesajlar
+                // aynı group_key'i alır ve toplu onaylama/filtreleme bozulur). Fallback hash üret.
+                if ($isMessage && (!$itemId || (string) $itemId === '0')) {
+                    $itemId = 'm-' . substr(md5(($tableNo ?? '') . '|' . ($checkNum ?? '') . '|' . $dtlSeq . '|' . $name . '|' . ($note ?? '') . '|' . ($itemTime ?? '')), 0, 16);
+                }
+
                 $item = [
                     'item_id'    => $itemId,
                     'dtl_seq'    => $dtlSeq,
