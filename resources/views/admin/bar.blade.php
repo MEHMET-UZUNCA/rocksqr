@@ -388,7 +388,7 @@
                     </div>`;
                 }).join('');
 
-                const checkLabel = isSymphony && order.check_number ? `<span class="text-xs text-gray-400">#${order.check_number}</span>` : (isSymphony ? '' : `<span class="text-xs text-gray-400">#${order.id}</span>`);
+                const checkLabel = isSymphony && order.check_number ? `<span class="text-xs text-gray-400">CHK #${order.check_number}</span>` : (isSymphony ? '' : `<span class="text-xs text-gray-400">CHK #${order.id}</span>`);
 
                 let footer;
                 if (isSymphony) {
@@ -415,10 +415,10 @@
                 <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden">
                     <div class="flex items-center justify-between px-4 py-2 bg-gray-750">
                         <div class="flex items-center gap-2">
-                            ${sourceBadge}
                             <span class="text-2xl font-bold text-gold">
                                 ${order.table_no ? 'Masa ' + order.table_no : 'Paket'}
                             </span>
+                            ${sourceBadge}
                             ${checkLabel}
                             <span class="px-2 py-1 rounded text-xs font-bold ${statusBg}">${statusText}</span>
                         </div>

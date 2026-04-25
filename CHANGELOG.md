@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.0.17 - 2026-04-25
+
+### Değişenler
+- **Bar ekranı tek tip kart**: Symphony ve QR siparişleri artık tek bir grid'de aynı kart şablonuyla render ediliyor (mutfak ekranıyla tutarlı görünüm).
+  - Üstte küçük rozet: mavi **SYMPHONY** (POS) / mor **QR** (QR menü)
+  - Rozet konumu mutfak ekranıyla birebir aynı: **Masa numarasından sonra**, hesap etiketinden önce
+  - Hesap numarası önüne **`CHK #`** kısaltması eklendi (örn. `CHK #3626`)
+  - Symphony kartlarında **Onayla** butonu yerine **"POS'ta"** bilgi rozeti
+  - Tüm kartlar `seconds_ago` artan sıraya göre — **en yeni sol üstte**
+- Eski ayrı **"Symphony POS Siparişleri"** bölümü kaldırıldı.
+
 ## v1.0.16 - 2026-04-25
 
 ### Eklenenler
