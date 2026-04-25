@@ -11,11 +11,13 @@ class AdminProductController extends Controller
 {
     public function index()
     {
-        $products = Product::with('category')
+        $products = Product::with('category.parent')
             ->orderBy('id', 'asc')
             ->paginate(20);
 
-        return view('admin.products.index', compact('products'));
+        $categories = Category::with('parent')->orderBy('parent_id')->orderBy('sort_order')->orderBy('name')->get();
+
+        return view('admin.products.index', compact('products', 'categories'));
     }
 
     public function create()
