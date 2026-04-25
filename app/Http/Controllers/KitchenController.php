@@ -573,6 +573,21 @@ class KitchenController extends Controller
     public function kitchenPosUncomplete(Request $request)
     {
         $validated = $request->validate(['group_key' => 'required|string|max:64']);
+
+        $row = DB::table('kitchen_pos_completions')->where('group_key', $validated['group_key'])->first();
+        if (!$row) {
+            return response()->json(['success' => false, 'message' => 'Kayıt bulunamadı.'], 404);
+        }
+
+        $undoWindowSeconds = (int) Setting::get('ready_undo_seconds', 30);
+        $age = now()->diffInSeconds(\Carbon\Carbon::parse($row->completed_at));
+        if ($age > $undoWindowSeconds) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Geri alma süresi doldu (' . $undoWindowSeconds . ' sn).',
+            ], 422);
+        }
+
         DB::table('kitchen_pos_completions')->where('group_key', $validated['group_key'])->delete();
         return response()->json(['success' => true]);
     }

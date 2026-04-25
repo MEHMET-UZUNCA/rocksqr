@@ -160,12 +160,12 @@
 
                     <div class="md:col-span-2">
                         <label for="ready_undo_seconds" class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-rotate-left mr-1"></i>Hazirlanan Sipariş Geri Alma Süresi (saniye)
+                            <i class="fas fa-rotate-left mr-1"></i>Geri Alma Süresi (saniye)
                         </label>
                         <input type="number" min="5" max="600" step="1" name="ready_undo_seconds" id="ready_undo_seconds"
                                value="{{ old('ready_undo_seconds', $settings['ready_undo_seconds']) }}"
                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
-                        <p class="text-xs text-gray-400 mt-1">Son tamamlanan siparişlerde bu süre boyunca "Geri Al" butonu görünür.</p>
+                        <p class="text-xs text-gray-400 mt-1">QR siparişleri ve onaylanan mutfak mesajları için "Geri Al" butonu bu süre boyunca çalışır. Sonrasında kayıt kalıcılaşır.</p>
                     </div>
 
                     <div class="md:col-span-2">

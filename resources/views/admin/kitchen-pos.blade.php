@@ -356,7 +356,8 @@
 
         function uncomplete(groupKey) {
             postJson('/kitchen-pos/uncomplete', { group_key: groupKey })
-                .then(() => fetchOnce()).catch(e => console.error(e));
+                .then(d => { if (d && d.success === false) alert(d.message || 'Geri alınamadı.'); fetchOnce(); })
+                .catch(e => console.error(e));
         }
 
         function confirmQr(orderId) {
