@@ -45,15 +45,22 @@
                 <a href="{{ route('admin.products.index') }}" class="hover:text-gold transition">
                     <i class="fas fa-box mr-1"></i> Ürünler
                 </a>
-                <a href="{{ route('bar') }}" class="hover:text-gold transition">
-                    <i class="fas fa-wine-glass mr-1"></i> Bar
-                </a>
-                <a href="{{ route('kitchen') }}" class="hover:text-gold transition">
-                    <i class="fas fa-tv mr-1"></i> Kitchen
-                </a>
-                <a href="{{ route('kitchen.pos') }}" class="hover:text-gold transition">
-                    <i class="fas fa-server mr-1"></i> Kitchen-Symphony
-                </a>
+                <div class="relative group">
+                    <button type="button" class="hover:text-gold transition flex items-center gap-1 focus:outline-none">
+                        <i class="fas fa-desktop mr-1"></i> Ekran Menüsü <i class="fas fa-chevron-down text-xs ml-1"></i>
+                    </button>
+                    <div class="absolute right-0 top-full mt-1 w-56 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                        <a href="{{ route('bar') }}" class="block px-4 py-2 hover:bg-gold/10 hover:text-primary border-b border-gray-100">
+                            <i class="fas fa-wine-glass mr-2 text-purple-600 w-4"></i> Bar
+                        </a>
+                        <a href="{{ route('kitchen') }}" class="block px-4 py-2 hover:bg-gold/10 hover:text-primary border-b border-gray-100">
+                            <i class="fas fa-tv mr-2 text-amber-600 w-4"></i> Kitchen (KDS)
+                        </a>
+                        <a href="{{ route('kitchen.pos') }}" class="block px-4 py-2 hover:bg-gold/10 hover:text-primary">
+                            <i class="fas fa-server mr-2 text-sky-600 w-4"></i> Kitchen - Symphony
+                        </a>
+                    </div>
+                </div>
                 <a href="{{ route('admin.sync') }}" class="hover:text-gold transition">
                     <i class="fas fa-sync mr-1"></i> Sync
                 </a>
