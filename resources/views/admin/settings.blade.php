@@ -125,32 +125,67 @@
                     </button>
                 </form>
 
-                <!-- Kitchen Completed Display Setting -->
-                <form action="{{ route('admin.settings.update') }}" method="POST" class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                <form action="{{ route('admin.settings.update') }}" method="POST" class="mt-8">
                     <input type="hidden" name="_display_only" value="1">
                     @csrf
                     @method('PUT')
-                    <div>
-                        <label for="kitchen_completed_display" class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-utensils mr-1"></i>Mutfak Ekranı: Tamamlanan Son Sipariş Sayısı
-                        </label>
-                        <input type="number" min="1" max="100" step="1" name="kitchen_completed_display" id="kitchen_completed_display"
-                               value="{{ old('kitchen_completed_display', $settings['kitchen_completed_display']) }}"
-                               class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
-                        <p class="text-xs text-gray-400 mt-1">Mutfak ekranında "Hazırlandı" olarak işaretlenen son kaç siparişin görüneceğini belirler (1–100).</p>
+
+                    <h3 class="text-base font-bold text-gray-800 mb-4">
+                        <i class="fas fa-desktop mr-1 text-gold"></i>Ekran Görünüm Ayarları
+                    </h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label for="kitchen_completed_display" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-utensils mr-1"></i>Mutfak: Tamamlanan Son Sipariş Sayısı
+                            </label>
+                            <input type="number" min="1" max="100" step="1" name="kitchen_completed_display" id="kitchen_completed_display"
+                                   value="{{ old('kitchen_completed_display', $settings['kitchen_completed_display']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
+                            <p class="text-xs text-gray-400 mt-1">Mutfak ekranında "Hazırlandı" olarak işaretlenen son kaç sipariş görüneceğini belirler (1–100).</p>
+                        </div>
+                        <div>
+                            <label for="bar_completed_display" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-wine-glass mr-1"></i>Bar: Sipariş Hazır Son Sipariş Sayısı
+                            </label>
+                            <input type="number" min="1" max="100" step="1" name="bar_completed_display" id="bar_completed_display"
+                                   value="{{ old('bar_completed_display', $settings['bar_completed_display']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
+                            <p class="text-xs text-gray-400 mt-1">Bar ekranındaki "Sipariş Hazır" ve "Tamamlanan" alanında kaç sipariş görüneceğini belirler (1–100).</p>
+                        </div>
                     </div>
 
-                    <div>
-                        <label for="bar_completed_display" class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-wine-glass mr-1"></i>Bar Ekranı: Sipariş Hazır Son Sipariş Sayısı
-                        </label>
-                        <input type="number" min="1" max="100" step="1" name="bar_completed_display" id="bar_completed_display"
-                               value="{{ old('bar_completed_display', $settings['bar_completed_display']) }}"
-                               class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
-                        <p class="text-xs text-gray-400 mt-1">Bar ekranındaki "Siparis Hazir" ve "Tamamlanan" alanında kaç sipariş görüneceğini belirler (1–100).</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label for="waiter_call_display" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-bell mr-1"></i>Garson Çağrıları: Görüntülenecek Adet
+                            </label>
+                            <input type="number" min="1" max="200" step="1" name="waiter_call_display" id="waiter_call_display"
+                                   value="{{ old('waiter_call_display', $settings['waiter_call_display']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
+                            <p class="text-xs text-gray-400 mt-1">Admin panelinde garson çağrıları listesinde kaç kayıt gösterileceğini belirler.</p>
+                        </div>
+                        <div>
+                            <label for="order_ready_display" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-check-circle mr-1"></i>Sipariş Hazır Alanı: Görüntülenecek Adet
+                            </label>
+                            <input type="number" min="1" max="200" step="1" name="order_ready_display" id="order_ready_display"
+                                   value="{{ old('order_ready_display', $settings['order_ready_display']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
+                            <p class="text-xs text-gray-400 mt-1">Sipariş hazır/tamamlandı alanında kaç sipariş listeleneceğini belirler.</p>
+                        </div>
+                        <div>
+                            <label for="order_profit_display" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-chart-line mr-1"></i>Sipariş Karı: Görüntülenecek Adet
+                            </label>
+                            <input type="number" min="1" max="200" step="1" name="order_profit_display" id="order_profit_display"
+                                   value="{{ old('order_profit_display', $settings['order_profit_display']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
+                            <p class="text-xs text-gray-400 mt-1">Sipariş kar/gelir raporunda kaç kayıt gösterileceğini belirler.</p>
+                        </div>
                     </div>
 
-                    <div class="md:col-span-2">
+                    <div class="mb-4">
                         <label for="ready_undo_seconds" class="block text-sm font-semibold text-gray-700 mb-2">
                             <i class="fas fa-rotate-left mr-1"></i>Geri Alma Süresi (saniye)
                         </label>
@@ -160,12 +195,10 @@
                         <p class="text-xs text-gray-400 mt-1">QR siparişleri ve onaylanan mutfak mesajları için "Geri Al" butonu bu süre boyunca çalışır. Sonrasında kayıt kalıcılaşır.</p>
                     </div>
 
-                    <div class="md:col-span-2">
-                        <button type="submit"
-                                class="py-3 px-6 bg-gold text-white font-bold rounded-lg hover:bg-yellow-500 transition whitespace-nowrap">
-                            <i class="fas fa-save mr-2"></i>Ekran Ayarlarını Kaydet
-                        </button>
-                    </div>
+                    <button type="submit"
+                            class="py-3 px-6 bg-gold text-white font-bold rounded-lg hover:bg-yellow-500 transition whitespace-nowrap">
+                        <i class="fas fa-save mr-2"></i>Ekran Ayarlarını Kaydet
+                    </button>
                 </form>
 
                 <!-- Screen Clear Time Separate Form -->

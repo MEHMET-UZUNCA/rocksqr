@@ -20,6 +20,9 @@ class SettingsController extends Controller
             'ready_undo_seconds' => (int) Setting::get('ready_undo_seconds', 30),
             'bar_screen_title' => Setting::get('bar_screen_title', 'KDS - Bar Ekrani'),
             'kitchen_screen_title' => Setting::get('kitchen_screen_title', 'POOL Mutfak Ekrani'),
+            'waiter_call_display' => (int) Setting::get('waiter_call_display', 10),
+            'order_ready_display' => (int) Setting::get('order_ready_display', 10),
+            'order_profit_display' => (int) Setting::get('order_profit_display', 20),
         ];
 
         return view('admin.settings', compact('settings'));
@@ -40,10 +43,16 @@ class SettingsController extends Controller
                 'kitchen_completed_display' => 'required|integer|min:1|max:100',
                 'bar_completed_display' => 'required|integer|min:1|max:100',
                 'ready_undo_seconds' => 'required|integer|min:5|max:600',
+                'waiter_call_display' => 'required|integer|min:1|max:200',
+                'order_ready_display' => 'required|integer|min:1|max:200',
+                'order_profit_display' => 'required|integer|min:1|max:200',
             ]);
             Setting::set('kitchen_completed_display', $request->kitchen_completed_display);
             Setting::set('bar_completed_display', $request->bar_completed_display);
             Setting::set('ready_undo_seconds', $request->ready_undo_seconds);
+            Setting::set('waiter_call_display', $request->waiter_call_display);
+            Setting::set('order_ready_display', $request->order_ready_display);
+            Setting::set('order_profit_display', $request->order_profit_display);
             return back()->with('success', 'Ekran görünüm ayarları güncellendi.');
         } else {
             $request->validate([
