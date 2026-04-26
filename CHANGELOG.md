@@ -1,67 +1,56 @@
-# Changelog
+
+## v1.0.47 - 2026-04-26
+
+### MSSQL: Trailing semicolon (`;`) kaldırıldı
+- ODBC Driver 18, sorgu sonundaki `;` noktalı virgülü `SQLSTATE[42000]` olarak reddediyordu. Tüm MSSQL API metodlarında gönderilmeden önce `rtrim(';')` ile otomatik temizleniyor.
+- Etkilenen metodlar: `barApiSymphony()`, `kitchenPosRaw()`, `kitchenPosApi()`, `kitchenAnaApi()`.
 
 ---
 
-## Sistemin Çalışma Senaryosu
+## v1.0.46 - 2026-04-26
 
-RocksQR; **QR menü (müşteri)**, **Mutfak/Bar ekranları (personel)** ve **Symphony POS (mevcut sistem)** arasında köprü kuran hibrit bir akıştır. Üç ayrı MSSQL sorgusu vardır ve hepsi **tarayıcı polling** ile çalışır — sunucu tarafında cron/scheduler **yoktur**.
+### MSSQL: `--` yorum satırları ve `\r\n` temizleme
+- ODBC Driver 18, Türkçe karakter içeren `--` yorum satırlarını ve `\r\n` Windows satır sonlarını `SQLSTATE[42000]` ile reddediyordu.
+- Tüm MSSQL API metodlarında SQL gönderilmeden önce `--` ile başlayan satırlar kaldırılıyor, `\r\n` → `\n` normalize ediliyor.
+- `prepare()` + `execute()` → `query()` ile değiştirildi (parametre kullanılmayan sorgularda SQLSRV uyumluluğu).
 
-### Veri kaynakları
-| Kaynak | Yön | Veritabanı | Kim sorgular | Sıklık |
-|---|---|---|---|---|
-| **Ürün senkronu** | MSSQL → MySQL (yazma) | Symphony.MI | Admin, manuel buton | İhtiyaç anında |
-| **KDS (Kitchen Display)** | MSSQL → ekran (okuma) | Symphony POS canlı | Mutfak ekranı tarayıcısı | 5 sn |
-| **BDS (Bar Display)** | MSSQL → ekran (okuma) | Symphony POS canlı | Bar ekranı tarayıcısı | 5 sn |
-| **QR Siparişler** | MySQL (`orders`) | Yerel | Bar/Mutfak ekranı | 5 sn |
+---
 
-### Sipariş akışı — A) Müşteri QR'dan sipariş verir
-1. Müşteri telefonundan masaya yapıştırılmış QR kodu okutur, ürün seçer ve gönderir.
-2. Sipariş yerel **MySQL `orders`** tablosuna `bar_status='new'` olarak yazılır.
-3. **Bar ekranında** kart turuncu kenarlıkla **`POS BEKLENIYOR`** rozetiyle belirir; "Onayla" butonu pasiftir (kum saati animasyonu).
-4. **Garson** siparişi görüp Symphony POS terminaline aynı ürünleri girer ve adisyonu açar.
-5. Bar ekranı 5 sn sonra Symphony BDS sorgusu ile aynı masada açık adisyon görür → kart altın renge döner, **`YENI`** rozeti ve **"Onayla (POS'ta var)"** butonu aktif olur.
-6. Bar **Onayla**'ya basar → QR kartı kaybolur. Aynı masanın **mavi `SYMPHONY`** kartı POS'tan canlı görünmeye devam eder (artık tek doğru kaynak Symphony'dir).
-7. Mutfak hazırladığında KDS'den **`Onayla → Servis`** basar → kart bar ekranındaki yeşil **"SİPARİŞ HAZIR — SERVİSE GÖTÜR"** şeridine düşer.
-8. Bar **`Servis Edildi`** der → kart tamamen kalkar (`kitchen_pos_completions.delivered_at` set edilir).
+## v1.0.45 - 2026-04-26
 
-### Sipariş akışı — B) Garson doğrudan Symphony'ye girer (QR'sız)
-1. Garson masada sipariş alır, doğrudan Symphony POS'a girer.
-2. Bar ekranı 5 sn içinde mavi **`SYMPHONY`** kartı olarak gösterir (Onayla yok, sadece görsel takip — POS'ta zaten kayıt var).
-3. Mutfak ekranında aynı sipariş Symphony rozetli kartla belirir.
-4. Mutfak **`Onayla → Servis`** der → bar ekranındaki yeşil şeride düşer.
-5. Bar **`Servis Edildi`** der → kart kalkar.
+### AKDS: `prepare()` → `query()` geçişi
+- `kitchenAnaApi()` metodunda `prepare()`+`execute()` ikilisi, `query()` ile değiştirildi. Comment içeren sorgularda ODBC Driver 18'in ürettiği `SQLSTATE[42000]` hatası giderildi.
 
-### Hibrit doğrulama mantığı (A senaryosu için)
-- Eşleşme **`table_no` üzerinden** yapılır.
-- Aynı masada hem bekleyen QR siparişi hem Symphony açık adisyonu varsa → eşleşir, Onayla aktifleşir.
-- Eşleşme yoksa → buton pasif kalır, **çift girişi engeller** (garson POS'a girmeden bar yanlışlıkla onaylayamaz).
-- Tüm karşılaştırma frontend'de yapılır → ekstra MSSQL sorgusu yok.
+---
 
-### Renk ve süre eşikleri
-| Ekran | <5 dk | 5–10 dk | 10–15 dk | 15+ dk |
-|---|---|---|---|---|
-| Bar (Symphony) | Yeşil | Sarı | Kırmızı | Kırmızı |
-| Bar (QR) | Yeşil | Yeşil | Yeşil/Sarı | Sarı/Kırmızı |
-| Mutfak | Yeşil | Sarı | Kırmızı | Kırmızı |
+## v1.0.44 - 2026-04-26
 
-### Veri tabloları (yerel MySQL)
-- `orders` — QR siparişleri (`bar_status`, `kitchen_status`)
-- `kitchen_pos_completions` — Symphony siparişlerinin onay/servis takibi (`completed_at`, `delivered_at`)
-- `waiter_calls` — masa çağrıları
-- `settings` — MSSQL bağlantı/SQL ayarları (3 bölüm: Ürün, KDS, BDS)
+### AKDS: `{{RVC}}` placeholder desteği ve admin panel RVC alanı
+- **Controller** (`kitchenAnaApi()`): SQL sorgusu çalıştırılmadan önce `{{RVC}}` placeholder'ı, admin panelindeki `mssql_akds_rvc_filter` ayarından gelen sayısal değerle değiştiriliyor.
+  - Placeholder varken alan boşsa açıklayıcı hata mesajı döner.
+  - Güvenlik: yalnızca `^\d+$` (tam sayı) kabul edilir — SQL injection engeli.
+- **View** (`mssql-settings.blade.php`): AKDS sekmesine `rvcLabel`, `rvcPlaceholder`, `rvcHint` parametreleri eklendi; queryHint `{{RVC}}` kullanımını açıklar.
+- **Partial** (`mssql-section.blade.php`): `$rvcLabel`, `$rvcPlaceholder`, `$rvcHint` parametreleri desteklendi. AKDS için sağ bilgi kutusu `{{RVC}}` akışını anlatır, diğer sekmeler eski metni korur.
+- **Kullanım**: SQL'de `WHERE chk.Rvc = {{RVC}}` yaz → RVC Filtresi alanına yalnızca `43` gir → Kaydet. RVC değişince sadece filtre alanını güncellemek yeterli, SQL'e dokunulmaz.
 
-### MSSQL Ayarlar (3 bağımsız sekme)
-| Sekme | Prefix | Amaç |
-|---|---|---|
-| **Ürün (Symphony)** | `mssql_` | Ürün menüsü senkronizasyonu — product code eşleşmesi |
-| **Symphony Mutfak (KDS)** | `mssql_kds_` | Mutfak ekranına canlı sipariş akışı |
-| **Symphony Bar (BDS)** | `mssql_bds_` | Bar ekranına canlı sipariş akışı |
+---
 
-Her sekme: Host / Port / DB / Kullanıcı / Şifre / RVC Filtresi / SQL Sorgusu + Bağlantı Testi + Sorgu Önizleme
+## v1.0.43 - 2026-04-26
 
-### Admin Ayarlar — Ekran Bölümleri
-**Bar Ekran Ayarları**: Bar başlığı, tamamlanan sipariş sayısı, sipariş hazır alanı adedi, sipariş karı adedi
-**Kitchen Ekran Ayarları**: Mutfak başlığı, tamamlanan sipariş sayısı, garson çağrısı adedi, geri alma süresi
+### Ana Mutfak KDS (AKDS) — sadece görüntüleme ekranı
+- **Yeni ekran** `/kitchen-ana`: Ayrı MSSQL veritabanından canlı açık siparişleri gösteren, aksiyon butonu olmayan salt-görüntüleme KDS ekranı.
+  - Slate-900 arka plan, teal-400 aksanlar; grid kart düzeni.
+  - Her kart: masa no, hesap no, RVC / gelir merkezi, ürünler (adet + ad + not), geçen süre.
+  - Süre renk eşikleri: **<5dk teal** → **5–10dk teal-700** → **10–15dk yellow** → **15dk+ kırmızı**.
+  - 5 saniyede bir otomatik yenileme, yeni sipariş ses uyarısı, tam ekran butonu.
+- **Yeni API** `/kitchen-ana/api` (`kitchenAnaApi()`): AKDS ayarlarından bağlantı + sorgu okur, ham SQL çalıştırır, `CheckNumber`'a göre gruplar.
+- **MSSQL Ayarları** — 4. sekme **"Ana Mutfak (AKDS)"** eklendi (teal tema):
+  - Bağımsız host/port/database/username/password alanları.
+  - Özel SQL sorgusu + RVC Filtresi alanı.
+  - Test Bağlantısı ve Önizle butonları.
+- **Dashboard**: "Ana Mutfak (AKDS)" hızlı erişim kartı eklendi (teal, `route('kitchen.ana')`).
+- **KDS başlık**: `/kitchen-pos` ekranının üst çubuğuna "Ana Mutfak" bağlantısı eklendi.
+- Route'lar auth'suz public display screen grubuna eklendi.
 
 ---
 
