@@ -1,6 +1,180 @@
 RocksQR - Sistem Detayları
-Versiyon: v1.0.42 (2026-04-26)
+Versiyon: v1.0.47 (2026-04-26)
 =====================================
+
+Laravel 11, MySQL, Tailwind CSS ile geliştirildi.
+Lüks koyu tema (#1A1A2E) ve altın tonları (#D4A574) kullanıldı.
+
+
+--------------------------------------------------
+ÇALIŞMA SENARYOSU
+--------------------------------------------------
+
+RocksQR; QR menü (müşteri), Mutfak/Bar ekranları (personel) ve Symphony POS
+(mevcut sistem) arasında köprü kuran hibrit bir akıştır.
+Tarayıcı polling ile çalışır (5 sn). Sunucu tarafında cron/scheduler YOKTUR.
+
+-- Sipariş Akışı A: Müşteri QR'dan sipariş verir --
+
+1. Müşteri QR kodu okutur → ürün seçer → sipariş gönderir.
+2. Sipariş MySQL'e bar_status='new' olarak yazılır.
+3. Bar ekranında kart "POS BEKLENIYOR" rozeti + turuncu kenarlıkla belirir.
+   "Onayla" butonu pasiftir (kum saati animasyonu).
+4. Garson siparişi görür, Symphony POS'a aynı ürünleri girer, adisyonu açar.
+5. Bar ekranı 5 sn içinde Symphony BDS'den aynı masada açık adisyon görür →
+   kart altın renge döner, "YENI" rozeti + "Onayla (POS'ta var)" butonu aktif.
+6. Bar "Onayla"ya basar → QR kartı kaybolur.
+   Masanın mavi SYMPHONY kartı POS'tan canlı görünmeye devam eder.
+7. Mutfak hazırladığında KDS'den "Onayla → Servis" basar →
+   kart bar ekranındaki yeşil "SİPARİŞ HAZIR - SERVİSE GÖTÜR" şeridine düşer.
+8. Bar "Servis Edildi" der → kart kalkar (delivered_at set edilir).
+
+-- Sipariş Akışı B: Garson doğrudan Symphony'ye girer (QR'sız) --
+
+1. Garson siparişi doğrudan Symphony POS'a girer.
+2. Bar ekranı 5 sn içinde mavi SYMPHONY kartı olarak gösterir.
+3. Mutfak ekranında da Symphony rozetli kart belirir.
+4. Mutfak "Onayla → Servis" der → bar yeşil şeride düşer.
+5. Bar "Servis Edildi" der → kart kalkar.
+
+-- Sipariş Akışı C: Ana Mutfak KDS (AKDS) — sadece görüntüleme --
+
+1. Ayrı MSSQL veritabanından açık siparişler 5 sn'de bir çekilir.
+2. /kitchen-ana ekranında kart grid olarak gösterilir (aksiyon butonu yok).
+3. RVC (gelir merkezi) filtresi Admin → MSSQL Ayarları → AKDS sekmesinden
+   ayarlanır. SQL'de {{RVC}} yazar, filtre alanına sadece sayı girilir.
+4. Süre eşiklerine göre kart rengi değişir (teal→sarı→kırmızı).
+
+-- Hibrit Doğrulama Mantığı (A senaryosu) --
+
+- Eşleşme table_no üzerinden yapılır.
+- Aynı masada hem bekleyen QR siparişi hem Symphony açık adisyonu varsa →
+  Onayla aktifleşir. Yoksa buton pasif kalır (çift giriş engeli).
+- Tüm karşılaştırma frontend'de yapılır → ekstra MSSQL sorgusu yok.
+
+-- Renk / Süre Eşikleri --
+
+  Ekran              | <5 dk   | 5-10 dk | 10-15 dk | 15+ dk
+  Bar (Symphony)     | Yeşil   | Sarı    | Kırmızı  | Kırmızı
+  Bar (QR)           | Yeşil   | Yeşil   | Yeşil    | Sarı/Kırmızı
+  Mutfak (KDS)       | Yeşil   | Sarı    | Kırmızı  | Kırmızı
+  Ana Mutfak (AKDS)  | Teal    | Teal-D  | Sarı     | Kırmızı
+
+
+--------------------------------------------------
+MSSQL AYARLAR (4 bağımsız sekme)
+--------------------------------------------------
+
+  Sekme                    | Prefix         | Amaç
+  Ürün (Symphony)          | mssql_         | Ürün menüsü senkronu
+  Symphony Mutfak (KDS)    | mssql_kds_     | Mutfak ekranı canlı akış
+  Symphony Bar (BDS)       | mssql_bds_     | Bar ekranı canlı akış
+  Ana Mutfak (AKDS)        | mssql_akds_    | Sadece görüntüleme KDS
+
+Her sekme: Host / Port / DB / Kullanıcı / Şifre / RVC Filtresi / SQL Sorgusu
+           + Bağlantı Testi + Sorgu Önizleme (ilk 100 satır)
+Şifreler veritabanında encrypt() ile şifreli saklanır. .env değişkeni gerekmez.
+
+AKDS için {{RVC}} placeholder:
+  SQL'de  "WHERE chk.Rvc = {{RVC}}"  yaz.
+  RVC Filtresi alanına sadece sayı gir (örn: 43).
+  RVC değişince yalnızca bu alanı güncelle; SQL'e dokunma.
+  Güvenlik: sistem sadece tam sayı kabul eder (SQL injection engeli).
+
+NOT: SQL sorgularında "--" ile başlayan yorum satırları ve satır sonu ";"
+     gönderilmeden önce otomatik temizlenir (ODBC Driver 18 uyumluluğu).
+
+
+--------------------------------------------------
+ADMIN AYARLAR — BÖLÜMLER
+--------------------------------------------------
+
+Bar Ekran Ayarları:
+  - bar_screen_title        : Bar ekranı üst başlığı
+  - bar_completed_display   : Tamamlanan sipariş listesi max adet (1-100)
+  - order_ready_display     : Sipariş hazır alanı max adet (1-200)
+  - order_profit_display    : Sipariş karı raporu max adet (1-200)
+
+Kitchen Ekran Ayarları:
+  - kitchen_screen_title      : Mutfak ekranı üst başlığı
+  - kitchen_completed_display : Tamamlanan sipariş listesi max adet (1-100)
+  - waiter_call_display       : Garson çağrıları listesi max adet (1-200)
+  - ready_undo_seconds        : Geri alma butonu aktif kalma süresi (5-600 sn)
+
+Ekran Temizleme:
+  - clear_time : Ekranda bekleyen kart temizleme saati (HH:MM)
+
+
+--------------------------------------------------
+ÖZELLİKLER
+--------------------------------------------------
+
+Müşteri Tarafı:
+  - QR kod ile masa numarası belirleme
+  - Kategorilere göre ürün listesi
+  - Sepet sistemi (ekle/çıkar, adet, not)
+  - "Garson Çağır" butonu
+  - Sipariş gönderme ve onay ekranı
+
+Admin Paneli:
+  - Kategori CRUD (ana/alt kategori desteği)
+  - Ürün CRUD (fotoğraf yükleme, Symphony ProductCode eşleşmesi)
+  - Sipariş yönetimi (QR + Symphony birleşik)
+  - Mutfak ekranı (KDS): canlı siparişler, durum güncelleme, ses uyarısı, geri al
+  - Ana Mutfak ekranı (AKDS): ayrı DB'den salt-görüntüleme, {{RVC}} filtre
+  - Bar ekranı: QR onay + Symphony canlı takip, sipariş hazır şeridi
+  - MSSQL Sync: lokal product code'lu ürünleri Symphony'de arar →
+    Değişti / Güncel / MSSQL'de Yok badge'leri
+  - Garson çağrısı yönetimi
+  - QR kod yönetimi: toplu üretim, A4 baskı, ZIP indirme, arşiv
+
+Teknik:
+  - Laravel 11, PHP 8.2, MySQL
+  - Laravel Breeze auth
+  - Tailwind CSS CDN, mobil uyumlu
+  - Font Awesome ikonlar
+  - Laravel Storage (fotoğraf yükleme)
+  - PDO sqlsrv MSSQL sürücüsü
+
+
+--------------------------------------------------
+VERİTABANI TABLOLARI
+--------------------------------------------------
+
+  orders                  QR siparişleri (bar_status, kitchen_status)
+  kitchen_pos_completions Symphony sipariş onay/servis takibi
+  waiter_calls            Masa çağrıları
+  categories              Ana ve alt kategoriler (parent_id)
+  products                Ürünler (mssql_id = Symphony product code)
+  settings                Tüm ayarlar (key/value)
+  users                   Admin kullanıcılar
+
+
+--------------------------------------------------
+ERİŞİM ADRESLERİ
+--------------------------------------------------
+
+  Ana Sayfa           http://localhost:81/
+  Müşteri Menüsü      http://localhost:81/menu
+  Giriş Yap           http://localhost:81/login
+  Admin Paneli        http://localhost:81/admin
+  Mutfak Ekranı       http://localhost:81/kitchen-pos
+  Ana Mutfak (AKDS)   http://localhost:81/kitchen-ana
+  Bar Ekranı          http://localhost:81/bar
+
+
+--------------------------------------------------
+KURULUM ADIMLARI
+--------------------------------------------------
+
+1. PHP 8.2, Composer, MySQL, MSSQL (sqlsrv) PDO sürücüsü kurun
+2. composer install
+3. npm install && npm run build
+4. .env dosyasını yapılandırın (DB_* değerleri)
+5. php artisan migrate
+6. php artisan storage:link
+7. MSSQL ayarları Admin > MSSQL Ayarları üzerinden yapılır (.env gerekmez)
+
 
 Laravel 11, MySQL, Tailwind CSS ile geliştirildi.
 Lüks koyu tema (#1A1A2E) ve altın tonları (#D4A574) kullanıldı.
