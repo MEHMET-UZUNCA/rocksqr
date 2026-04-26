@@ -37,13 +37,41 @@ Tarayıcı polling ile çalışır (5 sn). Sunucu tarafında cron/scheduler YOKT
 4. Mutfak "Onayla → Servis" der → bar yeşil şeride düşer.
 5. Bar "Servis Edildi" der → kart kalkar.
 
--- Sipariş Akışı C: Ana Mutfak KDS (AKDS) — sadece görüntüleme --
+-- Sipariş Akışı C: Ana Mutfak KDS (AKDS) — çoklu gelir merkezi görüntüleme --
 
-1. Ayrı MSSQL veritabanından açık siparişler 5 sn'de bir çekilir.
-2. /kitchen-ana ekranında kart grid olarak gösterilir (aksiyon butonu yok).
-3. RVC (gelir merkezi) filtresi Admin → MSSQL Ayarları → AKDS sekmesinden
-   ayarlanır. SQL'de {{RVC}} yazar, filtre alanına sadece sayı girilir.
-4. Süre eşiklerine göre kart rengi değişir (teal→sarı→kırmızı).
+Ana Mutfak ekranı, Symphony POS'un farklı gelir merkezlerinde (RVC) açılan
+siparişleri TEK ekranda birleştirerek mutfağa gösterir. Herhangi bir onay
+veya aksiyon butonu yoktur; sadece görüntüleme yapılır.
+
+Tipik kullanım senaryosu:
+  - Restoran birden fazla alanda hizmet verir: Kafe, Havuz Başı, Teras,
+    Restoran Salonu, Oda Servisi gibi 4–5 farklı gelir merkezi.
+  - Her birinin siparişleri Symphony POS'ta farklı RVC numarasıyla açılır
+    (örn: Kafe=43, Havuz=44, Teras=45, Salon=46, Oda=47).
+  - Ana Mutfak, bu gelir merkezlerinin tamamını tek SQL sorgusuyla çeker ve
+    tek ekranda kart grid olarak sıralar.
+  - Mutfak şefi hangi masadan, hangi alandan ne sipariş geldiğini tek bakışta
+    görür; her kartın üstünde RVC adı (Gelir Merkezi) yazar.
+
+Kurulum:
+  1. Admin → MSSQL Ayarları → "Ana Mutfak (AKDS)" sekmesi açılır.
+  2. Ayrı MSSQL sunucu bilgileri girilir (veya aynı Symphony DB kullanılır).
+  3. SQL Sorgusu alanına çoklu RVC destekli sorgu yazılır:
+       WHERE chk.Rvc IN ({{RVC}})
+  4. RVC Filtresi alanına izlemek istenen gelir merkezi numaraları girilir:
+       43, 44, 45, 46, 47
+  5. Kaydet → /kitchen-ana ekranı tüm bu alanlardan gelen siparişleri gösterir.
+
+RVC değişince (alan ekleme/çıkarma) sadece filtre alanını güncelle; SQL'e
+dokunmaya gerek yok.
+
+Ekranda her sipariş kartında:
+  - Masa No / Hesap No
+  - Gelir Merkezi adı (hangi alandan geldiği — Kafe, Havuz vb.)
+  - Ürünler: adet + ad + not
+  - Geçen süre (renk eşiği: teal → sarı → kırmızı)
+
+5 saniyede bir otomatik yenileme; yeni sipariş geldiğinde ses uyarısı.
 
 -- Hibrit Doğrulama Mantığı (A senaryosu) --
 
@@ -75,11 +103,13 @@ Her sekme: Host / Port / DB / Kullanıcı / Şifre / RVC Filtresi / SQL Sorgusu
            + Bağlantı Testi + Sorgu Önizleme (ilk 100 satır)
 Şifreler veritabanında encrypt() ile şifreli saklanır. .env değişkeni gerekmez.
 
-AKDS için {{RVC}} placeholder:
-  SQL'de  "WHERE chk.Rvc = {{RVC}}"  yaz.
-  RVC Filtresi alanına sadece sayı gir (örn: 43).
-  RVC değişince yalnızca bu alanı güncelle; SQL'e dokunma.
-  Güvenlik: sistem sadece tam sayı kabul eder (SQL injection engeli).
+AKDS için {{RVC}} placeholder — çoklu gelir merkezi:
+  SQL'de  "WHERE chk.Rvc IN ({{RVC}})"  yaz.
+  RVC Filtresi alanına virgülle ayrılmış sayılar gir:
+    Tek:    43
+    Çoklu:  43, 44, 45, 46, 47
+  Sistem {{RVC}} yerine bu değerleri koyar; SQL Server "IN (43, 44, 45...)" görür.
+  Güvenlik: sistem sadece sayı ve virgül kabul eder (SQL injection engeli).
 
 NOT: SQL sorgularında "--" ile başlayan yorum satırları ve satır sonu ";"
      gönderilmeden önce otomatik temizlenir (ODBC Driver 18 uyumluluğu).

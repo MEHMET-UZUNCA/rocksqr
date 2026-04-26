@@ -994,15 +994,18 @@ class KitchenController extends Controller
                     'orders'  => [],
                 ], 200);
             }
-            // Sadece tam sayı kabul et (güvenlik: SQL injection engeli)
-            if (!preg_match('/^\d+$/', $rvcFilter)) {
+            // Güvenlik: sadece sayı ve virgüle izin ver (SQL injection engeli)
+            // Tek değer: 43  |  Çoklu: 43, 44, 45  → IN ({{RVC}}) ile kullanılır
+            if (!preg_match('/^\d+(\s*,\s*\d+)*$/', $rvcFilter)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'RVC Filtresi sadece sayısal değer olabilir (örn: 43).',
+                    'message' => 'RVC Filtresi sadece sayısal değer veya virgülle ayrılmış liste olabilir (örn: 43 ya da 43, 44, 45).',
                     'orders'  => [],
                 ], 200);
             }
-            $query = str_replace('{{RVC}}', $rvcFilter, $query);
+            // Virgüller arasındaki boşlukları normalize et
+            $safeRvc = implode(', ', array_map('trim', explode(',', $rvcFilter)));
+            $query = str_replace('{{RVC}}', $safeRvc, $query);
         }
 
         // ODBC Driver 18: -- yorum satırları (özellikle Türkçe karakter içerenler)
