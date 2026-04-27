@@ -101,7 +101,7 @@
                 Son Tamamlananlar
                 <span id="completed-limit-badge" class="text-xs bg-gray-700 px-2 py-0.5 rounded-full text-gray-400"></span>
             </h2>
-            <div id="completed-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 opacity-80"></div>
+            <div id="completed-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 opacity-80"></div>
         </div>
 
         <div id="error-box" class="hidden mt-6 p-4 bg-red-900/40 border border-red-500/60 rounded-lg text-red-300">

@@ -69,7 +69,7 @@
             <span class="font-bold text-red-300">GARSON CAGRILARI</span>
             <span id="waiter-count" class="text-red-400 text-sm"></span>
         </div>
-        <div id="waiter-calls-list" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3"></div>
+        <div id="waiter-calls-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3"></div>
     </div>
 
     <!-- Sipariş Hazır Bölümü -->
@@ -80,7 +80,7 @@
             <span id="ready-count" class="text-emerald-400 text-sm"></span>
             <span id="ready-limit" class="text-xs text-emerald-200 bg-emerald-700/50 px-2 py-0.5 rounded"></span>
         </div>
-        <div id="ready-orders-list" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3"></div>
+        <div id="ready-orders-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3"></div>
     </div>
 
     <main class="p-4">
@@ -99,7 +99,7 @@
                 Son Tamamlananlar
                 <span id="completed-limit-badge" class="text-xs bg-gray-700 px-2 py-0.5 rounded-full text-gray-400"></span>
             </h2>
-            <div id="completed-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 opacity-80"></div>
+            <div id="completed-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 opacity-80"></div>
         </div>
     </main>
 
