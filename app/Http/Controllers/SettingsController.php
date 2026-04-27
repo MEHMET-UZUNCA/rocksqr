@@ -23,8 +23,8 @@ class SettingsController extends Controller
             'waiter_call_display' => (int) Setting::get('waiter_call_display', 10),
             'order_ready_display' => (int) Setting::get('order_ready_display', 10),
             'order_profit_display' => (int) Setting::get('order_profit_display', 20),
-            'kitchen_card_columns' => (int) Setting::get('kitchen_card_columns', 4),
-            'bar_card_columns' => (int) Setting::get('bar_card_columns', 4),
+            'kitchen_cards_per_page' => (int) Setting::get('kitchen_cards_per_page', 8),
+            'bar_cards_per_page' => (int) Setting::get('bar_cards_per_page', 8),
         ];
 
         return view('admin.settings', compact('settings'));
@@ -49,13 +49,13 @@ class SettingsController extends Controller
                     'bar_completed_display'  => 'required|integer|min:1|max:100',
                     'order_ready_display'    => 'required|integer|min:1|max:200',
                     'order_profit_display'   => 'required|integer|min:1|max:200',
-                    'bar_card_columns'       => 'required|integer|min:1|max:10',
+                    'bar_cards_per_page'     => 'required|integer|min:1|max:50',
                 ]);
                 Setting::set('bar_screen_title', $request->bar_screen_title ?: 'KDS - Bar Ekrani');
                 Setting::set('bar_completed_display', $request->bar_completed_display);
                 Setting::set('order_ready_display', $request->order_ready_display);
                 Setting::set('order_profit_display', $request->order_profit_display);
-                Setting::set('bar_card_columns', $request->bar_card_columns);
+                Setting::set('bar_cards_per_page', $request->bar_cards_per_page);
                 return back()->with('success', 'Bar ekran ayarları güncellendi.');
             }
 
@@ -65,13 +65,13 @@ class SettingsController extends Controller
                 'kitchen_completed_display'  => 'required|integer|min:1|max:100',
                 'waiter_call_display'        => 'required|integer|min:1|max:200',
                 'ready_undo_seconds'         => 'required|integer|min:5|max:600',
-                'kitchen_card_columns'       => 'required|integer|min:1|max:10',
+                'kitchen_cards_per_page'     => 'required|integer|min:1|max:50',
             ]);
             Setting::set('kitchen_screen_title', $request->kitchen_screen_title ?: 'POOL Mutfak Ekrani');
             Setting::set('kitchen_completed_display', $request->kitchen_completed_display);
             Setting::set('waiter_call_display', $request->waiter_call_display);
             Setting::set('ready_undo_seconds', $request->ready_undo_seconds);
-            Setting::set('kitchen_card_columns', $request->kitchen_card_columns);
+            Setting::set('kitchen_cards_per_page', $request->kitchen_cards_per_page);
             return back()->with('success', 'Kitchen ekran ayarları güncellendi.');
         } else {
             $request->validate([

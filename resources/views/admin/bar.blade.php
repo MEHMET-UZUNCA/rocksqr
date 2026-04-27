@@ -84,7 +84,9 @@
     </div>
 
     <main class="p-4">
-        <div id="orders-grid" class="grid gap-2 items-start" data-cols="{{ \App\Models\Setting::get('bar_card_columns', 4) }}"></div>
+        <div id="orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 items-start"></div>
+        <!-- Sayfa geçiş butonları (sol alt, sabit) -->
+        <div id="pagination-controls" class="hidden fixed bottom-4 left-4 z-50 flex items-center gap-1 bg-gray-800/95 border border-gray-600 rounded-xl px-3 py-2 shadow-2xl backdrop-blur-sm"></div>
         <div id="no-orders" class="hidden text-center py-20">
             <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
             <p class="text-2xl text-gray-400">Tum siparisler tamamlandi!</p>
@@ -106,6 +108,8 @@
         let previousWaiterIds = [];
         let previousReadyIds = [];
         let isFirstLoad = true;
+        let currentPage = 1;
+        const CARDS_PER_PAGE = {{ (int)\App\Models\Setting::get('bar_cards_per_page', 8) }};
 
         function updateClock() {
             const now = new Date();
@@ -113,13 +117,6 @@
         }
         setInterval(updateClock, 1000);
         updateClock();
-
-        // Grid sütun sayısını data-cols attribute'undan al
-        (function initGridCols() {
-            const grid = document.getElementById('orders-grid');
-            const n = parseInt(grid.dataset.cols) || 4;
-            grid.style.gridTemplateColumns = 'repeat(' + n + ', minmax(0, 1fr))';
-        })();
 
         function toggleFullscreen() {
             const icon = document.getElementById('fs-icon');
@@ -379,6 +376,7 @@
                 grid.classList.add('hidden');
                 noOrders.classList.remove('hidden');
                 document.getElementById('order-count').textContent = 0;
+                renderPagination(0);
                 return;
             }
 
@@ -386,7 +384,11 @@
             noOrders.classList.add('hidden');
             document.getElementById('order-count').textContent = orders.length;
 
-            grid.innerHTML = orders.map(order => {
+            const totalPages = Math.max(1, Math.ceil(orders.length / CARDS_PER_PAGE));
+            if (currentPage > totalPages) currentPage = totalPages;
+            const pageOrders = orders.slice((currentPage - 1) * CARDS_PER_PAGE, currentPage * CARDS_PER_PAGE);
+
+            grid.innerHTML = pageOrders.map(order => {
                 const isSymphony = order.source === 'symphony';
                 const isNew = !isSymphony && order.bar_status === 'new';
 
@@ -486,6 +488,30 @@
                     ${footer}
                 </div>`;
             }).join('');
+            renderPagination(totalPages);
+        }
+
+        function renderPagination(totalPages) {
+            const pager = document.getElementById('pagination-controls');
+            if (totalPages <= 1) { pager.classList.add('hidden'); return; }
+            pager.classList.remove('hidden');
+            let html = `<span class="text-gray-400 text-xs mr-1">Sayfa</span>`;
+            if (currentPage > 1) {
+                html += `<button onclick="goPage(${currentPage - 1})" class="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-white text-sm"><i class="fas fa-chevron-left"></i></button>`;
+            }
+            for (let i = 1; i <= totalPages; i++) {
+                const active = i === currentPage ? 'bg-gold text-gray-900 font-bold' : 'bg-gray-700 text-white hover:bg-gray-600';
+                html += `<button onclick="goPage(${i})" class="px-3 py-1 rounded ${active} text-sm">${i}</button>`;
+            }
+            if (currentPage < totalPages) {
+                html += `<button onclick="goPage(${currentPage + 1})" class="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-white text-sm"><i class="fas fa-chevron-right"></i></button>`;
+            }
+            pager.innerHTML = html;
+        }
+
+        function goPage(p) {
+            currentPage = p;
+            fetchData();
         }
 
         function renderCompletedOrders(completedOrders, limit, attendedCalls) {

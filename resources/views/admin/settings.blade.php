@@ -181,13 +181,13 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label for="bar_card_columns" class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="fas fa-table-columns mr-1"></i>Bar KDS: Sütun Sayısı
+                            <label for="bar_cards_per_page" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-layer-group mr-1"></i>Bar KDS: Sayfa Başına Kart Sayısı
                             </label>
-                            <input type="number" min="1" max="10" step="1" name="bar_card_columns" id="bar_card_columns"
-                                   value="{{ old('bar_card_columns', $settings['bar_card_columns']) }}"
+                            <input type="number" min="1" max="50" step="1" name="bar_cards_per_page" id="bar_cards_per_page"
+                                   value="{{ old('bar_cards_per_page', $settings['bar_cards_per_page']) }}"
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
-                            <p class="text-xs text-gray-400 mt-1">Bar ekranında kaç sütun gösterileceği (1–10). Daha fazla kart yan yana.</p>
+                            <p class="text-xs text-gray-400 mt-1">Bar ekranında bir sayfada kaç kart gösterileceği (1–50). Fazlası sonraki sayfalara taşınır.</p>
                         </div>
                     </div>
 
@@ -255,13 +255,13 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label for="kitchen_card_columns" class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="fas fa-table-columns mr-1"></i>Mutfak KDS: Sütun Sayısı
+                            <label for="kitchen_cards_per_page" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-layer-group mr-1"></i>Mutfak KDS: Sayfa Başına Kart Sayısı
                             </label>
-                            <input type="number" min="1" max="10" step="1" name="kitchen_card_columns" id="kitchen_card_columns"
-                                   value="{{ old('kitchen_card_columns', $settings['kitchen_card_columns']) }}"
+                            <input type="number" min="1" max="50" step="1" name="kitchen_cards_per_page" id="kitchen_cards_per_page"
+                                   value="{{ old('kitchen_cards_per_page', $settings['kitchen_cards_per_page']) }}"
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
-                            <p class="text-xs text-gray-400 mt-1">Mutfak POS ekranında kaç sütun gösterileceği (1–10). Daha fazla kart yan yana.</p>
+                            <p class="text-xs text-gray-400 mt-1">Bir sayfada kaç hesap kartı gösterileceği (1–50). Fazlası sonraki sayfalara taşınır.</p>
                         </div>
                     </div>
 
