@@ -490,7 +490,7 @@
                             <span class="text-xl font-bold text-gold">${order.table_no ? 'Masa ' + order.table_no : 'Paket'}</span>
                             <div class="flex items-center gap-1">
                                 ${sourceBadge}
-                                ${(!isSymphony && statusText !== 'POS BEKLENIYOR') ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${statusBg}">${statusText}</span>` : ''}
+                                ${(!isSymphony && statusText === 'YENI') ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${statusBg}">${statusText}</span>` : ''}
                             </div>
                         </div>
                         <div class="flex items-center justify-between mt-0.5">
