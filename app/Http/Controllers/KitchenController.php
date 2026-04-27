@@ -928,56 +928,8 @@ class KitchenController extends Controller
 
             $symphonyOrders = array_values($checks);
 
-            // QR (yerel) siparişleri ekle: kitchen ekranında gösterilecek (bar onaylı + mutfak yeni/preparing)
-            $kitchenProductIds = Product::where('show_in_kitchen', true)->pluck('id')->all();
-            $kitchenProductMap = Product::whereIn('id', $kitchenProductIds)->pluck('name', 'id')->all();
-
-            $qrOrders = Order::whereIn('kitchen_status', ['new', 'preparing'])
-                ->where('bar_status', 'approved')
-                ->orderBy('created_at', 'asc')
-                ->get();
-
-            $qrCards = [];
-            foreach ($qrOrders as $o) {
-                $items = [];
-                foreach (($o->items ?? []) as $it) {
-                    $pid = (int) ($it['id'] ?? 0);
-                    if (!in_array($pid, $kitchenProductIds, true)) continue;
-                    $items[] = [
-                        'item_id'    => 'qr-' . $o->id . '-' . $pid,
-                        'dtl_seq'    => 0,
-                        'qty'        => (int) ($it['quantity'] ?? 1),
-                        'name'       => $kitchenProductMap[$pid] ?? ('Urun #' . $pid),
-                        'note'       => '',
-                        'is_message' => false,
-                        'item_time'  => optional($o->created_at)->format('Y-m-d H:i:s'),
-                        'maj_grp'    => 0,
-                    ];
-                }
-                if (empty($items)) continue;
-
-                $qrCards[] = [
-                    'check_number'         => null,
-                    'qr_order_id'          => $o->id,
-                    'source'               => 'qr',
-                    'table_no'             => (string) $o->table_no,
-                    'rvc'                  => 'QR Menu',
-                    'rvc_id'               => 0,
-                    'order_time'           => optional($o->created_at)->format('Y-m-d H:i:s'),
-                    'covers'               => 0,
-                    'status'               => $o->kitchen_status,
-                    'items'                => $items,
-                    'messages'             => [],
-                    'order_note'           => $o->order_note,
-                    'kitchen_status'       => $o->kitchen_status,
-                ];
-            }
-
-            // QR + Symphony birleşik aktif liste (en yeni sipariş ilk sırada)
-            $activeOrders = array_merge($qrCards, $symphonyOrders);
-            usort($activeOrders, function ($a, $b) {
-                return strcmp((string) ($b['order_time'] ?? ''), (string) ($a['order_time'] ?? ''));
-            });
+            // Sadece Symphony siparişleri gösterilir; QR siparişleri bu ekrana düşmez.
+            $activeOrders = $symphonyOrders;
 
             // Symphony tamamlama kaydı (sadece read-only Symphony hesapları içindi; QR akışı artık Order tablosu üzerinden ilerliyor)
             // Geriye uyumluluk için tablo dursun ama artık UI'da gösterilmiyor.
@@ -1020,37 +972,8 @@ class KitchenController extends Controller
                 ])
                 ->all();
 
-            // QR tamamlananlar (kitchen_status=ready) — “servise götür” listesinin ön izlemesi
-            $qrCompleted = Order::whereIn('kitchen_status', ['ready', 'completed'])
-                ->where('bar_status', 'approved')
-                ->orderByDesc(DB::raw('COALESCE(kitchen_ready_at, completed_at, updated_at)'))
-                ->limit($completedLimit)
-                ->get()
-                ->map(function ($o) use ($kitchenProductMap, $kitchenProductIds) {
-                    $items = [];
-                    foreach (($o->items ?? []) as $it) {
-                        $pid = (int) ($it['id'] ?? 0);
-                        if (!in_array($pid, $kitchenProductIds, true)) continue;
-                        $items[] = [
-                            'qty'  => (int) ($it['quantity'] ?? 1),
-                            'name' => $kitchenProductMap[$pid] ?? ('Urun #' . $pid),
-                        ];
-                    }
-                    if (empty($items)) return null;
-                    return [
-                        'qr_order_id'        => $o->id,
-                        'source'             => 'qr',
-                        'check_number'       => null,
-                        'table_no'           => (string) $o->table_no,
-                        'kitchen_status'     => $o->kitchen_status,
-                        'completed_at'       => optional($o->kitchen_ready_at ?? $o->completed_at)->format('Y-m-d H:i:s'),
-                        'items'              => $items,
-                        'messages'           => [],
-                    ];
-                })
-                ->filter()
-                ->values()
-                ->all();
+            // QR tamamlananlar bu ekranda gösterilmez.
+            $qrCompleted = [];
 
             $completedTodayCount = DB::table('kitchen_pos_completions')
                 ->whereDate('completed_at', today())
