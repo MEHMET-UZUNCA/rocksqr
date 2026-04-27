@@ -328,12 +328,13 @@ class KitchenController extends Controller
 
             $groups = [];
             foreach ($rows as $row) {
-                $tableNo   = (string) $get($row, ['TableNo', 'TableNumber', 'MASA', 'table_no'], '');
-                $checkNum  = $get($row, ['CheckNumber', 'CheckNum', 'ADISYON', 'check_number'], null);
-                $itemName  = (string) $get($row, ['ItemName', 'ProductName', 'Name', 'item_name'], '');
-                $qty       = (int) $get($row, ['Qty', 'Quantity', 'ADET', 'qty'], 1);
-                $orderTime = $get($row, ['OrderTime', 'ItemTime', 'Time', 'order_time'], null);
-                $note      = (string) $get($row, ['Note', 'RefInfo', 'MessageNote', 'note'], '');
+                $tableNo    = (string) $get($row, ['TableNo', 'TableNumber', 'MASA', 'table_no'], '');
+                $checkNum   = $get($row, ['CheckNumber', 'CheckNum', 'ADISYON', 'check_number'], null);
+                $itemName   = (string) $get($row, ['ItemName', 'ProductName', 'Name', 'item_name'], '');
+                $qty        = (int) $get($row, ['Qty', 'Quantity', 'ADET', 'qty'], 1);
+                $orderTime  = $get($row, ['OrderTime', 'ItemTime', 'Time', 'order_time'], null);
+                $note       = (string) $get($row, ['Note', 'RefInfo', 'MessageNote', 'note'], '');
+                $waiterName = trim((string) $get($row, ['WaiterName', 'waiter_name'], '') . ' ' . (string) $get($row, ['WaiterSurname', 'waiter_surname'], ''));
 
                 $key = $checkNum !== null && $checkNum !== '' ? 'C' . $checkNum : 'T' . $tableNo;
                 if (!isset($groups[$key])) {
@@ -342,6 +343,7 @@ class KitchenController extends Controller
                         'table_no'     => $tableNo,
                         'check_number' => $checkNum,
                         'order_time'   => $orderTime,
+                        'waiter_name'  => $waiterName,
                         'items'        => [],
                     ];
                 }
@@ -374,6 +376,7 @@ class KitchenController extends Controller
                     'group_key'    => $g['group_key'],
                     'table_no'     => $g['table_no'],
                     'check_number' => $g['check_number'],
+                    'waiter_name'  => $g['waiter_name'] ?? '',
                     // order_time UTC ISO8601 olarak gönderilir; JS timezone bağımsız parse eder
                     'order_time'   => $g['order_time']
                         ? \Carbon\Carbon::parse((string) $g['order_time'], 'Europe/Istanbul')->toIso8601String()
@@ -684,6 +687,9 @@ class KitchenController extends Controller
                 $isComboItem = (bool)(int) $get(['IsComboItem', 'is_combo_item'], 0);
                 $isReturned  = (bool)(int) $get(['IsReturned', 'is_returned'], 0);
                 $lineKind    = strtoupper((string) $get(['LineKind', 'line_kind'], 'URUN'));
+                $waiterName  = trim((string) $get(['WaiterName', 'waiter_name'], ''));
+                $waiterSurname = trim((string) $get(['WaiterSurname', 'waiter_surname'], ''));
+                $waiterFull  = trim($waiterName . ' ' . $waiterSurname);
                 // Eski sorgu uyumluluğu: LineKind yoksa MajGrp=99 → MESAJ
                 if ($lineKind === 'URUN') {
                     $majGrp = (int) $get(['MajGrp', 'maj_grp'], 0);
@@ -739,6 +745,7 @@ class KitchenController extends Controller
                             'table_no'     => $tableNo,
                             'rvc'          => $rvc,
                             'rvc_id'       => $rvcId,
+                            'waiter_name'  => $waiterFull,
                             'order_time'   => null,
                             'status'       => $status,
                             'items'        => [],
@@ -757,6 +764,7 @@ class KitchenController extends Controller
                         'table_no'     => $tableNo,
                         'rvc'          => $rvc,
                         'rvc_id'       => $rvcId,
+                        'waiter_name'  => $waiterFull,
                         'order_time'   => null,
                         'status'       => $status,
                         'items'        => [],

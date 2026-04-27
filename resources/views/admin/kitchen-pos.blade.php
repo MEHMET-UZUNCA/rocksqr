@@ -289,15 +289,20 @@
 
             return `
             <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden">
-                <div class="flex items-center justify-between px-2 py-1 bg-gray-750">
-                    <div class="flex items-center gap-1.5 flex-wrap">
+                <div class="px-2 py-1 bg-gray-750 border-b border-gray-700">
+                    <div class="flex items-center justify-between">
                         <span class="text-xl font-bold text-gold">Masa ${escapeHtml(order.table_no || '-')}</span>
-                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYM</span>
-                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-700 text-gray-200">${checkLabel}</span>
-                        ${isAddition ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-600 text-white animate-pulse"><i class="fas fa-plus-circle mr-0.5"></i>EK</span>` : ''}
-                        ${isReopened ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-700 text-yellow-100"><i class="fas fa-rotate-right mr-0.5"></i>YENİDEN</span>` : ''}
+                        <div class="flex items-center gap-1">
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYM</span>
+                            ${isAddition ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-600 text-white animate-pulse"><i class="fas fa-plus-circle mr-0.5"></i>EK</span>` : ''}
+                            ${isReopened ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-700 text-yellow-100"><i class="fas fa-rotate-right mr-0.5"></i>YENİDEN</span>` : ''}
+                        </div>
                     </div>
-                    <span class="elapsed-counter px-2 py-0.5 rounded text-xs ${timeBg} flex-shrink-0" data-order-time="${escapeHtml(order.order_time || '')}">${fmtElapsed(elapsed)}</span>
+                    <div class="flex items-center justify-between mt-0.5">
+                        <span class="text-[11px] text-gray-400">${checkLabel}</span>
+                        <span class="elapsed-counter px-2 py-0.5 rounded text-xs ${timeBg}" data-order-time="${escapeHtml(order.order_time || '')}">${fmtElapsed(elapsed)}</span>
+                    </div>
+                    ${order.waiter_name ? `<div class="text-[11px] text-gray-300 mt-0.5"><i class="fas fa-user mr-1 text-gray-500"></i>${escapeHtml(order.waiter_name)}</div>` : ''}
                 </div>
                 <div class="px-2 py-1 text-sm">${itemsHtml || '<div class="text-gray-500 text-center py-1">Urun yok</div>'}</div>
                 ${messagesHtml}${marsHtml}

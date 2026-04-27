@@ -84,7 +84,7 @@
     </div>
 
     <main class="p-4">
-        <div id="orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start"></div>
+        <div id="orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 items-start"></div>
         <div id="no-orders" class="hidden text-center py-20">
             <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
             <p class="text-2xl text-gray-400">Tum siparisler tamamlandi!</p>
@@ -419,61 +419,62 @@
                     const name = item.name || (item.id ? getProductName(item.id) : '');
                     const qty  = item.quantity || item.qty || 1;
                     const note = item.note || '';
-                    return `<div class="flex justify-between py-1 border-b border-gray-700">
+                    return `<div class="flex justify-between py-0.5 border-b border-gray-700">
                         <span class="truncate pr-2">${name}${note ? ` <span class="text-yellow-400 text-xs">(${note})</span>` : ''}</span>
                         <span class="font-bold text-gold shrink-0">x${qty}</span>
                     </div>`;
                 }).join('');
 
-                const checkLabel = isSymphony && order.check_number ? `<span class="text-xs text-gray-400">CHK #${order.check_number}</span>` : (isSymphony ? '' : `<span class="text-xs text-gray-400">CHK #${order.id}</span>`);
+                const chkLabel = isSymphony && order.check_number ? `Chk #${order.check_number}` : (isSymphony ? '' : `Chk #${order.id}`);
 
                 let footer;
                 if (isSymphony) {
-                    footer = `<div class="px-4 py-2 border-t border-gray-700">
-                        <div class="w-full py-2 bg-blue-600/30 border border-blue-500 rounded-lg text-sm font-bold text-center text-blue-200 flex items-center justify-center gap-2">
+                    footer = `<div class="px-2 py-1 border-t border-gray-700">
+                        <div class="w-full py-1 bg-blue-600/30 border border-blue-500 rounded text-xs font-bold text-center text-blue-200 flex items-center justify-center gap-1">
                             <i class="fas fa-server"></i> POS'ta
                         </div>
                     </div>`;
                 } else {
-                    const priceLine = order.total_price ? `<div class="px-4 py-2 border-t border-gray-700 flex justify-between items-center">
-                        <span class="font-bold text-gold">${parseFloat(order.total_price).toFixed(2)} TL</span>
+                    const priceLine = order.total_price ? `<div class="px-2 py-1 border-t border-gray-700 flex justify-between items-center">
+                        <span class="font-bold text-gold text-sm">${parseFloat(order.total_price).toFixed(2)} TL</span>
                     </div>` : '';
                     const inSym = order.in_symphony === true;
                     let btn;
                     if (isNew && inSym) {
-                        btn = `<button onclick="confirmOrder(${order.id})" class="w-full py-2 bg-gold hover:bg-yellow-600 text-primary rounded-lg text-sm font-bold transition flex items-center justify-center gap-2">
+                        btn = `<button onclick="confirmOrder(${order.id})" class="w-full py-1 bg-gold hover:bg-yellow-600 text-primary rounded text-xs font-bold transition flex items-center justify-center gap-1">
                                 <i class="fas fa-check-circle"></i> Onayla (POS'ta var)
                             </button>`;
                     } else if (isNew && !inSym) {
-                        btn = `<button disabled class="w-full py-2 bg-gray-700 text-gray-400 rounded-lg text-sm font-bold flex items-center justify-center gap-2 cursor-not-allowed" title="Symphony POS'ta bu masaya ait acik adisyon bulunamadi. Garson POS'a girince Onayla aktif olacak.">
+                        btn = `<button disabled class="w-full py-1 bg-gray-700 text-gray-400 rounded text-xs font-bold flex items-center justify-center gap-1 cursor-not-allowed">
                                 <i class="fas fa-hourglass-half animate-pulse"></i> POS bekleniyor...
                             </button>`;
                     } else {
-                        btn = `<div class="w-full py-2 bg-blue-600/40 border border-blue-500 rounded-lg text-sm font-bold text-center flex items-center justify-center gap-2 text-blue-100">
+                        btn = `<div class="w-full py-1 bg-blue-600/40 border border-blue-500 rounded text-xs font-bold text-center flex items-center justify-center gap-1 text-blue-100">
                                 <i class="fas fa-utensils"></i> Mutfakta hazirlaniyor
                             </div>`;
                     }
-                    footer = `${priceLine}<div class="px-4 py-2 border-t border-gray-700">${btn}</div>`;
+                    footer = `${priceLine}<div class="px-2 py-1 border-t border-gray-700">${btn}</div>`;
                 }
 
                 return `
                 <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden">
-                    <div class="flex items-center justify-between px-4 py-2 bg-gray-750">
-                        <div class="flex items-center gap-2">
-                            <span class="text-2xl font-bold text-gold">
-                                ${order.table_no ? 'Masa ' + order.table_no : 'Paket'}
-                            </span>
-                            ${sourceBadge}
-                            ${checkLabel}
-                            <span class="px-2 py-1 rounded text-xs font-bold ${statusBg}">${statusText}</span>
+                    <div class="px-2 py-1 bg-gray-750 border-b border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xl font-bold text-gold">${order.table_no ? 'Masa ' + order.table_no : 'Paket'}</span>
+                            <div class="flex items-center gap-1">
+                                ${sourceBadge}
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${statusBg}">${statusText}</span>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="px-2 py-1 rounded text-xs ${timeBg}">${timeStr}</span>
+                        <div class="flex items-center justify-between mt-0.5">
+                            <span class="text-[11px] text-gray-400">${chkLabel}</span>
+                            <span class="px-2 py-0.5 rounded text-xs ${timeBg}">${timeStr}</span>
                         </div>
+                        ${isSymphony && order.waiter_name ? `<div class="text-[11px] text-gray-300 mt-0.5"><i class="fas fa-user mr-1 text-gray-500"></i>${order.waiter_name}</div>` : ''}
                     </div>
-                    <div class="px-4 py-3 text-sm">
-                        ${itemsHtml || '<div class="text-gray-500 text-center py-2">Urun yok</div>'}
-                        ${order.order_note ? `<div class="mt-2 p-2 bg-yellow-900/30 rounded text-yellow-300 text-xs"><i class="fas fa-sticky-note mr-1"></i>${order.order_note}</div>` : ''}
+                    <div class="px-2 py-1 text-sm">
+                        ${itemsHtml || '<div class="text-gray-500 text-center py-1">Urun yok</div>'}
+                        ${order.order_note ? `<div class="mt-1 p-1.5 bg-yellow-900/30 rounded text-yellow-300 text-xs"><i class="fas fa-sticky-note mr-1"></i>${order.order_note}</div>` : ''}
                     </div>
                     ${footer}
                 </div>`;
