@@ -301,14 +301,14 @@
                 </div>
                 <div class="px-2 py-1 text-sm">${itemsHtml || '<div class="text-gray-500 text-center py-1">Urun yok</div>'}</div>
                 ${messagesHtml}${marsHtml}
-                <div class="px-2 py-1 border-t border-gray-700">
+                <div class="px-2 pt-1 pb-1 border-t border-gray-700">
                     <button data-complete-kind="check"
                             data-complete-gk="${escapeHtml(order.check_number ? String(order.check_number) : ('T' + (order.table_no || '')))}"
                             data-complete-cn="${escapeHtml(order.check_number ? String(order.check_number) : '')}"
                             data-complete-tno="${escapeHtml(String(order.table_no || ''))}"
                             data-complete-items="${escapeHtml(JSON.stringify(allUnitIds))}"
                             onclick="completeOrderFromBtn(this)"
-                            class="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-bold text-white">
+                            class="w-full py-1 bg-emerald-600 hover:bg-emerald-700 rounded text-xs font-bold text-white">
                         <i class="fas fa-check-circle mr-1"></i>Onayla → Servis
                     </button>
                 </div>
