@@ -1127,14 +1127,37 @@ class KitchenController extends Controller
                     $checks[$groupKey]['order_time'] = $orderTime;
                 }
 
+                // item_time: önce ItemTime, yoksa OrderTime (check açılış saatine fallback)
+                $effectiveItemTime = $itemTime ?? $orderTime;
+
                 $checks[$groupKey]['items'][] = [
                     'item_id'   => $itemId,
                     'qty'       => $qty,
                     'name'      => $name,
                     'note'      => $note,
-                    'item_time' => $itemTime,
+                    'item_time' => $effectiveItemTime
+                        ? \Carbon\Carbon::parse((string) $effectiveItemTime, 'Europe/Istanbul')->toIso8601String()
+                        : null,
                 ];
+
+                // order_time = bu check'teki en erken ürün zamanı
+                if ($effectiveItemTime && (
+                    !$checks[$groupKey]['order_time'] ||
+                    strcmp((string) $effectiveItemTime, (string) $checks[$groupKey]['order_time']) < 0
+                )) {
+                    $checks[$groupKey]['order_time'] = $effectiveItemTime;
+                }
             }
+
+            // order_time'ı ISO8601'e çevir (JS timezone bağımsız parse eder)
+            foreach ($checks as &$chk) {
+                if ($chk['order_time']) {
+                    try {
+                        $chk['order_time'] = \Carbon\Carbon::parse((string) $chk['order_time'], 'Europe/Istanbul')->toIso8601String();
+                    } catch (\Exception $e) {}
+                }
+            }
+            unset($chk);
 
             // En yeni sipariş önce
             uasort($checks, function ($a, $b) {

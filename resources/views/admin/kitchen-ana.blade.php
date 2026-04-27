@@ -166,8 +166,7 @@
                         ${order.covers ? `<span class="text-xs text-gray-400"><i class="fas fa-user mr-1"></i>${order.covers}</span>` : ''}
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
-                        <span class="px-2 py-1 rounded text-xs font-bold ${timeBg}">${fmtElapsed(elapsed)}</span>
-                        <span class="text-gray-400 text-xs">${formatTime(order.order_time)}</span>
+                        <span class="elapsed-counter px-2 py-1 rounded text-xs font-bold ${timeBg}" data-order-time="${escapeHtml(order.order_time || '')}">${fmtElapsed(elapsed)}</span>
                     </div>
                 </div>
                 ${order.rvc ? `<div class="px-4 py-1 text-xs text-teal-600/80 border-b border-slate-700"><i class="fas fa-store mr-1"></i>${escapeHtml(order.rvc)}</div>` : ''}
@@ -228,6 +227,24 @@
 
         fetchOnce();
         setInterval(fetchOnce, 5000);
+
+        // Her saniye elapsed-counter span'larını güncelle (5sn polling'i beklemeden)
+        setInterval(function tickElapsed() {
+            document.querySelectorAll('.elapsed-counter[data-order-time]').forEach(function(span) {
+                const iso = span.dataset.orderTime;
+                if (!iso) return;
+                const secs = elapsedSince(iso);
+                if (secs == null) return;
+                const minTotal = Math.floor(secs / 60);
+                const newBg = minTotal > 15 ? 'bg-red-600'
+                            : minTotal > 10 ? 'bg-yellow-600'
+                            : minTotal > 5  ? 'bg-teal-700'
+                            : 'bg-teal-600';
+                ['bg-red-600','bg-yellow-600','bg-teal-700','bg-teal-600'].forEach(c => span.classList.remove(c));
+                span.classList.add(newBg);
+                span.textContent = fmtElapsed(secs);
+            });
+        }, 1000);
 
         document.addEventListener('click', function enableAudio() {
             try {
