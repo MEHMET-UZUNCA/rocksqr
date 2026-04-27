@@ -253,7 +253,6 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="elapsed-counter px-2 py-1 rounded text-xs ${timeBg}" data-order-time="${escapeHtml(order.order_time || '')}">${fmtElapsed(elapsed)}</span>
-                        <span class="text-gray-400 text-xs">${formatTime(order.order_time)}</span>
                     </div>
                 </div>
                 ${order.rvc ? `<div class="px-4 py-1 text-xs text-gray-400 border-b border-gray-700"><i class="fas fa-store mr-1"></i>${escapeHtml(order.rvc)}</div>` : ''}
@@ -295,7 +294,6 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="elapsed-counter px-2 py-1 rounded text-xs ${timeBg}" data-order-time="${escapeHtml(order.order_time || '')}">${fmtElapsed(elapsed)}</span>
-                        <span class="text-gray-400 text-xs">${formatTime(order.order_time)}</span>
                     </div>
                 </div>
                 <div class="px-4 py-1 text-xs text-purple-300 border-b border-purple-800"><i class="fas fa-mobile-screen mr-1"></i>QR Menu siparişi</div>

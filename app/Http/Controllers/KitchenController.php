@@ -652,6 +652,8 @@ class KitchenController extends Controller
                     $itemId = 'm-' . substr(md5(($tableNo ?? '') . '|' . ($checkNum ?? '') . '|' . $dtlSeq . '|' . $name . '|' . ($note ?? '') . '|' . ($itemTime ?? '')), 0, 16);
                 }
 
+                // item_time: önce ItemTime, yoksa OrderTime (check açılış saatine fallback)
+                $effectiveItemTime = $itemTime ?? $orderTime;
                 $item = [
                     'item_id'    => $itemId,
                     'dtl_seq'    => $dtlSeq,
@@ -659,7 +661,7 @@ class KitchenController extends Controller
                     'name'       => $name,
                     'note'       => $note,
                     'is_message' => $isMessage,
-                    'item_time'  => $itemTime,
+                    'item_time'  => $effectiveItemTime,
                     'maj_grp'    => $majGrp,
                 ];
 
@@ -691,6 +693,13 @@ class KitchenController extends Controller
                     $checks[$key]['messages'][] = $item;
                 } else {
                     $checks[$key]['items'][] = $item;
+                    // order_time = bu check'teki en erken item zamanı
+                    if ($effectiveItemTime && (
+                        !$checks[$key]['order_time'] ||
+                        strcmp((string) $effectiveItemTime, (string) $checks[$key]['order_time']) < 0
+                    )) {
+                        $checks[$key]['order_time'] = $effectiveItemTime;
+                    }
                 }
             }
 
@@ -715,15 +724,32 @@ class KitchenController extends Controller
                 ));
             }
 
-            // Tamamlanmış Symphony hesaplarını filtrele (group_key = check_number veya 'T'+table_no)
-            $completedCheckKeys = DB::table('kitchen_pos_completions')
+            // Tamamlanmış Symphony hesaplarını filtrele.
+            // Eğer check tamamlandıktan SONRA yeni ürün eklendiyse (item_time > completed_at) kart yeniden gösterilir.
+            $completedCheckRows = DB::table('kitchen_pos_completions')
                 ->where('kind', 'check')
-                ->pluck('group_key')
-                ->all();
-            if (!empty($completedCheckKeys)) {
-                $completedCheckKeys = array_flip($completedCheckKeys);
+                ->select('group_key', 'completed_at')
+                ->get()
+                ->keyBy('group_key');
+            if ($completedCheckRows->isNotEmpty()) {
                 foreach ($checks as $k => $chk) {
-                    if (isset($completedCheckKeys[$k])) {
+                    if (!$completedCheckRows->has($k)) continue;
+                    // completed_at: Laravel app tz (Europe/Berlin = UTC+2), Symphony item_time Turkey (UTC+3)
+                    $completedAt = \Carbon\Carbon::parse($completedCheckRows[$k]->completed_at)
+                        ->setTimezone('Europe/Istanbul');
+                    $hasNewItems = false;
+                    foreach ($chk['items'] as $item) {
+                        if (!empty($item['item_time'])) {
+                            try {
+                                $itemDt = \Carbon\Carbon::parse((string) $item['item_time'], 'Europe/Istanbul');
+                                if ($itemDt->gt($completedAt)) {
+                                    $hasNewItems = true;
+                                    break;
+                                }
+                            } catch (\Exception $e) {}
+                        }
+                    }
+                    if (!$hasNewItems) {
                         unset($checks[$k]);
                     }
                 }
