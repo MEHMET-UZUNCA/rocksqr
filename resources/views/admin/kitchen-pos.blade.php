@@ -80,10 +80,10 @@
                     <span id="checkless-badge">0</span>
                 </span>
             </h2>
-            <div id="checkless-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"></div>
+            <div id="checkless-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"></div>
         </div>
 
-        <div id="orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 items-start"></div>
+        <div id="orders-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 items-start"></div>
 
         <div id="no-orders" class="hidden text-center py-20">
             <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
@@ -318,8 +318,8 @@
                             data-complete-tno="${escapeHtml(String(order.table_no || ''))}"
                             data-complete-items="${escapeHtml(JSON.stringify(allUnitIds))}"
                             onclick="completeOrderFromBtn(this)"
-                            class="w-full py-1 bg-emerald-600 hover:bg-emerald-700 rounded text-xs font-bold text-white">
-                        <i class="fas fa-check-circle mr-1"></i>Onayla → Servis
+                            class="w-full py-0.5 bg-emerald-600 hover:bg-emerald-700 rounded text-[11px] font-bold text-white">
+                        <i class="fas fa-check-circle mr-0.5"></i>Onayla → Servis
                     </button>
                 </div>
             </div>`;

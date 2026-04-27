@@ -84,7 +84,7 @@
     </div>
 
     <main class="p-4">
-        <div id="orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 items-start"></div>
+        <div id="orders-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 items-start"></div>
         <!-- Sayfa geçiş butonları (sol alt, sabit) -->
         <div id="pagination-controls" class="hidden fixed bottom-4 left-4 z-50 flex items-center gap-1 bg-gray-800/95 border border-gray-600 rounded-xl px-3 py-2 shadow-2xl backdrop-blur-sm"></div>
         <div id="no-orders" class="hidden text-center py-20">
@@ -450,7 +450,7 @@
                     const inSym = order.in_symphony === true;
                     let btn;
                     if (isNew && inSym) {
-                        btn = `<button onclick="confirmOrder(${order.id})" class="w-full py-1 bg-gold hover:bg-yellow-600 text-primary rounded text-xs font-bold transition flex items-center justify-center gap-1">
+                    <button onclick="confirmOrder(${order.id})" class="w-full py-0.5 bg-gold hover:bg-yellow-600 text-primary rounded text-[11px] font-bold transition flex items-center justify-center gap-1">
                                 <i class="fas fa-check-circle"></i> Onayla (POS'ta var)
                             </button>`;
                     } else if (isNew && !inSym) {
