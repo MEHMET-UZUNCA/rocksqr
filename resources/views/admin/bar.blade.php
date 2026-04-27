@@ -70,6 +70,11 @@
             <span id="waiter-count" class="text-red-400 text-sm"></span>
         </div>
         <div id="waiter-calls-list" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3"></div>
+        <!-- Son 10 dk tamamlanan garson çağrıları -->
+        <div id="attended-calls-wrap" class="hidden mt-3 pt-3 border-t border-red-700/50">
+            <span class="text-xs text-gray-400 font-semibold uppercase tracking-wide"><i class="fas fa-check-circle mr-1 text-green-500"></i>Son İlgilenilen Çağrılar (10 dk)</span>
+            <div id="attended-calls-list" class="flex flex-wrap gap-2 mt-2"></div>
+        </div>
     </div>
 
     <!-- Sipariş Hazır Bölümü -->
@@ -519,36 +524,53 @@
             }).join('');
         }
 
-        function renderWaiterCalls(calls) {
+        function renderWaiterCalls(calls, attendedCalls) {
             const bar = document.getElementById('waiter-bar');
             const list = document.getElementById('waiter-calls-list');
+            const attendedWrap = document.getElementById('attended-calls-wrap');
+            const attendedList = document.getElementById('attended-calls-list');
 
+            // Bekleyen çağrılar
             if (calls.length === 0) {
-                bar.classList.add('hidden');
-                return;
+                list.innerHTML = '';
+                bar.classList.toggle('hidden', (attendedCalls || []).length === 0);
+            } else {
+                bar.classList.remove('hidden');
+                document.getElementById('waiter-count').textContent = `(${calls.length} adet)`;
+                list.innerHTML = calls.map(call => {
+                    const minTotal = Math.floor(call.seconds_ago / 60);
+                    const timeBg = minTotal > 10 ? 'bg-red-600' : minTotal > 5 ? 'bg-yellow-600' : 'bg-green-600';
+                    const timeStr = String(Math.floor(call.seconds_ago / 3600)).padStart(2, '0') + ':' + String(Math.floor((call.seconds_ago % 3600) / 60)).padStart(2, '0') + ':' + String(call.seconds_ago % 60).padStart(2, '0');
+                    return `
+                    <div class="bg-red-900/70 border border-red-500 rounded-lg p-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-lg font-bold text-white">${call.table_no ? 'Masa ' + call.table_no : 'Genel'}</span>
+                            <span class="px-2 py-0.5 rounded text-xs ${timeBg}">${timeStr}</span>
+                        </div>
+                        ${call.note ? `<p class="text-red-300 text-sm mb-2 truncate"><i class="fas fa-comment mr-1"></i>${call.note}</p>` : ''}
+                        <div class="flex items-center justify-between">
+                            <span class="text-red-400 text-xs">${call.created_at}</span>
+                            <button onclick="attendWaiterCall(${call.id})" class="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-xs font-bold transition">
+                                <i class="fas fa-check mr-1"></i>Ilgilendi
+                            </button>
+                        </div>
+                    </div>`;
+                }).join('');
             }
 
-            bar.classList.remove('hidden');
-            document.getElementById('waiter-count').textContent = `(${calls.length} adet)`;
-            list.innerHTML = calls.map(call => {
-                const minTotal = Math.floor(call.seconds_ago / 60);
-                const timeBg = minTotal > 10 ? 'bg-red-600' : minTotal > 5 ? 'bg-yellow-600' : 'bg-green-600';
-                const timeStr = String(Math.floor(call.seconds_ago / 3600)).padStart(2, '0') + ':' + String(Math.floor((call.seconds_ago % 3600) / 60)).padStart(2, '0') + ':' + String(call.seconds_ago % 60).padStart(2, '0');
-                return `
-                <div class="bg-red-900/70 border border-red-500 rounded-lg p-3">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-lg font-bold text-white">${call.table_no ? 'Masa ' + call.table_no : 'Genel'}</span>
-                        <span class="px-2 py-0.5 rounded text-xs ${timeBg}">${timeStr}</span>
-                    </div>
-                    ${call.note ? `<p class="text-red-300 text-sm mb-2 truncate"><i class="fas fa-comment mr-1"></i>${call.note}</p>` : ''}
-                    <div class="flex items-center justify-between">
-                        <span class="text-red-400 text-xs">${call.created_at}</span>
-                        <button onclick="attendWaiterCall(${call.id})" class="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-xs font-bold transition">
-                            <i class="fas fa-check mr-1"></i>Ilgilendi
-                        </button>
-                    </div>
-                </div>`;
-            }).join('');
+            // Tamamlanan çağrılar (son 10 dk)
+            if ((attendedCalls || []).length > 0) {
+                attendedWrap.classList.remove('hidden');
+                attendedList.innerHTML = (attendedCalls).map(call => `
+                    <span class="inline-flex items-center gap-1 px-2 py-1 bg-green-900/60 border border-green-700 rounded text-xs text-green-300">
+                        <i class="fas fa-check-circle text-green-500"></i>
+                        ${call.table_no ? 'Masa ' + call.table_no : 'Genel'}
+                        <span class="text-gray-500">${call.attended_at}</span>
+                    </span>
+                `).join('');
+            } else {
+                attendedWrap.classList.add('hidden');
+            }
         }
 
         function renderSymphonyOrders(symphonyOrders) {
@@ -610,7 +632,7 @@
                 renderOrders(allOrders);
                 renderReadyOrders(data.ready_orders || [], data.ready_orders_limit || null);
                 renderCompletedOrders(data.completed_orders || [], data.completed_orders_limit || null);
-                renderWaiterCalls(data.waiter_calls);
+                renderWaiterCalls(data.waiter_calls, data.attended_calls || []);
             }).catch(err => console.error('Fetch error:', err));
         }
 

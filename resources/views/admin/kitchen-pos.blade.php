@@ -252,7 +252,7 @@
                         ${order.covers ? `<span class="text-xs text-gray-400"><i class="fas fa-user mr-1"></i>${order.covers}</span>` : ''}
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="px-2 py-1 rounded text-xs ${timeBg}">${fmtElapsed(elapsed)}</span>
+                        <span class="elapsed-counter px-2 py-1 rounded text-xs ${timeBg}" data-order-time="${escapeHtml(order.order_time || '')}">${fmtElapsed(elapsed)}</span>
                         <span class="text-gray-400 text-xs">${formatTime(order.order_time)}</span>
                     </div>
                 </div>
@@ -294,7 +294,7 @@
                         <span class="px-2 py-1 rounded text-xs font-bold bg-purple-700 text-white">QR #${order.qr_order_id}</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="px-2 py-1 rounded text-xs ${timeBg}">${fmtElapsed(elapsed)}</span>
+                        <span class="elapsed-counter px-2 py-1 rounded text-xs ${timeBg}" data-order-time="${escapeHtml(order.order_time || '')}">${fmtElapsed(elapsed)}</span>
                         <span class="text-gray-400 text-xs">${formatTime(order.order_time)}</span>
                     </div>
                 </div>
@@ -388,7 +388,7 @@
                     <span class="text-yellow-300 font-bold">
                         <i class="fas fa-comment-dots mr-1"></i>${escapeHtml(msg.table_no ? 'Masa ' + msg.table_no : 'Mesaj')}
                     </span>
-                    <span class="text-xs text-yellow-400">${fmtElapsed(elapsed)}</span>
+                    <span class="elapsed-counter text-xs text-yellow-400" data-order-time="${escapeHtml(msg.item_time || '')}">${fmtElapsed(elapsed)}</span>
                 </div>
                 <div class="text-white font-medium">
                     ${msg.qty > 1 ? `<span class="text-yellow-400">x${msg.qty}</span> ` : ''}${escapeHtml(msg.name)}
@@ -530,6 +530,22 @@
 
         fetchOnce();
         setInterval(fetchOnce, 5000);
+
+        // Her saniye elapsed-counter span'larını güncelle (5sn polling'i beklemeden)
+        setInterval(function tickElapsed() {
+            document.querySelectorAll('.elapsed-counter[data-order-time]').forEach(function(span) {
+                const iso = span.dataset.orderTime;
+                if (!iso) return;
+                const secs = elapsedSince(iso);
+                if (secs == null) return;
+                const minTotal = Math.floor(secs / 60);
+                const newBg = minTotal > 15 ? 'bg-red-600' : minTotal > 10 ? 'bg-yellow-600' : 'bg-green-600';
+                // Renk sınıfını güncelle
+                ['bg-red-600','bg-yellow-600','bg-green-600','bg-teal-700','bg-teal-500'].forEach(c => span.classList.remove(c));
+                span.classList.add(newBg);
+                span.textContent = fmtElapsed(secs);
+            });
+        }, 1000);
 
         document.addEventListener('click', function enableAudio() {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();

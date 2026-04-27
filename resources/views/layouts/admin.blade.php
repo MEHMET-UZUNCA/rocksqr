@@ -56,8 +56,11 @@
                         <a href="{{ route('kitchen') }}" class="block px-4 py-2 hover:bg-gold/10 hover:text-primary border-b border-gray-100">
                             <i class="fas fa-tv mr-2 text-amber-600 w-4"></i> Kitchen (KDS)
                         </a>
-                        <a href="{{ route('kitchen.pos') }}" class="block px-4 py-2 hover:bg-gold/10 hover:text-primary">
+                        <a href="{{ route('kitchen.pos') }}" class="block px-4 py-2 hover:bg-gold/10 hover:text-primary border-b border-gray-100">
                             <i class="fas fa-server mr-2 text-sky-600 w-4"></i> Kitchen - Symphony
+                        </a>
+                        <a href="{{ route('kitchen.ana') }}" class="block px-4 py-2 hover:bg-gold/10 hover:text-primary">
+                            <i class="fas fa-tv mr-2 text-teal-600 w-4"></i> Ana Mutfak (AKDS)
                         </a>
                     </div>
                 </div>

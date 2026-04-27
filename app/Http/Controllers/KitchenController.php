@@ -234,6 +234,22 @@ class KitchenController extends Controller
                 ];
             });
 
+        // Son 10 dakika içinde tamamlanan garson çağrıları
+        $attendedCalls = WaiterCall::where('status', 'attended')
+            ->where('attended_at', '>=', now()->subMinutes(10))
+            ->orderBy('attended_at', 'desc')
+            ->limit(8)
+            ->get()
+            ->map(function ($call) {
+                return [
+                    'id' => $call->id,
+                    'table_no' => $call->table_no,
+                    'note' => $call->note,
+                    'attended_at' => $call->attended_at?->format('H:i:s') ?? '',
+                    'seconds_ago' => (int) $call->attended_at?->diffInSeconds(now()) ?? 0,
+                ];
+            });
+
         return response()->json([
             'orders' => $orders->values(),
             'ready_orders' => array_values($readyOrders),
@@ -241,6 +257,7 @@ class KitchenController extends Controller
             'completed_orders' => $completedOrders->values(),
             'completed_orders_limit' => $completedLimit,
             'waiter_calls' => $waiterCalls,
+            'attended_calls' => $attendedCalls,
         ]);
     }
 
@@ -345,15 +362,22 @@ class KitchenController extends Controller
             foreach ($groups as $g) {
                 $secondsAgo = 0;
                 if ($g['order_time']) {
-                    try { $secondsAgo = max(0, (int) \Carbon\Carbon::parse($g['order_time'])->diffInSeconds(now())); }
-                    catch (\Exception $e) { $secondsAgo = 0; }
+                    try {
+                        // SQL Server local (Turkey UTC+3) time döndürür;
+                        // Carbon'un uygulama timezone'undan (Berlin UTC+2) bağımsız doğru hesaplayalım.
+                        $secondsAgo = max(0, (int) \Carbon\Carbon::parse((string) $g['order_time'], 'Europe/Istanbul')
+                            ->diffInSeconds(\Carbon\Carbon::now('Europe/Istanbul')));
+                    } catch (\Exception $e) { $secondsAgo = 0; }
                 }
                 $out[] = [
                     'source'       => 'symphony',
                     'group_key'    => $g['group_key'],
                     'table_no'     => $g['table_no'],
                     'check_number' => $g['check_number'],
-                    'order_time'   => $g['order_time'],
+                    // order_time UTC ISO8601 olarak gönderilir; JS timezone bağımsız parse eder
+                    'order_time'   => $g['order_time']
+                        ? \Carbon\Carbon::parse((string) $g['order_time'], 'Europe/Istanbul')->toIso8601String()
+                        : null,
                     'seconds_ago'  => $secondsAgo,
                     'items'        => array_values($g['items']),
                 ];
