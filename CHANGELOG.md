@@ -1,5 +1,32 @@
 
 
+## v1.0.55 – v1.0.81 - 2026-04-27
+
+### Kitchen KDS (Mutfak POS)
+- **v1.0.55–63** — Bar ekranı `items-start` hizalaması; ISO 8601 saat parse; gereksiz `created_at` span'ı kaldırıldı.
+- **v1.0.64** — `Hesap #` etiketi → `Chk #`; saat büyütüldü (`text-2xl font-bold`); `fetched-at` kaldırıldı; `completed_today` sayacı header'a eklendi.
+- **v1.0.65** — QR menü siparişleri Kitchen POS ekranından kaldırıldı (sadece Symphony gösterilir).
+- **v1.0.66** — Kartlar kompakt: `gap-2`, `2xl:grid-cols-5`, padding azaltıldı.
+- **v1.0.67** — RVC (POOL BAR) etiketi kart başlığından kaldırıldı.
+- **v1.0.68** — Onayla butonu daha kompakt (`py-1 text-xs rounded`).
+- **v1.0.69** — Kart başlığı 3 satırlı format: Masa + SYM / Chk + zaman / garson adı. `WaiterName` controller'a eklendi; bar ve mutfak aynı formata geçti.
+- **v1.0.70** — `kitchen_card_columns` + `bar_card_columns` admin ayarı eklendi; blade'lerde dinamik grid (inline style).
+- **v1.0.71** — Sütun sayısı yerine **sayfa başına kart sayısı** (`kitchen_cards_per_page` / `bar_cards_per_page`) admin ayarı; sol altta sabit sayfalama (pagination) kontrolü eklendi. Tamamlananlar her sayfada görünür.
+- **v1.0.72** — Grid her breakpoint'te +1 sütun (kartlar daha dar); "Onayla → Servis" butonu `py-0.5 text-[11px]` ile küçültüldü.
+- **v1.0.73** — Bar ekranındaki tüm grid'ler (`waiter-calls-list`, `ready-orders-list`, `completed-grid`) aynı şekilde +1 sütun güncellendi.
+
+### Bar KDS
+- **v1.0.74** — `renderOrders` içinde `btn = \`` syntax hatası düzeltildi (blank screen fix).
+- **v1.0.75** — Tüm "SYMPHONY" etiketleri "SYM" olarak kısaltıldı (bar + kitchen-pos).
+- **v1.0.76** — `renderCompletedOrders` içindeki `srcBadge` ternary syntax hatası düzeltildi (blank screen fix).
+- **v1.0.77** — Symphony siparişleri arada kaybolma sorunu çözüldü: `lastSymOrders` cache (API hata verince son bilinen sipariş korunur); stabil render (sadece içerik değişince `innerHTML` güncellenir); client-side elapsed ticker (`data-order-time` ile 1sn aralığında zaman sayacı).
+- **v1.0.78** — `escapeHtml` tanımsız hata düzeltildi; `data-order-time` için inline `.replace()` kullanıldı (kartlar görünmez sorunu giderildi).
+- **v1.0.79** — SYM kartlarında "POS" durum badge'i kaldırıldı (zaten SYM badge'i var).
+- **v1.0.80** — "POS BEKLENİYOR" badge'i kart başlığından kaldırıldı (altta buton var).
+- **v1.0.81** — "MUTFAKTA" badge'i kaldırıldı; yalnızca "YENİ" badge'i gösteriliyor (QR siparişler zaten bar'dan mutfağa gitmiyor).
+
+---
+
 ## v1.0.54 - 2026-04-27
 
 ### Ana Mutfak (AKDS): ek sipariş tespiti ve EK SİPARİŞ badge
