@@ -84,7 +84,7 @@
     </div>
 
     <main class="p-4">
-        <div id="orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+        <div id="orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start"></div>
         <div id="no-orders" class="hidden text-center py-20">
             <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
             <p class="text-2xl text-gray-400">Tum siparisler tamamlandi!</p>
@@ -469,7 +469,6 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="px-2 py-1 rounded text-xs ${timeBg}">${timeStr}</span>
-                            <span class="text-gray-400 text-sm">${order.created_at || ''}</span>
                         </div>
                     </div>
                     <div class="px-4 py-3 text-sm">
@@ -516,7 +515,6 @@
                 <div class="bg-gray-800 rounded-lg border-2 border-emerald-700 p-3 text-xs">
                     <div class="flex items-center justify-between mb-1">
                         <span class="font-bold text-emerald-400">${order.table_no ? 'Masa ' + order.table_no : 'Paket'} ${idLabel}${srcBadge}</span>
-                        <span class="text-gray-500">${order.created_at}</span>
                     </div>
                     <p class="text-gray-300 truncate">${summary || '—'}</p>
                 </div>`;
@@ -560,8 +558,7 @@
                         <span class="px-2 py-0.5 rounded text-xs ${timeBg}">${timeStr}</span>
                     </div>
                     ${call.note ? `<p class="text-red-300 text-sm mb-2 truncate"><i class="fas fa-comment mr-1"></i>${call.note}</p>` : ''}
-                    <div class="flex items-center justify-between">
-                        <span class="text-red-400 text-xs">${call.created_at}</span>
+                    <div class="flex items-center justify-end">
                         <button onclick="attendWaiterCall(${call.id})" class="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-xs font-bold transition">
                             <i class="fas fa-check mr-1"></i>Ilgilendi
                         </button>
@@ -587,7 +584,7 @@
                     ...o,
                     source: 'symphony',
                     bar_status: 'approved',
-                    created_at: (o.order_time || '').slice(-8), // sadece HH:MM:SS
+                    created_at: (o.order_time || '').replace(/.*T(\d{2}:\d{2}).*/, '$1'), // HH:MM
                 }));
 
                 // Hibrit dogrulama: ayni masada Symphony girisi varsa QR Onayla aktif olsun
