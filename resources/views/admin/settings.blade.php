@@ -287,10 +287,72 @@
                         <p class="text-xs text-gray-400 mt-1">Her gün bu saatte mutfak ve bar ekranları otomatik temizlenir.</p>
                     </div>
                     <button type="submit"
-                            class="py-3 px-6 bg-gold text-white font-bold rounded-lg hover:bg-yellow-500 transition whitespace-nowrap">
-                        <i class="fas fa-save mr-2"></i>Temizleme Saatini Kaydet
+                            class="py-3 px-6 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 transition whitespace-nowrap">
+                        <i class="fas fa-clock mr-2"></i>Temizleme Saatini Kaydet
                     </button>
                 </form>
+
+                <hr class="my-8 border-gray-200">
+
+                {{-- Subdomain Ayarları --}}
+                <h3 class="text-lg font-bold text-gray-800 mb-1">
+                    <i class="fas fa-globe mr-2 text-indigo-500"></i>Subdomain Ayarları
+                </h3>
+                <p class="text-sm text-gray-500 mb-4">
+                    Her ekrana özel subdomain alias tanımlayın. Sunucunuzda bu subdomain'leri aynı IP'ye yönlendirmeniz yeterlidir — uygulama otomatik olarak doğru ekranı açar.<br>
+                    <span class="text-xs text-gray-400">Örnek: <code class="bg-gray-100 px-1 rounded">poolbds.rockshotel.com</code> → Bar KDS</span>
+                </p>
+                <form action="{{ route('admin.settings.update') }}" method="POST">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="_subdomain_only" value="1">
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label for="subdomain_bar" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-cocktail mr-1 text-amber-500"></i>Bar KDS Subdomain
+                            </label>
+                            <div class="flex items-center gap-1">
+                                <input type="text" name="subdomain_bar" id="subdomain_bar"
+                                       value="{{ old('subdomain_bar', $settings['subdomain_bar']) }}"
+                                       class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 font-mono text-sm"
+                                       placeholder="poolbds">
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1">Yönlendirir: <code class="bg-gray-100 px-1 rounded">/bar</code></p>
+                        </div>
+                        <div>
+                            <label for="subdomain_kitchen" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-utensils mr-1 text-orange-500"></i>Mutfak KDS Subdomain
+                            </label>
+                            <input type="text" name="subdomain_kitchen" id="subdomain_kitchen"
+                                   value="{{ old('subdomain_kitchen', $settings['subdomain_kitchen']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 font-mono text-sm"
+                                   placeholder="poolkds">
+                            <p class="text-xs text-gray-400 mt-1">Yönlendirir: <code class="bg-gray-100 px-1 rounded">/kitchen-pos</code></p>
+                        </div>
+                        <div>
+                            <label for="subdomain_ana" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-fire-burner mr-1 text-teal-500"></i>Ana Mutfak (AKDS) Subdomain
+                            </label>
+                            <input type="text" name="subdomain_ana" id="subdomain_ana"
+                                   value="{{ old('subdomain_ana', $settings['subdomain_ana']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 font-mono text-sm"
+                                   placeholder="mainbds">
+                            <p class="text-xs text-gray-400 mt-1">Yönlendirir: <code class="bg-gray-100 px-1 rounded">/kitchen-ana</code></p>
+                        </div>
+                    </div>
+
+                    <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-4 text-xs text-indigo-700">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <strong>DNS / Sunucu Ayarı:</strong> Subdomain'leri wildcard (<code>*.rockshotel.com</code>) veya tek tek A/CNAME kaydı olarak sunucu IP'sine yönlendirin. Apache/Nginx'te aynı VirtualHost'u tüm subdomainler için dinleyin. Laravel tarafında başka bir ayar gerekmez.
+                    </div>
+
+                    <button type="submit"
+                            class="py-3 px-6 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition">
+                        <i class="fas fa-save mr-2"></i>Subdomain Ayarlarını Kaydet
+                    </button>
+                </form>
+
             </div>
         </div>
     </div>

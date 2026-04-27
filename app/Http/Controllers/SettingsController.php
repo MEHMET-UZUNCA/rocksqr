@@ -25,6 +25,10 @@ class SettingsController extends Controller
             'order_profit_display' => (int) Setting::get('order_profit_display', 20),
             'kitchen_cards_per_page' => (int) Setting::get('kitchen_cards_per_page', 8),
             'bar_cards_per_page' => (int) Setting::get('bar_cards_per_page', 8),
+            // Subdomain aliases
+            'subdomain_bar'     => Setting::get('subdomain_bar', ''),
+            'subdomain_kitchen' => Setting::get('subdomain_kitchen', ''),
+            'subdomain_ana'     => Setting::get('subdomain_ana', ''),
         ];
 
         return view('admin.settings', compact('settings'));
@@ -34,8 +38,17 @@ class SettingsController extends Controller
     {
 
         // Hangi formdan geldiğini ayırt et
-        if ($request->has('_clear_time_only')) {
+        if ($request->has('_subdomain_only')) {
             $request->validate([
+                'subdomain_bar'     => ['nullable', 'string', 'max:63', 'regex:/^[a-z0-9-]*$/i'],
+                'subdomain_kitchen' => ['nullable', 'string', 'max:63', 'regex:/^[a-z0-9-]*$/i'],
+                'subdomain_ana'     => ['nullable', 'string', 'max:63', 'regex:/^[a-z0-9-]*$/i'],
+            ]);
+            Setting::set('subdomain_bar',     strtolower(trim($request->subdomain_bar ?? '')));
+            Setting::set('subdomain_kitchen', strtolower(trim($request->subdomain_kitchen ?? '')));
+            Setting::set('subdomain_ana',     strtolower(trim($request->subdomain_ana ?? '')));
+            return back()->with('success', 'Subdomain ayarları güncellendi.');
+        } elseif ($request->has('_clear_time_only')) {            $request->validate([
                 'screen_clear_time' => ['required', 'regex:/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/'],
             ]);
             Setting::set('screen_clear_time', $request->screen_clear_time);
