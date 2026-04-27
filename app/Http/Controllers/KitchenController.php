@@ -654,9 +654,10 @@ class KitchenController extends Controller
                     ->pluck('first_seen_at', 'unit_id');
             }
 
-            $checks           = [];
-            $checkless        = [];
-            $comboParentIdxByKey = []; // her check için şu an açık olan combo parent indeksi
+            $checks              = [];
+            $checkless           = [];
+            $comboParentIdxByKey = []; // combo zinciri için açık parent indeksi (key → idx)
+            $lastUrunIdxByKey    = []; // condiment'ın bağlanacağı son URUN indeksi (key → idx)
 
             foreach ($rows as $row) {
                 $get = function (array $candidates, $default = null) use ($row) {
@@ -766,10 +767,9 @@ class KitchenController extends Controller
                 $items = &$checks[$key]['items'];
                 $lastIdx = count($items) - 1;
 
-                if ($isCombo || $isCondiment) {
-                    // COMBO / Condiment gruplama: kendi parent zincirini kurar.
-                    // Açık bir parent varsa ve adı farklıysa → sub_item olur.
-                    // Aynı adsa (yeni COMBO başlıyor) veya parent yoksa → yeni parent.
+                if ($isCombo) {
+                    // COMBO: LineKind=COMBO — kendi parent zincirini kurar
+                    // İlk COMBO satırı parent, sonraki farklı-adlı COMBOlar sub_item
                     $pIdx = $comboParentIdxByKey[$key] ?? null;
                     if ($pIdx !== null && isset($items[$pIdx]) && $items[$pIdx]['name'] !== $name) {
                         if (!isset($items[$pIdx]['sub_items'])) $items[$pIdx]['sub_items'] = [];
@@ -783,10 +783,28 @@ class KitchenController extends Controller
                         ];
                         $items[$pIdx]['unit_ids'][] = $unitId;
                     } else {
-                        // Yeni combo/condiment parent
                         $item['sub_items'] = [];
                         $items[] = $item;
                         $comboParentIdxByKey[$key] = count($items) - 1;
+                    }
+                } elseif ($isCondiment) {
+                    // CONDIMENT: LineKind=URUN, IsCondiment=1 — bir önceki URUN'un altına girer
+                    $pIdx = $lastUrunIdxByKey[$key] ?? null;
+                    if ($pIdx !== null && isset($items[$pIdx])) {
+                        if (!isset($items[$pIdx]['sub_items'])) $items[$pIdx]['sub_items'] = [];
+                        $items[$pIdx]['sub_items'][] = [
+                            'unit_ids'    => [$unitId],
+                            'item_id'     => $itemId,
+                            'name'        => $name,
+                            'note'        => $note,
+                            'is_returned' => $isReturned,
+                            'item_time'   => $itemTimeIso,
+                        ];
+                        $items[$pIdx]['unit_ids'][] = $unitId;
+                    } else {
+                        // parent URUN yoksa bağımsız göster
+                        $item['sub_items'] = [];
+                        $items[] = $item;
                     }
                 } elseif (!$isReturned && $lineKind === 'URUN'
                     && $lastIdx >= 0
@@ -795,15 +813,19 @@ class KitchenController extends Controller
                     && !$items[$lastIdx]['is_combo']
                     && !$items[$lastIdx]['is_returned']
                 ) {
-                    // Ardışık aynı URUN → qty artır
+                    // Ardışık aynı URUN → qty artır; hâlâ aynı parent
                     $items[$lastIdx]['unit_ids'][] = $unitId;
                     $items[$lastIdx]['qty']++;
                     if ($itemTimeIso < $items[$lastIdx]['item_time']) {
                         $items[$lastIdx]['item_time'] = $itemTimeIso;
                     }
+                    // lastUrunIdxByKey zaten bu indeksi gösteriyor, değişmez
                     unset($comboParentIdxByKey[$key]);
                 } else {
+                    // Yeni URUN (ya da iade) → yeni parent
+                    $item['sub_items'] = [];
                     $items[] = $item;
+                    $lastUrunIdxByKey[$key]    = count($items) - 1;
                     unset($comboParentIdxByKey[$key]);
                 }
                 unset($items);
