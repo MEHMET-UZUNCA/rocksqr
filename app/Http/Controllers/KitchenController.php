@@ -725,7 +725,8 @@ class KitchenController extends Controller
             }
 
             // Tamamlanmış Symphony hesaplarını filtrele.
-            // Eğer check tamamlandıktan SONRA yeni ürün eklendiyse (item_time > completed_at) kart yeniden gösterilir.
+            // Eğer check tamamlandıktan SONRA yeni ürün eklendiyse (item_time > completed_at) sadece
+            // YENİ ürünleri göster (eski ürünleri mutfak zaten hazırladı) ve is_addition=true işaretle.
             $completedCheckRows = DB::table('kitchen_pos_completions')
                 ->where('kind', 'check')
                 ->select('group_key', 'completed_at')
@@ -737,20 +738,24 @@ class KitchenController extends Controller
                     // completed_at: Laravel app tz (Europe/Berlin = UTC+2), Symphony item_time Turkey (UTC+3)
                     $completedAt = \Carbon\Carbon::parse($completedCheckRows[$k]->completed_at)
                         ->setTimezone('Europe/Istanbul');
-                    $hasNewItems = false;
-                    foreach ($chk['items'] as $item) {
-                        if (!empty($item['item_time'])) {
-                            try {
-                                $itemDt = \Carbon\Carbon::parse((string) $item['item_time'], 'Europe/Istanbul');
-                                if ($itemDt->gt($completedAt)) {
-                                    $hasNewItems = true;
-                                    break;
-                                }
-                            } catch (\Exception $e) {}
-                        }
-                    }
-                    if (!$hasNewItems) {
+                    // Sadece completed_at'ten SONRA eklenen ürünleri filtrele
+                    $newItems = array_values(array_filter($chk['items'], function ($item) use ($completedAt) {
+                        if (empty($item['item_time'])) return false;
+                        try {
+                            return \Carbon\Carbon::parse((string) $item['item_time'], 'Europe/Istanbul')->gt($completedAt);
+                        } catch (\Exception $e) { return false; }
+                    }));
+                    if (empty($newItems)) {
+                        // Yeni ürün yok → kartı gizle
                         unset($checks[$k]);
+                    } else {
+                        // Sadece yeni ürünleri göster, ek sipariş işareti koy
+                        $checks[$k]['items'] = $newItems;
+                        $checks[$k]['is_addition'] = true;
+                        // order_time = yeni ürünlerin en eskisi
+                        $checks[$k]['order_time'] = collect($newItems)
+                            ->filter(fn($i) => !empty($i['item_time']))
+                            ->min('item_time');
                     }
                 }
             }

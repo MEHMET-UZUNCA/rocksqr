@@ -206,7 +206,8 @@
             const minTotal = elapsed ? Math.floor(elapsed / 60) : 0;
             const timeBg = minTotal > 15 ? 'bg-red-600' : minTotal > 10 ? 'bg-yellow-600' : 'bg-green-600';
             const isNew = elapsed != null && elapsed < 120;
-            const borderClass = isNew ? 'new-order border-gold' : 'border-blue-500';
+            const isAddition = !!order.is_addition;
+            const borderClass = isAddition ? 'border-orange-500' : (isNew ? 'new-order border-gold' : 'border-blue-500');
 
             const itemsHtml = (order.items || []).map(it => `
                 <div class="flex justify-between items-start py-1 border-b border-gray-700">
@@ -249,6 +250,7 @@
                             <i class="fas fa-server mr-0.5"></i>SYMPHONY
                         </span>
                         <span class="px-2 py-1 rounded text-xs font-bold bg-gray-700 text-gray-200">${checkLabel}</span>
+                        ${isAddition ? `<span class="px-2 py-1 rounded text-xs font-bold bg-orange-600 text-white animate-pulse"><i class="fas fa-plus-circle mr-1"></i>EK SİPARİŞ</span>` : ''}
                         ${order.covers ? `<span class="text-xs text-gray-400"><i class="fas fa-user mr-1"></i>${order.covers}</span>` : ''}
                     </div>
                     <div class="flex items-center gap-2">
