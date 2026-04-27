@@ -222,12 +222,10 @@
 
                 const subHtml = (it.sub_items || []).map(sub => {
                     const subRet   = !!sub.is_returned;
-                    const subCond  = !!sub.is_condiment;
-                    const subText  = subRet ? 'line-through text-red-400' : (subCond ? 'text-sky-300' : 'text-gray-300');
+                    const subText  = subRet ? 'line-through text-red-400' : 'text-gray-300';
                     const subBadge = subRet ? `<span class="ml-1 px-1 py-0.5 rounded text-[9px] font-bold bg-red-700 text-white">İade</span>` : '';
-                    const subIcon  = subCond ? '⊹' : '└';
                     return `<div class="flex items-center pl-6 py-0.5 text-sm">
-                        <span class="text-amber-600 mr-1.5 select-none">${subIcon}</span>
+                        <span class="text-amber-600 mr-1.5 select-none">└</span>
                         <span class="${subText} font-medium">${escapeHtml(sub.name)}${subBadge}</span>
                         ${sub.note ? `<span class="text-yellow-300 ml-2 text-xs">— ${escapeHtml(sub.note)}</span>` : ''}
                     </div>`;
