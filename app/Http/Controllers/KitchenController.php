@@ -1164,6 +1164,35 @@ class KitchenController extends Controller
             }
             unset($chk);
 
+            // Tamamlanmış Symphony hesaplarını filtrele.
+            // Eğer check tamamlandıktan SONRA yeni ürün eklendiyse sadece YENİ ürünleri göster (is_addition=true).
+            $completedCheckRows = DB::table('kitchen_pos_completions')
+                ->where('kind', 'check')
+                ->select('group_key', 'completed_at')
+                ->get()
+                ->keyBy('group_key');
+            if ($completedCheckRows->isNotEmpty()) {
+                foreach ($checks as $k => $chk) {
+                    if (!$completedCheckRows->has($k)) continue;
+                    $completedAt = \Carbon\Carbon::parse($completedCheckRows[$k]->completed_at)
+                        ->setTimezone('Europe/Istanbul');
+                    $newItems = array_values(array_filter($chk['items'], function ($item) use ($completedAt) {
+                        if (empty($item['item_time'])) return false;
+                        try {
+                            return \Carbon\Carbon::parse((string) $item['item_time'])->gt($completedAt);
+                        } catch (\Exception $e) { return false; }
+                    }));
+                    if (empty($newItems)) {
+                        unset($checks[$k]);
+                    } else {
+                        $checks[$k]['items'] = $newItems;
+                        $checks[$k]['is_addition'] = true;
+                        $earliest = collect($newItems)->filter(fn($i) => !empty($i['item_time']))->min('item_time');
+                        if ($earliest) $checks[$k]['order_time'] = $earliest;
+                    }
+                }
+            }
+
             // En yeni sipariş önce
             uasort($checks, function ($a, $b) {
                 return strcmp((string) ($b['order_time'] ?? ''), (string) ($a['order_time'] ?? ''));

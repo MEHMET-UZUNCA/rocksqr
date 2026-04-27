@@ -136,7 +136,8 @@
                          : minTotal > 5  ? 'bg-teal-700'
                          : 'bg-teal-600';
             const isNew = elapsed != null && elapsed < 120;
-            const borderClass = isNew ? 'new-order border-teal-400' : 'border-teal-700/60';
+            const isAddition = !!order.is_addition;
+            const borderClass = isAddition ? 'border-orange-500' : (isNew ? 'new-order border-teal-400' : 'border-teal-700/60');
 
             const checkLabel = order.check_number
                 ? `Hesap #${escapeHtml(order.check_number)}`
@@ -163,6 +164,7 @@
                             Masa ${escapeHtml(order.table_no || '-')}
                         </span>
                         <span class="px-2 py-1 rounded text-xs font-bold bg-slate-700 text-gray-200">${checkLabel}</span>
+                        ${isAddition ? `<span class="px-2 py-1 rounded text-xs font-bold bg-orange-600 text-white animate-pulse"><i class="fas fa-plus-circle mr-1"></i>EK SİPARİŞ</span>` : ''}
                         ${order.covers ? `<span class="text-xs text-gray-400"><i class="fas fa-user mr-1"></i>${order.covers}</span>` : ''}
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">

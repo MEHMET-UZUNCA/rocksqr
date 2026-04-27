@@ -1,29 +1,66 @@
 
-## v1.0.47 - 2026-04-26
 
-### MSSQL: Trailing semicolon (`;`) kaldırıldı
-- ODBC Driver 18, sorgu sonundaki `;` noktalı virgülü `SQLSTATE[42000]` olarak reddediyordu. Tüm MSSQL API metodlarında gönderilmeden önce `rtrim(';')` ile otomatik temizleniyor.
-- Etkilenen metodlar: `barApiSymphony()`, `kitchenPosRaw()`, `kitchenPosApi()`, `kitchenAnaApi()`.
+## v1.0.54 - 2026-04-27
 
----
-
-## v1.0.46 - 2026-04-26
-
-### MSSQL: `--` yorum satırları ve `\r\n` temizleme
-- ODBC Driver 18, Türkçe karakter içeren `--` yorum satırlarını ve `\r\n` Windows satır sonlarını `SQLSTATE[42000]` ile reddediyordu.
-- Tüm MSSQL API metodlarında SQL gönderilmeden önce `--` ile başlayan satırlar kaldırılıyor, `\r\n` → `\n` normalize ediliyor.
-- `prepare()` + `execute()` → `query()` ile değiştirildi (parametre kullanılmayan sorgularda SQLSRV uyumluluğu).
+### Ana Mutfak (AKDS): ek sipariş tespiti ve EK SİPARİŞ badge
+- **Controller** (`kitchenAnaApi()`): Check tamamlandıktan sonra Symphony'den yeni ürün eklenmesi durumunda
+  sadece `completed_at` tarihinden SONRA eklenen ürünler gösterilir; eski ürünler tekrar çıkmaz.
+- **Blade** (`kitchen-ana.blade.php`): Ek sipariş kartı turuncu border ile açılır;
+  başlıkta **EK SİPARİŞ** badge'i (animate-pulse) görünür.
 
 ---
 
-## v1.0.45 - 2026-04-26
+## v1.0.53 - 2026-04-27
 
-### AKDS: `prepare()` → `query()` geçişi
-- `kitchenAnaApi()` metodunda `prepare()`+`execute()` ikilisi, `query()` ile değiştirildi. Comment içeren sorgularda ODBC Driver 18'in ürettiği `SQLSTATE[42000]` hatası giderildi.
+### KDS: ek sipariş tespiti ve EK SİPARİŞ badge
+- **Controller** (`kitchenPosApi()`): Check "Onayla → Servis" yapıldıktan sonra aynı check numarasına
+  yeni ürün eklenirse kart yeniden açılır; ancak yalnızca `completed_at`'ten SONRA eklenen
+  ürünler gösterilir. Eski ürünler (mutfak zaten hazırladı) tekrar listelenmez.
+  - `item_time > completed_at` karşılaştırmasında Istanbul/Berlin timezone farkı Carbon ile düzgün hesaplanıyor.
+- **Blade** (`kitchen-pos.blade.php`): Ek sipariş kartı turuncu border (`border-orange-500`) ile açılır;
+  başlıkta **🔶 EK SİPARİŞ** badge'i (animate-pulse) görünür.
 
 ---
 
-## v1.0.44 - 2026-04-26
+## v1.0.52 - 2026-04-27
+
+### Ana Mutfak (AKDS): timer + item_time düzeltmeleri
+- **Blade** (`kitchen-ana.blade.php`): Elapsed-counter span’lara `data-order-time` attribute eklendi;
+  `setInterval(tickElapsed, 1000)` ile sayıç saniye saniye ilerler (5sn polling beklemiyor).
+  Tekrarlayan sabit saat span’ı kaldırıldı.
+- **Controller** (`kitchenAnaApi()`): Her ürün kendi `ItemTime`’ını gösterir (`OrderTime` fallback).
+  `order_time` = gruptaki en erken `item_time`. `order_time` ISO8601 formatında JS’e iletilir.
+
+---
+
+## v1.0.51 - 2026-04-27
+
+### KDS: item_time düzeltmesi + ek sipariş altyapısı + tekrarlayan saat kaldırıldı
+- **Controller** (`kitchenPosApi()`): Her ürün kendi `ItemTime`’ını gösterir (`OrderTime` fallback).
+  Kart başlığındaki `order_time` = gruptaki en erken ürün zamanı (artık tüm ürünlere aynı saat yazmaz).
+  Completion filter altyapısı eklendi (`kitchen_pos_completions` tablosundan `completed_at` okunuyor).
+- **Blade** (`kitchen-pos.blade.php`): Sayacın yanındaki tekrarlayan sabit saat span’ı kaldırıldı.
+
+---
+
+## v1.0.50 - 2026-04-27
+
+### Bar: tamamlanan garson çağrıları kart olarak birleştirildi
+- **Blade** (`bar.blade.php`): “Son İlgilenilen Garson Çağrıları” ayrı satır yerine Son Tamamlananlar
+  grid’ine kart olarak eklendi. Kart yapısı: yeşil border, `bell-slash` ikonu, **ÇAĞRI** badge.
+
+---
+
+## v1.0.49 - 2026-04-26
+
+### Timer + garson çağrısı “İlgilendi” aktarımı
+- **Blade** (`kitchen-pos.blade.php`): Elapsed-counter span’lara `data-order-time` attribute eklendi;
+  `setInterval(tickElapsed, 1000)` ile sayıç saniye saniye ilerler.
+- **Controller** (`barApiOrders()`): Son 10 dk içinde `attended` olan garson çağrıları
+  `attended_calls` alanıyla API’ye eklendi.
+
+---
+
 
 ### AKDS: `{{RVC}}` placeholder desteği ve admin panel RVC alanı
 - **Controller** (`kitchenAnaApi()`): SQL sorgusu çalıştırılmadan önce `{{RVC}}` placeholder'ı, admin panelindeki `mssql_akds_rvc_filter` ayarından gelen sayısal değerle değiştiriliyor.

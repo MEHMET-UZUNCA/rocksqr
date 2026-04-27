@@ -1,5 +1,5 @@
 RocksQR - Sistem Detayları
-Versiyon: v1.0.47 (2026-04-26)
+Versiyon: v1.0.54 (2026-04-27)
 =====================================
 
 Laravel 11, MySQL, Tailwind CSS ile geliştirildi.
@@ -73,7 +73,18 @@ Ekranda her sipariş kartında:
 
 5 saniyede bir otomatik yenileme; yeni sipariş geldiğinde ses uyarısı.
 
--- Hibrit Doğrulama Mantığı (A senaryosu) --
+-- Sipariş Akışı D: Onaylanan check'e ek sipariş eklenmesi --
+
+1. Mutfak/Ana Mutfak ekranlarında check kartı "Onayla → Servis" ile kapatılır.
+2. Garson aynı adisyona yeni ürün ekler (Symphony POS’tan).
+3. Sistem item_time > completed_at filtresiyle yalnızca yeni ürünleri tespit eder.
+4. Aynı kart SADECE ek ürünlerle yeniden açılır:
+   - Turuncu kenarlık (normal kart’tan ayırt edici)
+   - Başlıkta turuncu yanıp sönen “EK SİPARİŞ” badge’i
+5. Mutfak ek ürünleri hazırlayınca tekrar "Onayla → Servis" yapar → kart kapanır.
+6. Sonraki ek sipariş yeniden aynı şekilde gelir.
+
+Bu akış hem KDS (/kitchen-pos) hem Ana Mutfak (/kitchen-ana) ekranlarında geçerlidir.
 
 - Eşleşme table_no üzerinden yapılır.
 - Aynı masada hem bekleyen QR siparişi hem Symphony açık adisyonu varsa →
