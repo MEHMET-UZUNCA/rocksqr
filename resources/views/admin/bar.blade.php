@@ -110,6 +110,8 @@
         let isFirstLoad = true;
         let currentPage = 1;
         const CARDS_PER_PAGE = {{ (int)\App\Models\Setting::get('bar_cards_per_page', 8) }};
+        let lastSymOrders = [];   // Symphony API hata verince son bilinen siparisleri koru
+        let lastOrderKeys = '';   // Flicker onlemek icin stabil key
 
         function updateClock() {
             const now = new Date();
@@ -388,6 +390,22 @@
             if (currentPage > totalPages) currentPage = totalPages;
             const pageOrders = orders.slice((currentPage - 1) * CARDS_PER_PAGE, currentPage * CARDS_PER_PAGE);
 
+            // Stabil key: siparis id/group_key + status kombinasyonu
+            // seconds_ago haric, yani sadece gercek degisim olunca yeniden render et
+            const newKeys = pageOrders.map(o => {
+                const id = o.source === 'symphony' ? ('S:' + (o.group_key || o.check_number || o.table_no)) : ('Q:' + o.id);
+                const status = o.bar_status || '';
+                const itemCount = (o.items || []).length;
+                return id + '|' + status + '|' + itemCount;
+            }).join(',');
+
+            if (newKeys === lastOrderKeys) {
+                // Icerik degismedi — sadece elapsed sayaclarini guncelle, innerHTML dokunma
+                renderPagination(totalPages);
+                return;
+            }
+            lastOrderKeys = newKeys;
+
             grid.innerHTML = pageOrders.map(order => {
                 const isSymphony = order.source === 'symphony';
                 const isNew = !isSymphony && order.bar_status === 'new';
@@ -477,7 +495,7 @@
                         </div>
                         <div class="flex items-center justify-between mt-0.5">
                             <span class="text-[11px] text-gray-400">${chkLabel}</span>
-                            <span class="px-2 py-0.5 rounded text-xs ${timeBg}">${timeStr}</span>
+                            <span class="bar-elapsed px-2 py-0.5 rounded text-xs ${timeBg}" data-order-time="${escapeHtml(order.order_time || '')}" data-is-symphony="${isSymphony ? '1' : '0'}">${timeStr}</span>
                         </div>
                         ${isSymphony && order.waiter_name ? `<div class="text-[11px] text-gray-300 mt-0.5"><i class="fas fa-user mr-1 text-gray-500"></i>${order.waiter_name}</div>` : ''}
                     </div>
@@ -612,9 +630,14 @@
             ]).then(([data, sym]) => {
                 if (!data) return;
 
-                // QR + Symphony tek listede birleştir, en yeni üstte
+                // Symphony API basarisiz olursa son bilinen siparisleri kullan
+                if (sym && sym.orders) {
+                    lastSymOrders = sym.orders;
+                }
+
+                // QR + Symphony tek listede birlestir, en yeni ustte
                 const qrOrders = (data.orders || []).map(o => ({ ...o, source: 'qr' }));
-                const symOrders = (sym && sym.orders ? sym.orders : []).map(o => ({
+                const symOrders = lastSymOrders.map(o => ({
                     ...o,
                     source: 'symphony',
                     bar_status: 'approved',
@@ -666,6 +689,28 @@
 
         fetchData();
         setInterval(fetchData, 5000);
+
+        // Her saniye elapsed sayaclarini guncelle (flicker olmadan)
+        setInterval(function tickElapsed() {
+            document.querySelectorAll('.bar-elapsed[data-order-time]').forEach(function(span) {
+                const iso = span.dataset.orderTime;
+                if (!iso) return;
+                const d = new Date(iso.replace(' ', 'T'));
+                if (isNaN(d.getTime())) return;
+                const totalSecs = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000));
+                const h = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
+                const m = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
+                const s = String(totalSecs % 60).padStart(2, '0');
+                span.textContent = h + ':' + m + ':' + s;
+                const minTotal = Math.floor(totalSecs / 60);
+                const isSym = span.dataset.isSymphony === '1';
+                const newBg = isSym
+                    ? (minTotal >= 10 ? 'bg-red-600' : minTotal >= 5 ? 'bg-yellow-600' : 'bg-green-600')
+                    : (minTotal > 15 ? 'bg-red-600' : minTotal > 10 ? 'bg-yellow-600' : 'bg-green-600');
+                ['bg-red-600','bg-yellow-600','bg-green-600'].forEach(c => span.classList.remove(c));
+                span.classList.add(newBg);
+            });
+        }, 1000);
 
         document.addEventListener('click', function enableAudio() {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
