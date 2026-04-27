@@ -294,7 +294,6 @@
                         <span class="text-xl font-bold text-gold">Masa ${escapeHtml(order.table_no || '-')}</span>
                         <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYM</span>
                         <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-700 text-gray-200">${checkLabel}</span>
-                        ${order.rvc ? `<span class="text-[10px] text-gray-500">${escapeHtml(order.rvc)}</span>` : ''}
                         ${isAddition ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-600 text-white animate-pulse"><i class="fas fa-plus-circle mr-0.5"></i>EK</span>` : ''}
                         ${isReopened ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-700 text-yellow-100"><i class="fas fa-rotate-right mr-0.5"></i>YENİDEN</span>` : ''}
                     </div>
