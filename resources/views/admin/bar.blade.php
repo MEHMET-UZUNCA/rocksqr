@@ -343,7 +343,7 @@
                     : `<button onclick="markQrDelivered(${order.id})" class="mt-2 w-full py-1 bg-emerald-600 hover:bg-emerald-700 rounded text-white font-bold text-xs"><i class="fas fa-truck mr-1"></i>Servis Edildi</button>`;
 
                 const sourceBadge = isSymphony
-                    ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYMPHONY</span>`
+                    ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYM</span>`
                     : `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-700 text-purple-100"><i class="fas fa-mobile-screen mr-0.5"></i>QR</span>`;
 
                 const idLabel = isSymphony ? '' : `<span class="text-xs text-gray-400">#${order.id}</span>`;
@@ -398,7 +398,7 @@
                     borderClass = 'border-blue-500';
                     statusBg = 'bg-blue-600';
                     statusText = 'POS';
-                    sourceBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYMPHONY</span>`;
+                    sourceBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYM</span>`;
                 } else {
                     const inSym = order.in_symphony === true;
                     borderClass = isNew
@@ -543,7 +543,7 @@
                     ? (order.check_number ? `<span class="text-gray-500">CHK #${order.check_number}</span>` : '')
                     : `<span class="text-gray-500">#${order.id}</span>`;
                 const srcBadge = isSymphony
-                    ? `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-700 text-blue-100 ml-1">SYMPHONY</span>`
+                        <span class="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-700 text-blue-100 ml-1">SYM</span>
                     : `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-purple-700 text-purple-100 ml-1">QR</span>`;
                 return `
                 <div class="bg-gray-800 rounded-lg border-2 border-emerald-700 p-3 text-xs">

@@ -377,7 +377,7 @@
                             <i class="fas fa-receipt mr-1"></i>${label}
                         </span>
                         <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100">
-                            <i class="fas fa-server mr-0.5"></i>SYMPHONY
+                            <i class="fas fa-server mr-0.5"></i>SYM
                         </span>
                         <span class="text-gray-500 ml-auto">Masa ${escapeHtml(order.table_no || '-')}</span>
                     </div>
@@ -399,7 +399,7 @@
                             <i class="fas fa-bullhorn mr-1"></i>Mesaj
                         </span>
                         <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100" title="Symphony POS hesabindan">
-                            <i class="fas fa-server mr-0.5"></i>SYMPHONY
+                            <i class="fas fa-server mr-0.5"></i>SYM
                         </span>
                         <span class="text-gray-500 ml-auto">Masa ${escapeHtml(order.table_no || '-')}</span>
                     </div>
