@@ -450,7 +450,7 @@
                     const inSym = order.in_symphony === true;
                     let btn;
                     if (isNew && inSym) {
-                    <button onclick="confirmOrder(${order.id})" class="w-full py-0.5 bg-gold hover:bg-yellow-600 text-primary rounded text-[11px] font-bold transition flex items-center justify-center gap-1">
+                        btn = `<button onclick="confirmOrder(${order.id})" class="w-full py-0.5 bg-gold hover:bg-yellow-600 text-primary rounded text-[11px] font-bold transition flex items-center justify-center gap-1">
                                 <i class="fas fa-check-circle"></i> Onayla (POS'ta var)
                             </button>`;
                     } else if (isNew && !inSym) {
