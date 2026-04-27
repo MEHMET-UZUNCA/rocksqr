@@ -207,29 +207,60 @@
             const timeBg = minTotal > 15 ? 'bg-red-600' : minTotal > 10 ? 'bg-yellow-600' : 'bg-green-600';
             const isNew = elapsed != null && elapsed < 120;
             const isAddition = !!order.is_addition;
-            const borderClass = isAddition ? 'border-orange-500' : (isNew ? 'new-order border-gold' : 'border-blue-500');
+            const isReopened = !!order.is_reopened;
+            const borderClass = isAddition ? 'border-orange-500' : (isReopened ? 'border-yellow-600' : (isNew ? 'new-order border-gold' : 'border-blue-500'));
 
-            const itemsHtml = (order.items || []).map(it => `
-                <div class="flex justify-between items-start py-1 border-b border-gray-700">
+            const itemsHtml = (order.items || []).map(it => {
+                const isReturned  = !!it.is_returned;
+                const isCombo     = !!it.is_combo;
+                const isCond      = !!it.is_condiment;
+                const indentClass = isCond ? 'ml-8' : (isCombo ? 'ml-4' : '');
+                const textClass   = isReturned ? 'line-through text-red-400' : '';
+                const qtyColor    = isReturned ? 'text-red-400' : (isCombo || isCond ? 'text-amber-400' : 'text-gold');
+                const prefixIcon  = isCond
+                    ? `<span class="text-gray-500 mr-1 text-sm">↳</span>`
+                    : (isCombo ? `<span class="text-amber-600 mr-1 text-sm">┣</span>` : '');
+                const badge = isReturned
+                    ? `<span class="ml-1 px-1 py-0.5 rounded text-[9px] font-bold bg-red-700 text-white uppercase">İade</span>`
+                    : (isCombo ? `<span class="ml-1 px-1 py-0.5 rounded text-[9px] font-bold bg-amber-800/80 text-amber-200 uppercase">Combo</span>` : '');
+                return `
+                <div class="flex justify-between items-start py-1 border-b border-gray-700 ${indentClass}">
                     <div class="flex-1 min-w-0">
-                        <div class="text-lg leading-tight"><span class="text-gold font-bold text-xl">x${it.qty}</span> <span class="font-semibold">${escapeHtml(it.name)}</span></div>
+                        <div class="text-lg leading-tight ${textClass}">
+                            ${prefixIcon}<span class="${qtyColor} font-bold text-xl">x${it.qty}</span> <span class="font-semibold">${escapeHtml(it.name)}</span>${badge}
+                        </div>
                         ${it.note ? `<div class="text-sm text-yellow-300"><i class="fas fa-comment-dots mr-1"></i>${escapeHtml(it.note)}</div>` : ''}
                     </div>
                     <div class="text-xs text-gray-500 ml-2 flex-shrink-0">${formatTime(it.item_time)}</div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
 
-            const messagesHtml = (order.messages || []).length > 0 ? `
+            // Mesajları LineKind'a göre ayır
+            const mesajItems = (order.messages || []).filter(m => m.line_kind !== 'MARS');
+            const marsItems  = (order.messages || []).filter(m => m.line_kind === 'MARS');
+
+            const messagesHtml = mesajItems.length > 0 ? `
                 <div class="mx-4 mb-2 p-2 bg-yellow-900/40 border border-yellow-500/60 rounded-lg">
                     <div class="text-xs text-yellow-400 font-bold uppercase mb-1">
-                        <i class="fas fa-bullhorn mr-1"></i>Mutfak Mesajlari
+                        <i class="fas fa-bullhorn mr-1"></i>Mutfak Mesajları
                     </div>
-                    ${(order.messages || []).map(m => `
-                        <div class="py-1 border-b border-yellow-500/20 last:border-0">
-                            <div class="text-yellow-100 text-lg leading-tight font-semibold">
-                                <span class="text-yellow-300 font-bold">${m.qty > 1 ? 'x'+m.qty+' ' : ''}</span>${escapeHtml(m.name)}
-                                ${m.note ? ` <span class="text-yellow-300/90 text-base">— ${escapeHtml(m.note)}</span>` : ''}
-                            </div>
+                    ${mesajItems.map(m => `
+                        <div class="text-yellow-100 text-base leading-snug py-0.5">
+                            ${m.note ? escapeHtml(m.note) : escapeHtml(m.name)}
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '';
+
+            const marsHtml = marsItems.length > 0 ? `
+                <div class="mx-4 mb-2 p-2 bg-orange-950/70 border border-orange-500/60 rounded-lg">
+                    <div class="text-xs text-orange-400 font-bold uppercase mb-1">
+                        <i class="fas fa-fire mr-1"></i>Mars Mesajları
+                    </div>
+                    ${marsItems.map(m => `
+                        <div class="text-orange-100 text-base leading-snug py-0.5">
+                            <span class="text-orange-300 font-semibold">${escapeHtml(m.name.replace(/^[\s\-]+|[\s\-]+$/g,''))}</span>
+                            ${m.note ? `<span class="text-orange-200">: <b>${escapeHtml(m.note)}</b></span>` : ''}
                         </div>
                     `).join('')}
                 </div>
@@ -238,6 +269,11 @@
             const checkLabel = order.check_number
                 ? `Hesap #${escapeHtml(order.check_number)}`
                 : `<span class="text-yellow-400">CHECKSIZ</span>`;
+
+            // Tüm unit_ids'leri düzleştir → served_item_keys fingerprint
+            const allUnitIds = (order.items || []).flatMap(it =>
+                (it.unit_ids && it.unit_ids.length) ? it.unit_ids : (it.item_id ? [String(it.item_id)] : [])
+            );
 
             return `
             <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden">
@@ -251,7 +287,7 @@
                         </span>
                         <span class="px-2 py-1 rounded text-xs font-bold bg-gray-700 text-gray-200">${checkLabel}</span>
                         ${isAddition ? `<span class="px-2 py-1 rounded text-xs font-bold bg-orange-600 text-white animate-pulse"><i class="fas fa-plus-circle mr-1"></i>EK SİPARİŞ</span>` : ''}
-                        ${order.covers ? `<span class="text-xs text-gray-400"><i class="fas fa-user mr-1"></i>${order.covers}</span>` : ''}
+                        ${isReopened ? `<span class="px-2 py-1 rounded text-xs font-bold bg-yellow-700 text-yellow-100"><i class="fas fa-rotate-right mr-1"></i>YENİDEN AÇILDI</span>` : ''}
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="elapsed-counter px-2 py-1 rounded text-xs ${timeBg}" data-order-time="${escapeHtml(order.order_time || '')}">${fmtElapsed(elapsed)}</span>
@@ -259,13 +295,13 @@
                 </div>
                 ${order.rvc ? `<div class="px-4 py-1 text-xs text-gray-400 border-b border-gray-700"><i class="fas fa-store mr-1"></i>${escapeHtml(order.rvc)}</div>` : ''}
                 <div class="px-4 py-3 text-sm">${itemsHtml || '<div class="text-gray-500 text-center py-2">Urun yok</div>'}</div>
-                ${messagesHtml}
+                ${messagesHtml}${marsHtml}
                 <div class="px-4 py-2 border-t border-gray-700">
                     <button data-complete-kind="check"
                             data-complete-gk="${escapeHtml(order.check_number ? String(order.check_number) : ('T' + (order.table_no || '')))}"
                             data-complete-cn="${escapeHtml(order.check_number ? String(order.check_number) : '')}"
                             data-complete-tno="${escapeHtml(String(order.table_no || ''))}"
-                            data-complete-items="${escapeHtml(JSON.stringify((order.items || []).map(it => it.item_id !== undefined && it.item_id !== null && it.item_id !== '' ? String(it.item_id) : (it.dtl_seq + '|' + it.name))))}"
+                            data-complete-items="${escapeHtml(JSON.stringify(allUnitIds))}"
                             onclick="completeOrderFromBtn(this)"
                             class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-bold text-white">
                         <i class="fas fa-check-circle mr-1"></i>Onayla → Servis
@@ -387,18 +423,26 @@
         function buildChecklessCard(msg) {
             const elapsed = elapsedSince(msg.item_time);
             const groupKey = 'M' + (msg.item_id || '');
+            const isMars = msg.line_kind === 'MARS';
+            const borderColor = isMars ? 'border-orange-500/70' : 'border-yellow-500/70';
+            const bgColor     = isMars ? 'bg-orange-950/40' : 'bg-yellow-900/30';
+            const textColor   = isMars ? 'text-orange-300' : 'text-yellow-300';
+            const icon        = isMars ? 'fa-fire' : 'fa-comment-dots';
+            const title       = isMars
+                ? escapeHtml(msg.name.replace(/^[\s\-]+|[\s\-]+$/g,''))
+                : escapeHtml(msg.table_no ? 'Masa ' + msg.table_no : 'Mesaj');
+            const body = isMars
+                ? `<span class="${textColor} font-semibold">${escapeHtml(msg.name.replace(/^[\s\-]+|[\s\-]+$/g,''))}</span>${msg.note ? `: <b class="text-white">${escapeHtml(msg.note)}</b>` : ''}`
+                : `${escapeHtml(msg.name)}${msg.note ? `<div class="text-xs text-yellow-200 mt-1">${escapeHtml(msg.note)}</div>` : ''}`;
             return `
-            <div class="bg-yellow-900/30 rounded-lg border-2 border-yellow-500/70 msg-flash overflow-hidden p-3">
+            <div class="${bgColor} rounded-lg border-2 ${borderColor} msg-flash overflow-hidden p-3">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-yellow-300 font-bold">
-                        <i class="fas fa-comment-dots mr-1"></i>${escapeHtml(msg.table_no ? 'Masa ' + msg.table_no : 'Mesaj')}
+                    <span class="${textColor} font-bold">
+                        <i class="fas ${icon} mr-1"></i>${title}
                     </span>
-                    <span class="elapsed-counter text-xs text-yellow-400" data-order-time="${escapeHtml(msg.item_time || '')}">${fmtElapsed(elapsed)}</span>
+                    <span class="elapsed-counter text-xs ${textColor}" data-order-time="${escapeHtml(msg.item_time || '')}">${fmtElapsed(elapsed)}</span>
                 </div>
-                <div class="text-white font-medium">
-                    ${msg.qty > 1 ? `<span class="text-yellow-400">x${msg.qty}</span> ` : ''}${escapeHtml(msg.name)}
-                </div>
-                ${msg.note ? `<div class="text-xs text-yellow-200 mt-1">${escapeHtml(msg.note)}</div>` : ''}
+                <div class="text-white font-medium">${body}</div>
                 ${msg.rvc ? `<div class="text-xs text-gray-400 mt-1"><i class="fas fa-store mr-1"></i>${escapeHtml(msg.rvc)}</div>` : ''}
                 <button onclick="completeOrder('checkless_msg', ${JSON.stringify(groupKey)}, '', ${JSON.stringify(msg.table_no || '')})"
                         class="mt-2 w-full py-1 bg-emerald-600 hover:bg-emerald-700 rounded text-white font-bold text-xs">

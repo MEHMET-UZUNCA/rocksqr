@@ -612,7 +612,49 @@ class KitchenController extends Controller
             $stmt = $pdo->query($query);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            $checks  = [];
+            // ── Adım 1: Her UnitID için local "first_seen_at" zaman damgasını hazırla ──
+            // Symphony, ürün eklendiğinde tüm satırların ItemTime'ını günceller.
+            // Bu nedenle MSSQL'in ItemTime'ına güvenemeyiz; ilk gördüğümüz anı local DB'ye kaydederiz.
+            $unitIdCheckMap = [];
+            foreach ($rows as $r) {
+                $uid = null;
+                foreach (['UnitID', 'unit_id', 'UNITID'] as $k) {
+                    if (!empty($r[$k])) { $uid = (string) $r[$k]; break; }
+                }
+                if (!$uid) continue;
+                $cn = null;
+                foreach (['CheckNumber', 'check_number', 'ChkNum'] as $k) {
+                    if (!empty($r[$k])) { $cn = (string) $r[$k]; break; }
+                }
+                $unitIdCheckMap[$uid] = $cn;
+            }
+
+            $allUnitIds = array_keys($unitIdCheckMap);
+            $existingLocalTimes = $allUnitIds
+                ? DB::table('kitchen_item_times')
+                    ->whereIn('unit_id', $allUnitIds)
+                    ->pluck('first_seen_at', 'unit_id')
+                : collect();
+
+            $nowTs = now()->format('Y-m-d H:i:s');
+            $insertBatch = [];
+            foreach ($allUnitIds as $uid) {
+                if (!$existingLocalTimes->has($uid)) {
+                    $insertBatch[] = [
+                        'unit_id'      => $uid,
+                        'check_number' => $unitIdCheckMap[$uid] ?? null,
+                        'first_seen_at' => $nowTs,
+                    ];
+                }
+            }
+            if (!empty($insertBatch)) {
+                DB::table('kitchen_item_times')->insertOrIgnore($insertBatch);
+                $existingLocalTimes = DB::table('kitchen_item_times')
+                    ->whereIn('unit_id', $allUnitIds)
+                    ->pluck('first_seen_at', 'unit_id');
+            }
+
+            $checks    = [];
             $checkless = [];
 
             foreach ($rows as $row) {
@@ -627,81 +669,135 @@ class KitchenController extends Controller
                     return $default;
                 };
 
-                $checkNum   = $get(['CheckNumber', 'check_number', 'ChkNum'], null);
-                $itemId     = $get(['ItemID', 'item_id'], null);
-                $tableNo    = (string) $get(['TableNumber', 'table_number'], '');
-                $orderTime  = $get(['OrderTime', 'order_time'], null);
-                $itemTime   = $get(['ItemTime', 'item_time'], null);
-                $rvc        = $get(['RevenueCenter', 'revenue_center'], '');
-                $rvcId      = (int) $get(['RevenueCenterID', 'revenue_center_id'], 0);
-                $covers     = (int) $get(['Covers', 'covers'], 0);
-                $status     = (string) $get(['Status', 'status'], '');
-                $qty        = (int) $get(['Qty', 'qty', 'Quantity'], 1);
-                $name       = (string) $get(['ProductName', 'product_name', 'Name'], '');
-                $note       = (string) $get(['MessageNote', 'message_note', 'RefInfo'], '');
-                $majGrp     = (int) $get(['MajGrp', 'maj_grp'], 0);
-                $dtlSeq     = (int) $get(['DtlSeq', 'dtl_seq'], 0);
+                $checkNum    = $get(['CheckNumber', 'check_number', 'ChkNum'], null);
+                $unitId      = (string) $get(['UnitID', 'unit_id'], '');
+                $itemId      = $get(['ItemID', 'item_id'], null);
+                $tableNo     = (string) $get(['TableNumber', 'table_number'], '');
+                $rvc         = $get(['RevenueCenter', 'revenue_center'], '');
+                $rvcId       = (int) $get(['RevenueCenterID', 'revenue_center_id'], 0);
+                $status      = (string) $get(['Status', 'status'], '');
+                $name        = (string) $get(['ProductName', 'product_name', 'Name'], '');
+                $note        = (string) $get(['MessageNote', 'message_note', 'RefInfo'], '');
+                $isCondiment = (bool)(int) $get(['IsCondiment', 'is_condiment'], 0);
+                $isComboItem = (bool)(int) $get(['IsComboItem', 'is_combo_item'], 0);
+                $isReturned  = (bool)(int) $get(['IsReturned', 'is_returned'], 0);
+                $lineKind    = strtoupper((string) $get(['LineKind', 'line_kind'], 'URUN'));
+                // Eski sorgu uyumluluğu: LineKind yoksa MajGrp=99 → MESAJ
+                if ($lineKind === 'URUN') {
+                    $majGrp = (int) $get(['MajGrp', 'maj_grp'], 0);
+                    if ($majGrp === 99) $lineKind = 'MESAJ';
+                }
+                $isMessage = ($lineKind === 'MESAJ');
+                $isMars    = ($lineKind === 'MARS');
+                $isCombo   = ($lineKind === 'COMBO') || $isComboItem;
+                $hasCheck  = $checkNum !== null && (int) $checkNum > 0;
 
-                // MajGrp=1 yiyecek, MajGrp=99 mutfak mesajı/yorum
-                $isMessage  = ($majGrp === 99);
-                $hasCheck   = $checkNum !== null && (int) $checkNum > 0;
-
-                // Mesajlar için benzersiz item_id (Symphony bazen ItemID döndürmez → tüm mesajlar
-                // aynı group_key'i alır ve toplu onaylama/filtreleme bozulur). Fallback hash üret.
-                if ($isMessage && (!$itemId || (string) $itemId === '0')) {
-                    $itemId = 'm-' . substr(md5(($tableNo ?? '') . '|' . ($checkNum ?? '') . '|' . $dtlSeq . '|' . $name . '|' . ($note ?? '') . '|' . ($itemTime ?? '')), 0, 16);
+                // UnitID yoksa (eski sorgu) → ItemID + hash ile üret
+                if ($unitId === '') {
+                    $dtlSeq = (int) $get(['DtlSeq', 'dtl_seq'], 0);
+                    $unitId = ($itemId ? $itemId : 'u') . '-' . ($dtlSeq ?: substr(md5($name . $note), 0, 8));
                 }
 
-                // item_time: önce ItemTime, yoksa OrderTime (check açılış saatine fallback)
-                $effectiveItemTime = $itemTime ?? $orderTime;
+                // Mesajlar için ItemID yoksa hash üret
+                if (($isMessage || $isMars) && (!$itemId || (string) $itemId === '0')) {
+                    $itemId = ($isMars ? 'mars-' : 'm-') . substr(md5(($tableNo ?? '') . '|' . ($checkNum ?? '') . '|' . $unitId . '|' . $name . '|' . ($note ?? '')), 0, 16);
+                }
+
+                // item_time: local first_seen_at (MSSQL ItemTime yerine)
+                $localTime = $existingLocalTimes->get($unitId, $nowTs);
+                $itemTimeIso = \Carbon\Carbon::parse($localTime, config('app.timezone'))->toIso8601String();
+
                 $item = [
-                    'item_id'    => $itemId,
-                    'dtl_seq'    => $dtlSeq,
-                    'qty'        => $qty,
-                    'name'       => $name,
-                    'note'       => $note,
-                    'is_message' => $isMessage,
-                    'item_time'  => $effectiveItemTime,
-                    'maj_grp'    => $majGrp,
+                    'unit_ids'    => [$unitId],
+                    'item_id'     => $itemId,
+                    'qty'         => 1,
+                    'name'        => $name,
+                    'note'        => $note,
+                    'is_combo'    => $isCombo,
+                    'is_condiment'=> $isCondiment,
+                    'is_returned' => $isReturned,
+                    'line_kind'   => $lineKind,
+                    'item_time'   => $itemTimeIso,
                 ];
 
-                if ($isMessage && !$hasCheck) {
-                    $checkless[] = array_merge($item, [
-                        'table_no'      => $tableNo,
-                        'rvc'           => $rvc,
-                        'rvc_id'        => $rvcId,
-                    ]);
+                // Mesaj ve Mars: messages dizisine gönder
+                if ($isMessage || $isMars) {
+                    if (!$hasCheck) {
+                        $checkless[] = array_merge($item, [
+                            'table_no' => $tableNo,
+                            'rvc'      => $rvc,
+                            'rvc_id'   => $rvcId,
+                        ]);
+                        continue;
+                    }
+                    $key = (string) $checkNum;
+                    if (!isset($checks[$key])) {
+                        $checks[$key] = [
+                            'check_number' => $checkNum,
+                            'table_no'     => $tableNo,
+                            'rvc'          => $rvc,
+                            'rvc_id'       => $rvcId,
+                            'order_time'   => null,
+                            'status'       => $status,
+                            'items'        => [],
+                            'messages'     => [],
+                        ];
+                    }
+                    $checks[$key]['messages'][] = $item;
                     continue;
                 }
 
-                $key = (string) $checkNum ?: ('T' . $tableNo);
+                // Ürün (URUN, COMBO, condiment) → items dizisine ekle
+                $key = $hasCheck ? (string) $checkNum : ('T' . $tableNo);
                 if (!isset($checks[$key])) {
                     $checks[$key] = [
                         'check_number' => $checkNum,
                         'table_no'     => $tableNo,
                         'rvc'          => $rvc,
                         'rvc_id'       => $rvcId,
-                        'order_time'   => $orderTime,
-                        'covers'       => $covers,
+                        'order_time'   => null,
                         'status'       => $status,
                         'items'        => [],
                         'messages'     => [],
                     ];
                 }
 
-                if ($isMessage) {
-                    $checks[$key]['messages'][] = $item;
-                } else {
-                    $checks[$key]['items'][] = $item;
-                    // order_time = bu check'teki en erken item zamanı
-                    if ($effectiveItemTime && (
-                        !$checks[$key]['order_time'] ||
-                        strcmp((string) $effectiveItemTime, (string) $checks[$key]['order_time']) < 0
-                    )) {
-                        $checks[$key]['order_time'] = $effectiveItemTime;
+                // Ardışık aynı ItemID + URUN satırlarını qty olarak grupla (combo/iade/condiment hariç)
+                $items = &$checks[$key]['items'];
+                $lastIdx = count($items) - 1;
+                if (!$isCombo && !$isCondiment && !$isReturned && $lineKind === 'URUN'
+                    && $lastIdx >= 0
+                    && $items[$lastIdx]['item_id'] == $itemId
+                    && $items[$lastIdx]['line_kind'] === 'URUN'
+                    && !$items[$lastIdx]['is_combo']
+                    && !$items[$lastIdx]['is_returned']
+                ) {
+                    $items[$lastIdx]['unit_ids'][] = $unitId;
+                    $items[$lastIdx]['qty']++;
+                    // En erken item_time'ı koru
+                    if ($itemTimeIso < $items[$lastIdx]['item_time']) {
+                        $items[$lastIdx]['item_time'] = $itemTimeIso;
                     }
+                } else {
+                    $items[] = $item;
+                }
+                unset($items);
+
+                // check'in order_time'ı = en erken item first_seen_at
+                if (!$checks[$key]['order_time'] || $localTime < $checks[$key]['order_time']) {
+                    $checks[$key]['order_time'] = $localTime;
                 }
             }
+
+            // order_time → ISO8601
+            foreach ($checks as &$chk) {
+                if ($chk['order_time']) {
+                    try {
+                        $chk['order_time'] = \Carbon\Carbon::parse($chk['order_time'], config('app.timezone'))->toIso8601String();
+                    } catch (\Exception $e) {}
+                }
+            }
+            unset($chk);
 
             // Onaylanan (kullanıcı tarafından "kaldırılan") mutfak mesajlarını filtrele.
             // group_key formatı: 'M' + item_id  (kitchen-pos.blade.php Onayla butonu).
@@ -725,7 +821,7 @@ class KitchenController extends Controller
             }
 
             // Tamamlanmış Symphony hesaplarını filtrele.
-            // item fingerprint (item_id veya dtl_seq|name) karşılaştırması — zaman karşılaştırması değil.
+            // UnitID bazlı fingerprint karşılaştırması — yeni eklenen ürünler EK SİPARİŞ olarak gösterilir.
             $completedCheckRows = DB::table('kitchen_pos_completions')
                 ->where('kind', 'check')
                 ->select('group_key', 'served_item_keys')
@@ -736,15 +832,34 @@ class KitchenController extends Controller
                     if (!$completedCheckRows->has($k)) continue;
                     $servedKeys = json_decode($completedCheckRows[$k]->served_item_keys ?? '[]', true) ?: [];
                     if (empty($servedKeys)) {
-                        // served_item_keys boşsa (eski kayıt / checkless onay) → kartı gizle
-                        unset($checks[$k]);
+                        // served_item_keys boşsa (eski kayıt) → tüm ürünleri göster ama "yeniden açıldı" işaretle
+                        $checks[$k]['is_reopened'] = true;
                         continue;
                     }
                     $servedSet = array_flip($servedKeys);
-                    $newItems = array_values(array_filter($chk['items'], function ($item) use ($servedSet) {
-                        $key = ($item['item_id'] !== null && $item['item_id'] !== '') ? (string) $item['item_id'] : ($item['dtl_seq'] . '|' . $item['name']);
-                        return !isset($servedSet[$key]);
-                    }));
+                    $newItems = [];
+                    foreach ($chk['items'] as $item) {
+                        if (!empty($item['unit_ids'])) {
+                            // Yeni format: unit_ids bazlı — sadece servis edilmemiş birimler
+                            $newUnitIds = array_values(array_filter(
+                                $item['unit_ids'],
+                                fn($uid) => !isset($servedSet[$uid])
+                            ));
+                            if (!empty($newUnitIds)) {
+                                $item['unit_ids'] = $newUnitIds;
+                                $item['qty'] = count($newUnitIds);
+                                $newItems[] = $item;
+                            }
+                        } else {
+                            // Eski format fallback: item_id veya dtl_seq|name
+                            $fk = ($item['item_id'] !== null && $item['item_id'] !== '')
+                                ? (string) $item['item_id']
+                                : (($item['dtl_seq'] ?? 0) . '|' . $item['name']);
+                            if (!isset($servedSet[$fk])) {
+                                $newItems[] = $item;
+                            }
+                        }
+                    }
                     if (empty($newItems)) {
                         unset($checks[$k]);
                     } else {
