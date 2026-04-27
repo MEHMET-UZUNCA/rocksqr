@@ -725,37 +725,33 @@ class KitchenController extends Controller
             }
 
             // Tamamlanmış Symphony hesaplarını filtrele.
-            // Eğer check tamamlandıktan SONRA yeni ürün eklendiyse (item_time > completed_at) sadece
-            // YENİ ürünleri göster (eski ürünleri mutfak zaten hazırladı) ve is_addition=true işaretle.
+            // item fingerprint (item_id veya dtl_seq|name) karşılaştırması — zaman karşılaştırması değil.
             $completedCheckRows = DB::table('kitchen_pos_completions')
                 ->where('kind', 'check')
-                ->select('group_key', 'completed_at')
+                ->select('group_key', 'served_item_keys')
                 ->get()
                 ->keyBy('group_key');
             if ($completedCheckRows->isNotEmpty()) {
                 foreach ($checks as $k => $chk) {
                     if (!$completedCheckRows->has($k)) continue;
-                    // completed_at: Laravel app tz (Europe/Berlin = UTC+2), Symphony item_time Turkey (UTC+3)
-                    $completedAt = \Carbon\Carbon::parse($completedCheckRows[$k]->completed_at)
-                        ->setTimezone('Europe/Istanbul');
-                    // Sadece completed_at'ten SONRA eklenen ürünleri filtrele
-                    $newItems = array_values(array_filter($chk['items'], function ($item) use ($completedAt) {
-                        if (empty($item['item_time'])) return false;
-                        try {
-                            return \Carbon\Carbon::parse((string) $item['item_time'], 'Europe/Istanbul')->gt($completedAt);
-                        } catch (\Exception $e) { return false; }
+                    $servedKeys = json_decode($completedCheckRows[$k]->served_item_keys ?? '[]', true) ?: [];
+                    if (empty($servedKeys)) {
+                        // served_item_keys boşsa (eski kayıt / checkless onay) → kartı gizle
+                        unset($checks[$k]);
+                        continue;
+                    }
+                    $servedSet = array_flip($servedKeys);
+                    $newItems = array_values(array_filter($chk['items'], function ($item) use ($servedSet) {
+                        $key = ($item['item_id'] !== null && $item['item_id'] !== '') ? (string) $item['item_id'] : ($item['dtl_seq'] . '|' . $item['name']);
+                        return !isset($servedSet[$key]);
                     }));
                     if (empty($newItems)) {
-                        // Yeni ürün yok → kartı gizle
                         unset($checks[$k]);
                     } else {
-                        // Sadece yeni ürünleri göster, ek sipariş işareti koy
                         $checks[$k]['items'] = $newItems;
                         $checks[$k]['is_addition'] = true;
-                        // order_time = yeni ürünlerin en eskisi
-                        $checks[$k]['order_time'] = collect($newItems)
-                            ->filter(fn($i) => !empty($i['item_time']))
-                            ->min('item_time');
+                        $earliest = collect($newItems)->filter(fn($i) => !empty($i['item_time']))->min('item_time');
+                        if ($earliest) $checks[$k]['order_time'] = $earliest;
                     }
                 }
             }
@@ -918,7 +914,8 @@ class KitchenController extends Controller
     }
 
     /**
-     * Symphony POS hesabı veya checksiz mesajı tamamlandı olarak işaretle. (legacy)
+     * Symphony POS hesabı veya checksiz mesajı tamamlandı olarak işaretle.
+     * item_keys: servis anındaki item fingerprint listesi (JSON array) — ek sipariş tespiti için.
      */
     public function kitchenPosComplete(Request $request)
     {
@@ -930,18 +927,32 @@ class KitchenController extends Controller
             'name'         => 'nullable|string|max:255',
             'note'         => 'nullable|string|max:255',
             'qty'          => 'nullable|integer|min:1|max:999',
+            'item_keys'    => 'nullable|array',
+            'item_keys.*'  => 'string|max:128',
         ]);
+
+        // Mevcut kayıt varsa served_item_keys'i birleştir (birden fazla "Onayla" yapılabilir)
+        $existing = DB::table('kitchen_pos_completions')->where('group_key', $validated['group_key'])->first();
+        $existingKeys = [];
+        if ($existing && $existing->served_item_keys) {
+            $existingKeys = json_decode($existing->served_item_keys, true) ?: [];
+        }
+        $newKeys = array_values(array_unique(array_merge(
+            $existingKeys,
+            array_filter($validated['item_keys'] ?? [], fn($k) => $k !== '')
+        )));
 
         DB::table('kitchen_pos_completions')->updateOrInsert(
             ['group_key' => $validated['group_key']],
             [
-                'kind'         => $validated['kind'],
-                'check_number' => $validated['check_number'] ?? null,
-                'table_no'     => $validated['table_no'] ?? null,
-                'name'         => $validated['name'] ?? null,
-                'note'         => $validated['note'] ?? null,
-                'qty'          => $validated['qty'] ?? 1,
-                'completed_at' => now(),
+                'kind'             => $validated['kind'],
+                'check_number'     => $validated['check_number'] ?? null,
+                'table_no'         => $validated['table_no'] ?? null,
+                'name'             => $validated['name'] ?? null,
+                'note'             => $validated['note'] ?? null,
+                'qty'              => $validated['qty'] ?? 1,
+                'completed_at'     => now(),
+                'served_item_keys' => json_encode($newKeys),
             ]
         );
 
@@ -1112,7 +1123,7 @@ class KitchenController extends Controller
                 $itemId    = $get(['ItemID', 'item_id'], null);
 
                 $groupKey = $checkNum !== null && (int) $checkNum > 0
-                    ? 'C' . $checkNum
+                    ? (string) $checkNum          // KDS ile aynı format (ör: "4000")
                     : 'T' . $tableNo;
 
                 if (!isset($checks[$groupKey])) {
@@ -1165,22 +1176,24 @@ class KitchenController extends Controller
             unset($chk);
 
             // Tamamlanmış Symphony hesaplarını filtrele.
-            // Eğer check tamamlandıktan SONRA yeni ürün eklendiyse sadece YENİ ürünleri göster (is_addition=true).
+            // item fingerprint (item_id veya dtl_seq|name) karşılaştırması — zaman karşılaştırması değil.
             $completedCheckRows = DB::table('kitchen_pos_completions')
                 ->where('kind', 'check')
-                ->select('group_key', 'completed_at')
+                ->select('group_key', 'served_item_keys')
                 ->get()
                 ->keyBy('group_key');
             if ($completedCheckRows->isNotEmpty()) {
                 foreach ($checks as $k => $chk) {
                     if (!$completedCheckRows->has($k)) continue;
-                    $completedAt = \Carbon\Carbon::parse($completedCheckRows[$k]->completed_at)
-                        ->setTimezone('Europe/Istanbul');
-                    $newItems = array_values(array_filter($chk['items'], function ($item) use ($completedAt) {
-                        if (empty($item['item_time'])) return false;
-                        try {
-                            return \Carbon\Carbon::parse((string) $item['item_time'])->gt($completedAt);
-                        } catch (\Exception $e) { return false; }
+                    $servedKeys = json_decode($completedCheckRows[$k]->served_item_keys ?? '[]', true) ?: [];
+                    if (empty($servedKeys)) {
+                        unset($checks[$k]);
+                        continue;
+                    }
+                    $servedSet = array_flip($servedKeys);
+                    $newItems = array_values(array_filter($chk['items'], function ($item) use ($servedSet) {
+                        $key = ($item['item_id'] !== null && $item['item_id'] !== '') ? (string) $item['item_id'] : ($item['dtl_seq'] . '|' . $item['name']);
+                        return !isset($servedSet[$key]);
                     }));
                     if (empty($newItems)) {
                         unset($checks[$k]);

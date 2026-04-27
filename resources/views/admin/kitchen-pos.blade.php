@@ -261,7 +261,12 @@
                 <div class="px-4 py-3 text-sm">${itemsHtml || '<div class="text-gray-500 text-center py-2">Urun yok</div>'}</div>
                 ${messagesHtml}
                 <div class="px-4 py-2 border-t border-gray-700">
-                    <button onclick='completeOrder("check", ${JSON.stringify(order.check_number ? String(order.check_number) : ("T" + (order.table_no || "")))}, ${JSON.stringify(order.check_number ? String(order.check_number) : "")}, ${JSON.stringify(String(order.table_no || ""))})'
+                    <button data-complete-kind="check"
+                            data-complete-gk="${escapeHtml(order.check_number ? String(order.check_number) : ('T' + (order.table_no || '')))}"
+                            data-complete-cn="${escapeHtml(order.check_number ? String(order.check_number) : '')}"
+                            data-complete-tno="${escapeHtml(String(order.table_no || ''))}"
+                            data-complete-items="${escapeHtml(JSON.stringify((order.items || []).map(it => it.item_id !== undefined && it.item_id !== null && it.item_id !== '' ? String(it.item_id) : (it.dtl_seq + '|' + it.name))))}"
+                            onclick="completeOrderFromBtn(this)"
                             class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-bold text-white">
                         <i class="fas fa-check-circle mr-1"></i>Onayla → Servis
                     </button>
@@ -414,9 +419,15 @@
             }).then(r => r.json());
         }
 
-        function completeOrder(kind, groupKey, checkNumber, tableNo) {
+        function completeOrderFromBtn(btn) {
+            const itemKeys = JSON.parse(btn.dataset.completeItems || '[]');
+            completeOrder(btn.dataset.completeKind, btn.dataset.completeGk, btn.dataset.completeCn, btn.dataset.completeTno, itemKeys);
+        }
+
+        function completeOrder(kind, groupKey, checkNumber, tableNo, itemKeys) {
             postJson('/kitchen-pos/complete', {
                 kind, group_key: groupKey, check_number: checkNumber, table_no: tableNo,
+                item_keys: itemKeys || [],
             }).then(() => fetchOnce()).catch(e => console.error(e));
         }
 
