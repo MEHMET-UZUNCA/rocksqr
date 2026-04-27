@@ -84,7 +84,7 @@
     </div>
 
     <main class="p-4">
-        <div id="orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 items-start"></div>
+        <div id="orders-grid" class="grid gap-2 items-start" data-cols="{{ \App\Models\Setting::get('bar_card_columns', 4) }}"></div>
         <div id="no-orders" class="hidden text-center py-20">
             <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
             <p class="text-2xl text-gray-400">Tum siparisler tamamlandi!</p>
@@ -113,6 +113,13 @@
         }
         setInterval(updateClock, 1000);
         updateClock();
+
+        // Grid sütun sayısını data-cols attribute'undan al
+        (function initGridCols() {
+            const grid = document.getElementById('orders-grid');
+            const n = parseInt(grid.dataset.cols) || 4;
+            grid.style.gridTemplateColumns = 'repeat(' + n + ', minmax(0, 1fr))';
+        })();
 
         function toggleFullscreen() {
             const icon = document.getElementById('fs-icon');

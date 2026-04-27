@@ -179,6 +179,18 @@
                         </div>
                     </div>
 
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label for="bar_card_columns" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-table-columns mr-1"></i>Bar KDS: Sütun Sayısı
+                            </label>
+                            <input type="number" min="1" max="10" step="1" name="bar_card_columns" id="bar_card_columns"
+                                   value="{{ old('bar_card_columns', $settings['bar_card_columns']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
+                            <p class="text-xs text-gray-400 mt-1">Bar ekranında kaç sütun gösterileceği (1–10). Daha fazla kart yan yana.</p>
+                        </div>
+                    </div>
+
                     <button type="submit"
                             class="py-3 px-6 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 transition">
                         <i class="fas fa-save mr-2"></i>Bar Ekran Ayarlarını Kaydet
@@ -238,6 +250,18 @@
                                    value="{{ old('ready_undo_seconds', $settings['ready_undo_seconds']) }}"
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
                             <p class="text-xs text-gray-400 mt-1">"Geri Al" butonu bu süre boyunca çalışır. Sonrasında kayıt kalıcılaşır.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label for="kitchen_card_columns" class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-table-columns mr-1"></i>Mutfak KDS: Sütun Sayısı
+                            </label>
+                            <input type="number" min="1" max="10" step="1" name="kitchen_card_columns" id="kitchen_card_columns"
+                                   value="{{ old('kitchen_card_columns', $settings['kitchen_card_columns']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold focus:border-gold">
+                            <p class="text-xs text-gray-400 mt-1">Mutfak POS ekranında kaç sütun gösterileceği (1–10). Daha fazla kart yan yana.</p>
                         </div>
                     </div>
 
