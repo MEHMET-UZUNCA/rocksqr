@@ -98,13 +98,6 @@
                 <span id="completed-limit-badge" class="text-xs bg-gray-700 px-2 py-0.5 rounded-full text-gray-400"></span>
             </h2>
             <div id="completed-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 opacity-80"></div>
-            <!-- Son tamamlanan garson çağrıları -->
-            <div id="attended-calls-wrap" class="hidden mt-4 pt-4 border-t border-gray-700">
-                <span class="text-sm font-semibold text-gray-400 flex items-center gap-2 mb-2">
-                    <i class="fas fa-bell-slash text-green-500"></i>Son İlgilenilen Garson Çağrıları (10 dk)
-                </span>
-                <div id="attended-calls-list" class="flex flex-wrap gap-2"></div>
-            </div>
         </div>
     </main>
 
@@ -492,8 +485,6 @@
             const sect  = document.getElementById('completed-section');
             const grid  = document.getElementById('completed-grid');
             const badge = document.getElementById('completed-limit-badge');
-            const attendedWrap = document.getElementById('attended-calls-wrap');
-            const attendedList = document.getElementById('attended-calls-list');
 
             const hasCompleted = completedOrders && completedOrders.length > 0;
             const hasAttended  = attendedCalls && attendedCalls.length > 0;
@@ -505,7 +496,8 @@
 
             sect.classList.remove('hidden');
             badge.textContent = limit ? ('son ' + limit) : '';
-            grid.innerHTML = completedOrders.map(order => {
+
+            const orderCards = (completedOrders || []).map(order => {
                 let items = [];
                 try { items = Array.isArray(order.items) ? order.items : JSON.parse(order.items); }
                 catch(e) { items = []; }
@@ -528,22 +520,21 @@
                     </div>
                     <p class="text-gray-300 truncate">${summary || '—'}</p>
                 </div>`;
-            }).join('');
+            });
 
-            // Son ilgilenilen garson çağrıları
-            if (hasAttended) {
-                attendedWrap.classList.remove('hidden');
-                attendedList.innerHTML = attendedCalls.map(call => `
-                    <span class="inline-flex items-center gap-1 px-2 py-1 bg-green-900/50 border border-green-700/60 rounded text-xs text-green-300">
-                        <i class="fas fa-bell-slash text-green-500"></i>
-                        ${call.table_no ? 'Masa ' + call.table_no : 'Genel'}
-                        ${call.note ? `<span class="text-gray-500 truncate max-w-[80px]">${call.note}</span>` : ''}
-                        <span class="text-gray-600">${call.attended_at}</span>
-                    </span>
-                `).join('');
-            } else {
-                attendedWrap.classList.add('hidden');
-            }
+            const callCards = (attendedCalls || []).map(call => `
+                <div class="bg-gray-800 rounded-lg border-2 border-green-700 p-3 text-xs">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-bold text-green-400">
+                            ${call.table_no ? 'Masa ' + call.table_no : 'Genel'}
+                            <span class="px-1 py-0.5 rounded text-[9px] font-bold bg-green-800 text-green-200 ml-1"><i class="fas fa-bell-slash mr-0.5"></i>ÇAĞRI</span>
+                        </span>
+                        <span class="text-gray-500">${call.attended_at}</span>
+                    </div>
+                    <p class="text-gray-400 truncate">${call.note || 'Garson çağrısı ilgilenildi'}</p>
+                </div>`);
+
+            grid.innerHTML = [...orderCards, ...callCards].join('');
         }
 
         function renderWaiterCalls(calls) {
