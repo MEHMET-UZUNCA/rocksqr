@@ -543,7 +543,7 @@
                     ? (order.check_number ? `<span class="text-gray-500">CHK #${order.check_number}</span>` : '')
                     : `<span class="text-gray-500">#${order.id}</span>`;
                 const srcBadge = isSymphony
-                        <span class="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-700 text-blue-100 ml-1">SYM</span>
+                    ? `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-700 text-blue-100 ml-1">SYM</span>`
                     : `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-purple-700 text-purple-100 ml-1">QR</span>`;
                 return `
                 <div class="bg-gray-800 rounded-lg border-2 border-emerald-700 p-3 text-xs">
