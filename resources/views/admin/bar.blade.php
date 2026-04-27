@@ -495,7 +495,7 @@
                         </div>
                         <div class="flex items-center justify-between mt-0.5">
                             <span class="text-[11px] text-gray-400">${chkLabel}</span>
-                            <span class="bar-elapsed px-2 py-0.5 rounded text-xs ${timeBg}" data-order-time="${escapeHtml(order.order_time || '')}" data-is-symphony="${isSymphony ? '1' : '0'}">${timeStr}</span>
+                            <span class="bar-elapsed px-2 py-0.5 rounded text-xs ${timeBg}" data-order-time="${(order.order_time || '').replace(/['"<>&]/g, '')}" data-is-symphony="${isSymphony ? '1' : '0'}">${timeStr}</span>
                         </div>
                         ${isSymphony && order.waiter_name ? `<div class="text-[11px] text-gray-300 mt-0.5"><i class="fas fa-user mr-1 text-gray-500"></i>${order.waiter_name}</div>` : ''}
                     </div>
