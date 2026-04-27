@@ -70,7 +70,7 @@
         </div>
     </header>
 
-    <main class="p-4">
+    <main class="p-2">
         <!-- Checksiz Mutfak Mesajları -->
         <div id="checkless-section" class="hidden mb-6">
             <h2 class="text-lg font-semibold text-yellow-400 mb-3 flex items-center gap-2">
@@ -83,7 +83,7 @@
             <div id="checkless-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"></div>
         </div>
 
-        <div id="orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start"></div>
+        <div id="orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 items-start"></div>
 
         <div id="no-orders" class="hidden text-center py-20">
             <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
@@ -225,7 +225,7 @@
                     const subRet   = !!sub.is_returned;
                     const subText  = subRet ? 'line-through text-red-400' : 'text-gray-300';
                     const subBadge = subRet ? `<span class="ml-1 px-1 py-0.5 rounded text-[9px] font-bold bg-red-700 text-white">İade</span>` : '';
-                    return `<div class="flex items-center pl-6 py-0.5 text-sm">
+                    return `<div class="flex items-center pl-4 py-0 text-sm">
                         <span class="text-amber-600 mr-1.5 select-none">└</span>
                         <span class="${subText} font-medium">${escapeHtml(sub.name)}${subBadge}</span>
                         ${sub.note ? `<span class="text-yellow-300 ml-2 text-xs">— ${escapeHtml(sub.note)}</span>` : ''}
@@ -233,7 +233,7 @@
                 }).join('');
 
                 return `
-                <div class="py-1 border-b border-gray-700">
+                <div class="py-0.5 border-b border-gray-700">
                     <div class="flex justify-between items-start">
                         <div class="flex-1 min-w-0">
                             <div class="text-lg leading-tight ${textClass}">
@@ -252,8 +252,8 @@
             const marsItems  = (order.messages || []).filter(m => m.line_kind === 'MARS');
 
             const messagesHtml = mesajItems.length > 0 ? `
-                <div class="mx-4 mb-2 p-2 bg-yellow-900/40 border border-yellow-500/60 rounded-lg">
-                    <div class="text-xs text-yellow-400 font-bold uppercase mb-1">
+                <div class="mx-2 mb-1 p-1.5 bg-yellow-900/40 border border-yellow-500/60 rounded-lg">
+                    <div class="text-xs text-yellow-400 font-bold uppercase mb-0.5">
                         <i class="fas fa-bullhorn mr-1"></i>Mutfak Mesajları
                     </div>
                     ${mesajItems.map(m => `
@@ -265,8 +265,8 @@
             ` : '';
 
             const marsHtml = marsItems.length > 0 ? `
-                <div class="mx-4 mb-2 p-2 bg-orange-950/70 border border-orange-500/60 rounded-lg">
-                    <div class="text-xs text-orange-400 font-bold uppercase mb-1">
+                <div class="mx-2 mb-1 p-1.5 bg-orange-950/70 border border-orange-500/60 rounded-lg">
+                    <div class="text-xs text-orange-400 font-bold uppercase mb-0.5">
                         <i class="fas fa-fire mr-1"></i>Mars Mesajları
                     </div>
                     ${marsItems.map(m => `
@@ -289,33 +289,27 @@
 
             return `
             <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden">
-                <div class="flex items-center justify-between px-4 py-2 bg-gray-750">
-                    <div class="flex items-center gap-3">
-                        <span class="text-xl font-bold text-gold">
-                            Masa ${escapeHtml(order.table_no || '-')}
-                        </span>
-                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100" title="Symphony POS hesabindan">
-                            <i class="fas fa-server mr-0.5"></i>SYMPHONY
-                        </span>
-                        <span class="px-2 py-1 rounded text-xs font-bold bg-gray-700 text-gray-200">${checkLabel}</span>
-                        ${isAddition ? `<span class="px-2 py-1 rounded text-xs font-bold bg-orange-600 text-white animate-pulse"><i class="fas fa-plus-circle mr-1"></i>EK SİPARİŞ</span>` : ''}
-                        ${isReopened ? `<span class="px-2 py-1 rounded text-xs font-bold bg-yellow-700 text-yellow-100"><i class="fas fa-rotate-right mr-1"></i>YENİDEN AÇILDI</span>` : ''}
+                <div class="flex items-center justify-between px-2 py-1 bg-gray-750">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-xl font-bold text-gold">Masa ${escapeHtml(order.table_no || '-')}</span>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYM</span>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-700 text-gray-200">${checkLabel}</span>
+                        ${order.rvc ? `<span class="text-[10px] text-gray-500">${escapeHtml(order.rvc)}</span>` : ''}
+                        ${isAddition ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-600 text-white animate-pulse"><i class="fas fa-plus-circle mr-0.5"></i>EK</span>` : ''}
+                        ${isReopened ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-700 text-yellow-100"><i class="fas fa-rotate-right mr-0.5"></i>YENİDEN</span>` : ''}
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="elapsed-counter px-2 py-1 rounded text-xs ${timeBg}" data-order-time="${escapeHtml(order.order_time || '')}">${fmtElapsed(elapsed)}</span>
-                    </div>
+                    <span class="elapsed-counter px-2 py-0.5 rounded text-xs ${timeBg} flex-shrink-0" data-order-time="${escapeHtml(order.order_time || '')}">${fmtElapsed(elapsed)}</span>
                 </div>
-                ${order.rvc ? `<div class="px-4 py-1 text-xs text-gray-400 border-b border-gray-700"><i class="fas fa-store mr-1"></i>${escapeHtml(order.rvc)}</div>` : ''}
-                <div class="px-4 py-3 text-sm">${itemsHtml || '<div class="text-gray-500 text-center py-2">Urun yok</div>'}</div>
+                <div class="px-2 py-1 text-sm">${itemsHtml || '<div class="text-gray-500 text-center py-1">Urun yok</div>'}</div>
                 ${messagesHtml}${marsHtml}
-                <div class="px-4 py-2 border-t border-gray-700">
+                <div class="px-2 py-1 border-t border-gray-700">
                     <button data-complete-kind="check"
                             data-complete-gk="${escapeHtml(order.check_number ? String(order.check_number) : ('T' + (order.table_no || '')))}"
                             data-complete-cn="${escapeHtml(order.check_number ? String(order.check_number) : '')}"
                             data-complete-tno="${escapeHtml(String(order.table_no || ''))}"
                             data-complete-items="${escapeHtml(JSON.stringify(allUnitIds))}"
                             onclick="completeOrderFromBtn(this)"
-                            class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-bold text-white">
+                            class="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-bold text-white">
                         <i class="fas fa-check-circle mr-1"></i>Onayla → Servis
                     </button>
                 </div>
