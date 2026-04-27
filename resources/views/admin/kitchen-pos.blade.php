@@ -41,18 +41,19 @@
                 {{ \App\Models\Setting::get('kitchen_screen_title', 'Mutfak Ekrani') }}
                 <span class="text-sm text-gray-400 font-normal ml-2">Symphony POS</span>
             </h1>
-            <span id="clock" class="text-gray-400 text-lg"></span>
+            <span id="clock" class="text-gray-300 text-2xl font-bold"></span>
         </div>
         <div class="flex items-center gap-6">
             <div class="flex items-center gap-2">
                 <span id="live-dot" class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
                 <span class="text-sm text-gray-400">Canli</span>
-                <span id="fetched-at" class="text-xs text-gray-500"></span>
             </div>
             <div class="text-sm text-gray-400">
                 <span id="order-count" class="text-gold font-bold text-lg">0</span> aktif hesap
                 <span class="mx-2 text-gray-600">|</span>
                 <span id="msg-count" class="text-yellow-400 font-bold text-lg">0</span> checksiz mesaj
+                <span class="mx-2 text-gray-600">|</span>
+                <span id="completed-today" class="text-emerald-400 font-bold text-lg">0</span> tamamlanan bugün
             </div>
             <a href="/kitchen" class="text-gray-400 hover:text-gold transition" title="Yerel KDS ekranı">
                 <i class="fas fa-database mr-1"></i> Yerel
@@ -278,7 +279,7 @@
             ` : '';
 
             const checkLabel = order.check_number
-                ? `Hesap #${escapeHtml(order.check_number)}`
+                ? `Chk #${escapeHtml(order.check_number)}`
                 : `<span class="text-yellow-400">CHECKSIZ</span>`;
 
             // Tüm unit_ids'leri düzleştir → served_item_keys fingerprint
@@ -365,7 +366,7 @@
             // Onaylanmis Symphony hesabi
             if (order.is_check) {
                 const gkAttr = escapeHtml(order.group_key || '');
-                const label = order.check_number ? ('Hesap #' + escapeHtml(order.check_number)) : 'Checksiz';
+                const label = order.check_number ? ('Chk #' + escapeHtml(order.check_number)) : 'Checksiz';
                 return `
                 <div class="bg-gray-800 rounded-lg border-2 border-blue-700 p-3 text-xs">
                     <div class="flex items-center justify-between mb-1 gap-1">
@@ -513,7 +514,7 @@
 
             document.getElementById('order-count').textContent = orders.length;
             document.getElementById('msg-count').textContent = messages.length;
-            document.getElementById('fetched-at').textContent = data.fetched_at ? '· ' + data.fetched_at : '';
+            document.getElementById('completed-today').textContent = data.completed_today || 0;
 
             const errBox = document.getElementById('error-box');
             const errMsg = document.getElementById('error-msg');

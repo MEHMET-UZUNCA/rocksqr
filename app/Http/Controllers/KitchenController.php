@@ -1052,6 +1052,10 @@ class KitchenController extends Controller
                 ->values()
                 ->all();
 
+            $completedTodayCount = DB::table('kitchen_pos_completions')
+                ->whereDate('completed_at', today())
+                ->count();
+
             return response()->json([
                 'success'         => true,
                 'orders'          => $activeOrders,
@@ -1060,6 +1064,7 @@ class KitchenController extends Controller
                 'completed_msgs'  => $completedMsgs,
                 'completed_checks'=> $completedChecks,
                 'completed_limit' => $completedLimit,
+                'completed_today' => $completedTodayCount,
                 'fetched_at'      => now()->format('H:i:s'),
                 'count'           => count($activeOrders),
             ]);
