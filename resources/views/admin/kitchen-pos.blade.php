@@ -214,24 +214,35 @@
                 const isReturned  = !!it.is_returned;
                 const isCombo     = !!it.is_combo;
                 const isCond      = !!it.is_condiment;
-                const indentClass = isCond ? 'ml-8' : (isCombo ? 'ml-4' : '');
                 const textClass   = isReturned ? 'line-through text-red-400' : '';
-                const qtyColor    = isReturned ? 'text-red-400' : (isCombo || isCond ? 'text-amber-400' : 'text-gold');
-                const prefixIcon  = isCond
-                    ? `<span class="text-gray-500 mr-1 text-sm">↳</span>`
-                    : (isCombo ? `<span class="text-amber-600 mr-1 text-sm">┣</span>` : '');
+                const qtyColor    = isReturned ? 'text-red-400' : (isCond ? 'text-amber-300' : 'text-gold');
                 const badge = isReturned
                     ? `<span class="ml-1 px-1 py-0.5 rounded text-[9px] font-bold bg-red-700 text-white uppercase">İade</span>`
                     : (isCombo ? `<span class="ml-1 px-1 py-0.5 rounded text-[9px] font-bold bg-amber-800/80 text-amber-200 uppercase">Combo</span>` : '');
+
+                const subHtml = (it.sub_items || []).map(sub => {
+                    const subRet  = !!sub.is_returned;
+                    const subText = subRet ? 'line-through text-red-400' : 'text-gray-300';
+                    const subBadge = subRet ? `<span class="ml-1 px-1 py-0.5 rounded text-[9px] font-bold bg-red-700 text-white">İade</span>` : '';
+                    return `<div class="flex items-center pl-6 py-0.5 text-sm">
+                        <span class="text-amber-600 mr-1.5 select-none">└</span>
+                        <span class="${subText} font-medium">${escapeHtml(sub.name)}${subBadge}</span>
+                        ${sub.note ? `<span class="text-yellow-300 ml-2 text-xs">— ${escapeHtml(sub.note)}</span>` : ''}
+                    </div>`;
+                }).join('');
+
                 return `
-                <div class="flex justify-between items-start py-1 border-b border-gray-700 ${indentClass}">
-                    <div class="flex-1 min-w-0">
-                        <div class="text-lg leading-tight ${textClass}">
-                            ${prefixIcon}<span class="${qtyColor} font-bold text-xl">x${it.qty}</span> <span class="font-semibold">${escapeHtml(it.name)}</span>${badge}
+                <div class="py-1 border-b border-gray-700">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-lg leading-tight ${textClass}">
+                                <span class="${qtyColor} font-bold text-xl">x${it.qty}</span> <span class="font-semibold">${escapeHtml(it.name)}</span>${badge}
+                            </div>
+                            ${it.note ? `<div class="text-sm text-yellow-300"><i class="fas fa-comment-dots mr-1"></i>${escapeHtml(it.note)}</div>` : ''}
                         </div>
-                        ${it.note ? `<div class="text-sm text-yellow-300"><i class="fas fa-comment-dots mr-1"></i>${escapeHtml(it.note)}</div>` : ''}
+                        <div class="text-xs text-gray-500 ml-2 flex-shrink-0">${formatTime(it.item_time)}</div>
                     </div>
-                    <div class="text-xs text-gray-500 ml-2 flex-shrink-0">${formatTime(it.item_time)}</div>
+                    ${subHtml}
                 </div>`;
             }).join('');
 

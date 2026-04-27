@@ -654,8 +654,9 @@ class KitchenController extends Controller
                     ->pluck('first_seen_at', 'unit_id');
             }
 
-            $checks    = [];
-            $checkless = [];
+            $checks           = [];
+            $checkless        = [];
+            $comboParentIdxByKey = []; // her check için şu an açık olan combo parent indeksi
 
             foreach ($rows as $row) {
                 $get = function (array $candidates, $default = null) use ($row) {
@@ -762,24 +763,49 @@ class KitchenController extends Controller
                     ];
                 }
 
-                // Ardışık aynı ItemID + URUN satırlarını qty olarak grupla (combo/iade/condiment hariç)
                 $items = &$checks[$key]['items'];
                 $lastIdx = count($items) - 1;
-                if (!$isCombo && !$isCondiment && !$isReturned && $lineKind === 'URUN'
+
+                if ($isCombo) {
+                    // COMBO gruplama: parent → sub_items zinciri
+                    // Aynı check'te açık bir combo parent varsa ve bu satır farklı bir ürün adıysa → sub_item
+                    $pIdx = $comboParentIdxByKey[$key] ?? null;
+                    if ($pIdx !== null && isset($items[$pIdx]) && $items[$pIdx]['name'] !== $name) {
+                        // Sub-item: parent'ın altına ekle
+                        if (!isset($items[$pIdx]['sub_items'])) $items[$pIdx]['sub_items'] = [];
+                        $items[$pIdx]['sub_items'][] = [
+                            'unit_ids'    => [$unitId],
+                            'item_id'     => $itemId,
+                            'name'        => $name,
+                            'note'        => $note,
+                            'is_returned' => $isReturned,
+                            'item_time'   => $itemTimeIso,
+                        ];
+                        // Sub-item'ın unit_id'sini parent'ın fingerprint listesine ekle
+                        $items[$pIdx]['unit_ids'][] = $unitId;
+                    } else {
+                        // Yeni combo parent
+                        $item['sub_items'] = [];
+                        $items[] = $item;
+                        $comboParentIdxByKey[$key] = count($items) - 1;
+                    }
+                } elseif (!$isCondiment && !$isReturned && $lineKind === 'URUN'
                     && $lastIdx >= 0
                     && $items[$lastIdx]['item_id'] == $itemId
                     && $items[$lastIdx]['line_kind'] === 'URUN'
                     && !$items[$lastIdx]['is_combo']
                     && !$items[$lastIdx]['is_returned']
                 ) {
+                    // Ardışık aynı URUN → qty artır
                     $items[$lastIdx]['unit_ids'][] = $unitId;
                     $items[$lastIdx]['qty']++;
-                    // En erken item_time'ı koru
                     if ($itemTimeIso < $items[$lastIdx]['item_time']) {
                         $items[$lastIdx]['item_time'] = $itemTimeIso;
                     }
+                    unset($comboParentIdxByKey[$key]);
                 } else {
                     $items[] = $item;
+                    unset($comboParentIdxByKey[$key]);
                 }
                 unset($items);
 
