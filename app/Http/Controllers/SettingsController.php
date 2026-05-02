@@ -23,12 +23,28 @@ class SettingsController extends Controller
             'waiter_call_display' => (int) Setting::get('waiter_call_display', 10),
             'order_ready_display' => (int) Setting::get('order_ready_display', 10),
             'order_profit_display' => (int) Setting::get('order_profit_display', 20),
-            'kitchen_cards_per_page' => (int) Setting::get('kitchen_cards_per_page', 8),
-            'bar_cards_per_page' => (int) Setting::get('bar_cards_per_page', 8),
+
             // Subdomain aliases
             'subdomain_bar'     => Setting::get('subdomain_bar', ''),
             'subdomain_kitchen' => Setting::get('subdomain_kitchen', ''),
             'subdomain_ana'     => Setting::get('subdomain_ana', ''),
+            // Sayaç renk eşikleri (dakika cinsinden)
+            // Aktif sipariş sayacı (QR)
+            'timer_qr_yellow'  => (int) Setting::get('timer_qr_yellow', 5),
+            'timer_qr_orange'  => (int) Setting::get('timer_qr_orange', 10),
+            'timer_qr_red'     => (int) Setting::get('timer_qr_red', 15),
+            // Aktif sipariş sayacı (SYM)
+            'timer_sym_yellow' => (int) Setting::get('timer_sym_yellow', 3),
+            'timer_sym_orange' => (int) Setting::get('timer_sym_orange', 6),
+            'timer_sym_red'    => (int) Setting::get('timer_sym_red', 10),
+            // Hazır sipariş sayacı
+            'timer_ready_yellow' => (int) Setting::get('timer_ready_yellow', 3),
+            'timer_ready_orange' => (int) Setting::get('timer_ready_orange', 7),
+            'timer_ready_red'    => (int) Setting::get('timer_ready_red', 12),
+            // Garson çağrı sayacı
+            'timer_waiter_yellow' => (int) Setting::get('timer_waiter_yellow', 2),
+            'timer_waiter_orange' => (int) Setting::get('timer_waiter_orange', 5),
+            'timer_waiter_red'    => (int) Setting::get('timer_waiter_red', 10),
         ];
 
         return view('admin.settings', compact('settings'));
@@ -38,7 +54,31 @@ class SettingsController extends Controller
     {
 
         // Hangi formdan geldiğini ayırt et
-        if ($request->has('_subdomain_only')) {
+        if ($request->has('_timer_only')) {
+            $request->validate([
+                'timer_qr_yellow'     => 'required|integer|min:1|max:120',
+                'timer_qr_orange'     => 'required|integer|min:1|max:120',
+                'timer_qr_red'        => 'required|integer|min:1|max:120',
+                'timer_sym_yellow'    => 'required|integer|min:1|max:120',
+                'timer_sym_orange'    => 'required|integer|min:1|max:120',
+                'timer_sym_red'       => 'required|integer|min:1|max:120',
+                'timer_ready_yellow'  => 'required|integer|min:1|max:120',
+                'timer_ready_orange'  => 'required|integer|min:1|max:120',
+                'timer_ready_red'     => 'required|integer|min:1|max:120',
+                'timer_waiter_yellow' => 'required|integer|min:1|max:120',
+                'timer_waiter_orange' => 'required|integer|min:1|max:120',
+                'timer_waiter_red'    => 'required|integer|min:1|max:120',
+            ]);
+            foreach ([
+                'timer_qr_yellow','timer_qr_orange','timer_qr_red',
+                'timer_sym_yellow','timer_sym_orange','timer_sym_red',
+                'timer_ready_yellow','timer_ready_orange','timer_ready_red',
+                'timer_waiter_yellow','timer_waiter_orange','timer_waiter_red',
+            ] as $key) {
+                Setting::set($key, (int) $request->input($key));
+            }
+            return back()->with('success', 'Sayaç renk eşikleri güncellendi.');
+        } elseif ($request->has('_subdomain_only')) {
             $request->validate([
                 'subdomain_bar'     => ['nullable', 'string', 'max:63', 'regex:/^[a-z0-9-]*$/i'],
                 'subdomain_kitchen' => ['nullable', 'string', 'max:63', 'regex:/^[a-z0-9-]*$/i'],
@@ -62,13 +102,11 @@ class SettingsController extends Controller
                     'bar_completed_display'  => 'required|integer|min:1|max:100',
                     'order_ready_display'    => 'required|integer|min:1|max:200',
                     'order_profit_display'   => 'required|integer|min:1|max:200',
-                    'bar_cards_per_page'     => 'required|integer|min:1|max:50',
                 ]);
                 Setting::set('bar_screen_title', $request->bar_screen_title ?: 'KDS - Bar Ekrani');
                 Setting::set('bar_completed_display', $request->bar_completed_display);
                 Setting::set('order_ready_display', $request->order_ready_display);
                 Setting::set('order_profit_display', $request->order_profit_display);
-                Setting::set('bar_cards_per_page', $request->bar_cards_per_page);
                 return back()->with('success', 'Bar ekran ayarları güncellendi.');
             }
 
@@ -78,13 +116,11 @@ class SettingsController extends Controller
                 'kitchen_completed_display'  => 'required|integer|min:1|max:100',
                 'waiter_call_display'        => 'required|integer|min:1|max:200',
                 'ready_undo_seconds'         => 'required|integer|min:5|max:600',
-                'kitchen_cards_per_page'     => 'required|integer|min:1|max:50',
             ]);
             Setting::set('kitchen_screen_title', $request->kitchen_screen_title ?: 'POOL Mutfak Ekrani');
             Setting::set('kitchen_completed_display', $request->kitchen_completed_display);
             Setting::set('waiter_call_display', $request->waiter_call_display);
             Setting::set('ready_undo_seconds', $request->ready_undo_seconds);
-            Setting::set('kitchen_cards_per_page', $request->kitchen_cards_per_page);
             return back()->with('success', 'Kitchen ekran ayarları güncellendi.');
         } else {
             $request->validate([
@@ -98,8 +134,7 @@ class SettingsController extends Controller
             Setting::set('site_title', $request->site_title);
             Setting::set('meta_description', $request->meta_description);
             Setting::set('meta_keywords', $request->meta_keywords);
-            Setting::set('bar_screen_title', $request->bar_screen_title ?: 'KDS - Bar Ekrani');
-            Setting::set('kitchen_screen_title', $request->kitchen_screen_title ?: 'POOL Mutfak Ekrani');
+            // Bar/kitchen titles are managed in the screen settings form — don't overwrite here
         }
 
         if ($request->hasFile('logo_svg')) {

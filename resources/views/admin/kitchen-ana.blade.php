@@ -35,33 +35,25 @@
 </head>
 <body class="bg-slate-900 font-poppins text-white min-h-screen">
 
-    <header class="bg-primary border-b border-teal-600/40 px-6 py-3 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-            <h1 class="text-2xl font-bold text-teal-400">
-                <i class="fas fa-tv mr-2"></i>
-                Ana Mutfak KDS
-                <span class="text-sm text-gray-400 font-normal ml-2">Görüntüleme Ekranı</span>
-            </h1>
-            <span id="clock" class="text-gray-400 text-lg"></span>
+    <header class="bg-primary px-3 py-1 flex items-center justify-between border-b border-teal-800/40">
+        <div class="flex items-center gap-1 bg-teal-900/60 border border-teal-700 rounded px-2 py-0.5">
+            <i class="fas fa-tv text-teal-400 text-[10px]"></i>
+            <span class="text-teal-400 font-bold text-sm">Ana Mutfak KDS</span>
         </div>
-        <div class="flex items-center gap-6">
-            <div class="flex items-center gap-2">
-                <span id="live-dot" class="w-3 h-3 bg-teal-500 rounded-full animate-pulse"></span>
-                <span class="text-sm text-gray-400">Canlı</span>
-                <span id="fetched-at" class="text-xs text-gray-500"></span>
+        <div class="flex items-center gap-2">
+            <span id="clock" class="text-teal-300 font-bold text-base tabular-nums"></span>
+            <span class="text-gray-600 text-xs">|</span>
+            <span id="clock-date" class="text-gray-300 text-xs font-medium"></span>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1 bg-gray-800 border border-gray-700 rounded px-2 py-0.5">
+                <span id="order-count" class="text-teal-400 font-bold text-sm">0</span>
+                <span class="text-gray-500 text-[10px]">aktif</span>
             </div>
-            <div class="text-sm text-gray-400">
-                <span id="order-count" class="text-teal-400 font-bold text-lg">0</span> aktif hesap
-            </div>
-            <a href="/kitchen-pos" class="text-gray-400 hover:text-teal-400 transition text-sm" title="Symphony KDS">
-                <i class="fas fa-fire mr-1"></i>KDS
-            </a>
-            <button onclick="toggleFullscreen()" class="text-gray-400 hover:text-teal-400 transition" title="Tam ekran">
-                <i id="fs-icon" class="fas fa-expand"></i>
+            <span id="live-dot" class="w-2 h-2 bg-teal-500 rounded-full animate-pulse ml-1"></span>
+            <button onclick="toggleFullscreen()" class="text-gray-400 hover:text-teal-400 transition text-sm px-1" title="Tam ekran">
+                <i id="fs-icon" class="fas fa-expand text-sm"></i>
             </button>
-            <a href="/admin" class="text-gray-400 hover:text-teal-400 transition text-sm">
-                <i class="fas fa-arrow-left mr-1"></i>Admin
-            </a>
         </div>
     </header>
 
@@ -81,7 +73,9 @@
 
     <script>
         function updateClock() {
-            document.getElementById('clock').textContent = new Date().toLocaleTimeString('tr-TR');
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('clock-date').textContent = now.toLocaleDateString('tr-TR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
         }
         setInterval(updateClock, 1000); updateClock();
 

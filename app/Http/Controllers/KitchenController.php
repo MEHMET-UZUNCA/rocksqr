@@ -50,6 +50,23 @@ class KitchenController extends Controller
         return response()->json(['success' => true, 'status' => $order->kitchen_status]);
     }
 
+    public function cancelOrder(Order $order)
+    {
+        // Only QR orders that haven't been approved yet can be cancelled
+        if ($order->bar_status !== 'new') {
+            return response()->json(['success' => false, 'message' => 'Bu sipariş iptal edilemez.'], 422);
+        }
+
+        $order->update([
+            'status'         => 'cancelled',
+            'bar_status'     => 'cancelled',
+            'kitchen_status' => 'cancelled',
+            'completed_at'   => now(),
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
     public function kitchenUpdateStatus(Request $request, Order $order)
     {
         $validated = $request->validate([
@@ -133,7 +150,7 @@ class KitchenController extends Controller
             $qty = (int) ($row->qty ?? 1);
 
             if ($row->kind === 'check') {
-                $itemsArr = [['id' => null, 'name' => 'Hesap onaylandı (Adisyon #' . ($row->check_number ?: '-') . ')', 'quantity' => 1]];
+                $itemsArr = [['id' => null, 'name' => 'Adisyon #' . ($row->check_number ?: '-'), 'quantity' => 1]];
             } else {
                 $itemsArr = [['id' => null, 'name' => $itemName !== '' ? $itemName : 'Mutfak mesajı', 'quantity' => max(1, $qty)]];
             }
@@ -151,6 +168,7 @@ class KitchenController extends Controller
                 'bar_status' => 'approved',
                 'kitchen_status' => 'ready',
                 'created_at' => $completedAt->format('H:i:s'),
+                'order_time' => $completedAt->toIso8601String(),
                 'seconds_ago' => $readySinceSeconds,
                 'preparing_seconds' => null,
                 'ready_seconds' => $readySinceSeconds,
@@ -166,7 +184,7 @@ class KitchenController extends Controller
         });
         $readyOrders = array_slice($readyOrders, 0, $completedLimit);
 
-        $completedOrders = Order::where('kitchen_status', 'completed')
+        $completedOrders = Order::whereIn('kitchen_status', ['completed', 'cancelled'])
             ->orderBy('completed_at', 'desc')
             ->limit($completedLimit)
             ->get()
@@ -187,7 +205,7 @@ class KitchenController extends Controller
             $qty = (int) ($row->qty ?? 1);
 
             if ($row->kind === 'check') {
-                $itemsArr = [['id' => null, 'name' => 'Hesap onaylandı (Adisyon #' . ($row->check_number ?: '-') . ')', 'quantity' => 1]];
+                $itemsArr = [['id' => null, 'name' => 'Adisyon #' . ($row->check_number ?: '-'), 'quantity' => 1]];
             } else {
                 $itemsArr = [['id' => null, 'name' => $itemName !== '' ? $itemName : 'Mutfak mesajı', 'quantity' => max(1, $qty)]];
             }
@@ -230,6 +248,7 @@ class KitchenController extends Controller
                     'table_no' => $call->table_no,
                     'note' => $call->note,
                     'created_at' => $call->created_at->format('H:i:s'),
+                    'order_time' => $call->created_at->toIso8601String(),
                     'seconds_ago' => (int) $call->created_at->diffInSeconds(now()),
                 ];
             });
@@ -408,17 +427,39 @@ class KitchenController extends Controller
             ->get()
             ->map(fn ($order) => $this->mapOrder($order));
 
-        $completedOrders = Order::where('kitchen_status', 'ready')
-            ->orderBy('kitchen_ready_at', 'desc')
+        $cancelledOrders = Order::where('kitchen_status', 'cancelled')
+            ->where('completed_at', '>=', now()->subMinutes(5))
+            ->orderBy('completed_at', 'desc')
+            ->get()
+            ->map(fn ($order) => $this->mapOrder($order));
+
+        $completedOrders = Order::where(function ($q) {
+                $q->where('kitchen_status', 'ready')
+                  ->orWhere(function ($q2) {
+                      $q2->where('kitchen_status', 'completed')
+                         ->where('status', 'cancelled');
+                  });
+            })
+            ->orderByRaw('COALESCE(completed_at, kitchen_ready_at) DESC')
             ->limit($completedLimit)
             ->get()
             ->map(fn ($order) => $this->mapOrder($order));
 
         return response()->json([
             'orders' => $activeOrders->values(),
+            'cancelled' => $cancelledOrders->values(),
             'completed' => $completedOrders->values(),
             'completed_limit' => $completedLimit,
         ]);
+    }
+
+    public function kitchenAckCancel(Order $order)
+    {
+        if ($order->kitchen_status !== 'cancelled') {
+            return response()->json(['success' => false, 'message' => 'Bu sipariş iptal durumunda değil.'], 422);
+        }
+        $order->update(['kitchen_status' => 'completed']);
+        return response()->json(['success' => true]);
     }
 
     public function kitchenSse()
@@ -433,14 +474,27 @@ class KitchenController extends Controller
                     ->get()
                     ->map(fn ($order) => $this->mapOrder($order));
 
-                $completedOrders = Order::where('kitchen_status', 'ready')
-                    ->orderBy('kitchen_ready_at', 'desc')
+                $cancelledOrders = Order::where('kitchen_status', 'cancelled')
+                    ->where('completed_at', '>=', now()->subMinutes(5))
+                    ->orderBy('completed_at', 'desc')
+                    ->get()
+                    ->map(fn ($order) => $this->mapOrder($order));
+
+                $completedOrders = Order::where(function ($q) use ($completedLimit) {
+                        $q->where('kitchen_status', 'ready')
+                          ->orWhere(function ($q2) {
+                              $q2->where('kitchen_status', 'completed')
+                                 ->where('status', 'cancelled');
+                          });
+                    })
+                    ->orderByRaw('COALESCE(completed_at, kitchen_ready_at) DESC')
                     ->limit($completedLimit)
                     ->get()
                     ->map(fn ($order) => $this->mapOrder($order));
 
                 $payload = json_encode([
                     'orders' => $activeOrders->values(),
+                    'cancelled' => $cancelledOrders->values(),
                     'completed' => $completedOrders->values(),
                     'completed_limit' => $completedLimit,
                 ]);
@@ -499,6 +553,7 @@ class KitchenController extends Controller
             'bar_status' => $order->bar_status,
             'kitchen_status' => $order->kitchen_status,
             'created_at' => $order->created_at->format('H:i:s'),
+            'order_time' => $order->created_at->toIso8601String(),
             'seconds_ago' => (int) $order->created_at->diffInSeconds(now()),
             'preparing_seconds' => $preparingSeconds,
             'ready_seconds' => $readySeconds,

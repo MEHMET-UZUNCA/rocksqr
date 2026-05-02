@@ -33,32 +33,30 @@
     </style>
 </head>
 <body class="bg-gray-900 font-poppins text-white min-h-screen">
-    <header class="bg-primary border-b border-gold/30 px-6 py-3 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-            <h1 class="text-2xl font-bold text-gold">
-                <i class="fas fa-utensils mr-2"></i>{{ \App\Models\Setting::get('kitchen_screen_title', 'POOL Mutfak Ekrani') }}
-            </h1>
-            <span id="clock" class="text-gray-400 text-lg"></span>
+    <header class="bg-primary px-3 py-1 flex items-center justify-between">
+        <div class="flex items-center gap-1 bg-yellow-900/60 border border-yellow-700 rounded px-2 py-0.5">
+            <i class="fas fa-utensils text-gold text-[10px]"></i>
+            <span class="text-gold font-bold text-sm">{{ \App\Models\Setting::get('kitchen_screen_title', 'POOL Mutfak Ekrani') }}</span>
         </div>
-        <div class="flex items-center gap-6">
-            <div class="flex items-center gap-2">
-                <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
-                <span class="text-sm text-gray-400">Canli</span>
+        <div class="flex items-center gap-2">
+            <span id="clock" class="text-gold font-bold text-base tabular-nums"></span>
+            <span class="text-gray-600 text-xs">|</span>
+            <span id="clock-date" class="text-gray-300 text-xs font-medium"></span>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1 bg-gray-800 border border-gray-700 rounded px-2 py-0.5">
+                <span id="order-count" class="text-gold font-bold text-sm">0</span>
+                <span class="text-gray-500 text-[10px]">aktif</span>
             </div>
-            <div class="text-sm text-gray-400">
-                <span id="order-count" class="text-gold font-bold text-lg">0</span> aktif siparis
-            </div>
-            <a href="/kitchen-pos" class="text-gray-400 hover:text-gold transition" title="Symphony POS KDS ekranı">
-                <i class="fas fa-server mr-1"></i> Symphony
-            </a>
-            <a href="/admin" class="text-gray-400 hover:text-gold transition">
-                <i class="fas fa-arrow-left mr-1"></i> Admin
-            </a>
+            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse ml-1"></span>
+            <button onclick="toggleFullscreen()" class="text-gray-400 hover:text-gold transition text-sm px-1">
+                <i id="fs-icon" class="fas fa-expand text-sm"></i>
+            </button>
         </div>
     </header>
 
     <main class="p-4">
-        <div id="orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+        <div id="orders-grid" class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(260px, 1fr))"></div>
         <div id="no-orders" class="hidden text-center py-20">
             <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
             <p class="text-2xl text-gray-400">Tum siparisler tamamlandi!</p>
@@ -74,6 +72,16 @@
             </h2>
             <div id="completed-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 opacity-60"></div>
         </div>
+
+        <!-- Cancelled Orders Section -->
+        <div id="cancelled-section" class="hidden mt-4 border-t border-red-900/40 pt-4">
+            <h2 class="text-base font-semibold text-red-400 mb-2 flex items-center gap-2">
+                <i class="fas fa-ban"></i>
+                İptal Edilenler
+                <span class="text-xs text-red-600">(son 5 dk)</span>
+            </h2>
+            <div id="cancelled-grid" class="flex flex-wrap gap-2"></div>
+        </div>
     </main>
 
     <script>
@@ -85,9 +93,31 @@
         function updateClock() {
             const now = new Date();
             document.getElementById('clock').textContent = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('clock-date').textContent = now.toLocaleDateString('tr-TR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
         }
         setInterval(updateClock, 1000);
         updateClock();
+
+        function toggleFullscreen() {
+            const icon = document.getElementById('fs-icon');
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(() => {
+                    icon.classList.remove('fa-expand'); icon.classList.add('fa-compress');
+                }).catch(() => {});
+            } else {
+                document.exitFullscreen().then(() => {
+                    icon.classList.remove('fa-compress'); icon.classList.add('fa-expand');
+                }).catch(() => {});
+            }
+        }
+        document.addEventListener('fullscreenchange', () => {
+            const icon = document.getElementById('fs-icon');
+            if (document.fullscreenElement) {
+                icon.classList.remove('fa-expand'); icon.classList.add('fa-compress');
+            } else {
+                icon.classList.remove('fa-compress'); icon.classList.add('fa-expand');
+            }
+        });
 
         function getProductName(productId) {
             const products = @json(\App\Models\Product::pluck('name', 'id'));
@@ -135,6 +165,18 @@
         function confirmOrder(orderId) { updateStatus(orderId, 'preparing'); }
         function markReady(orderId)    { updateStatus(orderId, 'ready'); }
 
+        function ackCancel(orderId) {
+            fetch(`/kitchen/orders/${orderId}/ack-cancel`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                },
+            }).then(() => {
+                fetch('/kitchen/api/orders').then(r => r.json()).then(handleData).catch(() => {});
+            }).catch(e => console.error(e));
+        }
+
         function buildOrderCard(order, compact) {
             const kitchenStatus = order.kitchen_status;
             const isNew       = kitchenStatus === 'new';
@@ -165,6 +207,19 @@
 
             // Compact card (completed section)
             if (compact) {
+                const isCancelledAck = order.status === 'cancelled';
+                if (isCancelledAck) {
+                    const itemSummary = items.map(i => `${getProductName(i.id)} x${i.quantity}`).join(', ');
+                    return `
+                    <div class="bg-red-950/40 rounded-lg border-2 border-red-800/60 p-3 text-xs opacity-70">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-bold text-red-400"><i class="fas fa-ban mr-1"></i>Masa ${order.table_no} #${order.id}</span>
+                            <span class="text-gray-500">${order.created_at}</span>
+                        </div>
+                        <p class="line-through text-gray-500 truncate">${itemSummary || 'Urun yok'}</p>
+                        <div class="mt-1 text-red-600 font-bold text-[10px] uppercase">İptal Edildi</div>
+                    </div>`;
+                }
                 const itemSummary = items.map(i => `${getProductName(i.id)} x${i.quantity}`).join(', ');
                 const undoHtml = order.can_undo_ready
                     ? `<button onclick="updateStatus(${order.id}, 'preparing')" class="mt-2 w-full py-1 bg-amber-500 hover:bg-amber-600 rounded text-black font-bold text-xs">Geri Al (${order.undo_remaining_seconds}s)</button>`
@@ -233,13 +288,15 @@
             </div>`;
         }
 
-        function renderOrders(orders, completed, completedLimit) {
+        function renderOrders(orders, cancelled, completed, completedLimit) {
             const grid       = document.getElementById('orders-grid');
             const noOrders   = document.getElementById('no-orders');
             const compSect   = document.getElementById('completed-section');
             const compGrid   = document.getElementById('completed-grid');
             const compBadge  = document.getElementById('completed-limit-badge');
             const countEl    = document.getElementById('order-count');
+            const cancSect   = document.getElementById('cancelled-section');
+            const cancGrid   = document.getElementById('cancelled-grid');
 
             // Active orders
             if (orders.length === 0) {
@@ -261,10 +318,30 @@
             } else {
                 compSect.classList.add('hidden');
             }
+
+            // Cancelled orders
+            if (cancelled && cancelled.length > 0) {
+                cancSect.classList.remove('hidden');
+                cancGrid.innerHTML = cancelled.map(o => {
+                    let items = [];
+                    try { items = Array.isArray(o.items) ? o.items : JSON.parse(o.items); } catch(e) {}
+                    const summary = items.map(i => `${getProductName(i.id)} x${i.quantity}`).join(', ');
+                    return `<div class="bg-red-950/60 border border-red-700 rounded px-3 py-1.5 text-xs flex items-center gap-2">
+                        <span class="font-bold text-red-400"><i class="fas fa-ban mr-1"></i>Masa ${o.table_no} #${o.id}</span>
+                        <span class="line-through text-gray-400">${summary || 'Urun yok'}</span>
+                        <button onclick="ackCancel(${o.id})" class="ml-auto shrink-0 px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded text-[10px] font-bold">
+                            <i class="fas fa-check mr-0.5"></i>Tamam
+                        </button>
+                    </div>`;
+                }).join('');
+            } else {
+                cancSect.classList.add('hidden');
+            }
         }
 
         function handleData(data) {
             const orders    = data.orders    || [];
+            const cancelled = data.cancelled || [];
             const completed = data.completed || [];
             const limit     = data.completed_limit || 6;
 
@@ -275,7 +352,7 @@
             }
             previousOrderIds = currentIds;
             isFirstLoad = false;
-            renderOrders(orders, completed, limit);
+            renderOrders(orders, cancelled, completed, limit);
         }
 
         // --- SSE with polling fallback ---

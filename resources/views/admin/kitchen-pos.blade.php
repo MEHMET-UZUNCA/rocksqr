@@ -34,39 +34,35 @@
 </head>
 <body class="bg-gray-900 font-poppins text-white min-h-screen">
     <div id="toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
-    <header class="bg-primary border-b border-gold/30 px-6 py-3 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-            <h1 class="text-2xl font-bold text-gold">
-                <i class="fas fa-utensils mr-2"></i>
-                {{ \App\Models\Setting::get('kitchen_screen_title', 'Mutfak Ekrani') }}
-                <span class="text-sm text-gray-400 font-normal ml-2">Symphony POS</span>
-            </h1>
-            <span id="clock" class="text-gray-300 text-2xl font-bold"></span>
+    <header class="bg-primary px-3 py-1 flex items-center justify-between border-b border-gold/20">
+        <div class="flex items-center gap-1 bg-yellow-900/60 border border-yellow-700 rounded px-2 py-0.5">
+            <i class="fas fa-utensils text-gold text-[10px]"></i>
+            <span class="text-gold font-bold text-sm">{{ \App\Models\Setting::get('kitchen_screen_title', 'Mutfak Ekrani') }} <span class="text-gray-500 font-normal text-xs">Symphony POS</span></span>
         </div>
-        <div class="flex items-center gap-6">
-            <div class="flex items-center gap-2">
-                <span id="live-dot" class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
-                <span class="text-sm text-gray-400">Canli</span>
+        <div class="flex items-center gap-2">
+            <span id="clock" class="text-gold font-bold text-base tabular-nums"></span>
+            <span class="text-gray-600 text-xs">|</span>
+            <span id="clock-date" class="text-gray-300 text-xs font-medium"></span>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-2 text-[10px]">
+                <div class="flex items-center gap-1 bg-gray-800 border border-gray-700 rounded px-2 py-0.5">
+                    <span id="order-count" class="text-gold font-bold text-sm">0</span>
+                    <span class="text-gray-400">aktif hesap</span>
+                </div>
+                <div class="flex items-center gap-1 bg-gray-800 border border-gray-700 rounded px-2 py-0.5">
+                    <span id="msg-count" class="text-yellow-400 font-bold text-sm">0</span>
+                    <span class="text-gray-400">checksiz msg</span>
+                </div>
+                <div class="flex items-center gap-1 bg-gray-800 border border-gray-700 rounded px-2 py-0.5">
+                    <span id="completed-today" class="text-emerald-400 font-bold text-sm">0</span>
+                    <span class="text-gray-400">tamamlanan</span>
+                </div>
             </div>
-            <div class="text-sm text-gray-400">
-                <span id="order-count" class="text-gold font-bold text-lg">0</span> aktif hesap
-                <span class="mx-2 text-gray-600">|</span>
-                <span id="msg-count" class="text-yellow-400 font-bold text-lg">0</span> checksiz mesaj
-                <span class="mx-2 text-gray-600">|</span>
-                <span id="completed-today" class="text-emerald-400 font-bold text-lg">0</span> tamamlanan bugün
-            </div>
-            <a href="/kitchen" class="text-gray-400 hover:text-gold transition" title="Yerel KDS ekranı">
-                <i class="fas fa-database mr-1"></i> Yerel
-            </a>
-            <a href="/kitchen-ana" class="text-gray-400 hover:text-teal-400 transition" title="Ana Mutfak KDS">
-                <i class="fas fa-tv mr-1"></i> Ana Mutfak
-            </a>
-            <button onclick="toggleFullscreen()" class="text-gray-400 hover:text-gold transition" title="Tam ekran (F11)">
-                <i id="fs-icon" class="fas fa-expand"></i>
+            <span id="live-dot" class="w-2 h-2 bg-green-500 rounded-full animate-pulse ml-1" title="Canlı"></span>
+            <button onclick="toggleFullscreen()" class="text-gray-400 hover:text-gold transition text-sm px-1" title="Tam ekran">
+                <i id="fs-icon" class="fas fa-expand text-sm"></i>
             </button>
-            <a href="/admin" class="text-gray-400 hover:text-gold transition">
-                <i class="fas fa-arrow-left mr-1"></i> Admin
-            </a>
         </div>
     </header>
 
@@ -83,16 +79,13 @@
             <div id="checkless-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"></div>
         </div>
 
-        <div id="orders-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 items-start"></div>
+        <div id="orders-grid" class="grid gap-2 items-start" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))"></div>
 
         <div id="no-orders" class="hidden text-center py-20">
             <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
             <p class="text-2xl text-gray-400">Acik siparis bulunamadi.</p>
             <p class="text-gray-500 mt-2">Symphony POS'tan yeni siparisler otomatik gorunecek.</p>
         </div>
-
-        <!-- Sayfa geçiş butonları (sol alt, sabit) -->
-        <div id="pagination-controls" class="hidden fixed bottom-4 left-4 z-50 flex items-center gap-1 bg-gray-800/95 border border-gray-600 rounded-xl px-3 py-2 shadow-2xl backdrop-blur-sm"></div>
 
         <!-- Tamamlananlar -->
         <div id="completed-section" class="hidden mt-8 border-t border-gray-700 pt-6">
@@ -113,11 +106,11 @@
         let previousIds = [];
         let previousMsgKeys = [];
         let isFirstLoad = true;
-        let currentPage = 1;
-        const CARDS_PER_PAGE = {{ (int)\App\Models\Setting::get('kitchen_cards_per_page', 8) }};
 
         function updateClock() {
-            document.getElementById('clock').textContent = new Date().toLocaleTimeString('tr-TR');
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('clock-date').textContent = now.toLocaleDateString('tr-TR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
         }
         setInterval(updateClock, 1000); updateClock();
 
@@ -545,15 +538,10 @@
             if (orders.length === 0 && messages.length === 0) {
                 grid.classList.add('hidden');
                 noOrders.classList.remove('hidden');
-                renderPagination(0);
             } else {
                 noOrders.classList.add('hidden');
                 grid.classList.remove('hidden');
-                const totalPages = Math.max(1, Math.ceil(orders.length / CARDS_PER_PAGE));
-                if (currentPage > totalPages) currentPage = totalPages;
-                const pageOrders = orders.slice((currentPage - 1) * CARDS_PER_PAGE, currentPage * CARDS_PER_PAGE);
-                grid.innerHTML = pageOrders.map(buildOrderCard).join('');
-                renderPagination(totalPages);
+                grid.innerHTML = orders.map(buildOrderCard).join('');
             }
 
             // Tamamlananlar
@@ -591,29 +579,6 @@
             previousIds = ids;
             previousMsgKeys = msgKeys;
             isFirstLoad = false;
-        }
-
-        function renderPagination(totalPages) {
-            const pager = document.getElementById('pagination-controls');
-            if (totalPages <= 1) { pager.classList.add('hidden'); return; }
-            pager.classList.remove('hidden');
-            let html = `<span class="text-gray-400 text-xs mr-1">Sayfa</span>`;
-            if (currentPage > 1) {
-                html += `<button onclick="goPage(${currentPage - 1})" class="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-white text-sm"><i class="fas fa-chevron-left"></i></button>`;
-            }
-            for (let i = 1; i <= totalPages; i++) {
-                const active = i === currentPage ? 'bg-gold text-gray-900 font-bold' : 'bg-gray-700 text-white hover:bg-gray-600';
-                html += `<button onclick="goPage(${i})" class="px-3 py-1 rounded ${active} text-sm">${i}</button>`;
-            }
-            if (currentPage < totalPages) {
-                html += `<button onclick="goPage(${currentPage + 1})" class="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-white text-sm"><i class="fas fa-chevron-right"></i></button>`;
-            }
-            pager.innerHTML = html;
-        }
-
-        function goPage(p) {
-            currentPage = p;
-            fetchOnce();
         }
 
         function fetchOnce() {
