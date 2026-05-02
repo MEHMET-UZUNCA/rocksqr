@@ -5,6 +5,8 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\AdminCategoryController;
 use App\Http\Controllers\AdminProductController;
 use App\Http\Controllers\KitchenController;
+use App\Http\Controllers\BarController;
+use App\Http\Controllers\SymphonyKdsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SyncController;
 use App\Http\Controllers\AdminQrController;
@@ -22,33 +24,34 @@ Route::post('/waiter-call', [MenuController::class, 'callWaiterPublic'])->name('
 Route::post('/waiter-call/{tableNo}', [MenuController::class, 'callWaiter'])->name('waiter.call');
 Route::get('/order/{order}/success', [MenuController::class, 'orderSuccess'])->name('order.success');
 
-// Display Screens (public - no auth required)
-Route::get('/bar', [KitchenController::class, 'bar'])->name('bar');
-Route::get('/bar/api/orders', [KitchenController::class, 'barApiOrders'])->name('bar.api');
-Route::get('/bar/api/symphony', [KitchenController::class, 'barApiSymphony'])->name('bar.api.symphony');
-Route::patch('/bar/orders/{order}/status', [KitchenController::class, 'barUpdateStatus'])->name('bar.order.status');
-Route::patch('/bar/orders/{order}/cancel', [KitchenController::class, 'cancelOrder'])->name('bar.order.cancel');
-Route::post('/bar/symphony/delivered', [KitchenController::class, 'barSymphonyDelivered'])->name('bar.symphony.delivered');
-Route::patch('/bar/waiter-calls/{waiterCall}/attend', [KitchenController::class, 'attendWaiterCall'])->name('bar.waiter.attend');
+// ── Bar Display Screen ──────────────────────────────────────────────────────
+Route::get('/bar', [BarController::class, 'bar'])->name('bar');
+Route::get('/bar/api/orders', [BarController::class, 'barApiOrders'])->name('bar.api');
+Route::get('/bar/api/symphony', [BarController::class, 'barApiSymphony'])->name('bar.api.symphony');
+Route::patch('/bar/orders/{order}/status', [BarController::class, 'barUpdateStatus'])->name('bar.order.status');
+Route::patch('/bar/orders/{order}/cancel', [BarController::class, 'cancelOrder'])->name('bar.order.cancel');
+Route::post('/bar/symphony/delivered', [BarController::class, 'barSymphonyDelivered'])->name('bar.symphony.delivered');
+Route::patch('/bar/waiter-calls/{waiterCall}/attend', [BarController::class, 'attendWaiterCall'])->name('bar.waiter.attend');
 
+// ── QR Kitchen Display Screen ───────────────────────────────────────────────
 Route::get('/kitchen', [KitchenController::class, 'kitchen'])->name('kitchen');
 Route::get('/kitchen/api/orders', [KitchenController::class, 'kitchenApiOrders'])->name('kitchen.api');
 Route::get('/kitchen/sse', [KitchenController::class, 'kitchenSse'])->name('kitchen.sse');
 Route::patch('/kitchen/orders/{order}/status', [KitchenController::class, 'kitchenUpdateStatus'])->name('kitchen.order.status');
 Route::patch('/kitchen/orders/{order}/ack-cancel', [KitchenController::class, 'kitchenAckCancel'])->name('kitchen.order.ack-cancel');
 
-// Symphony POS tabanlı KDS ekranı (Symphony hesapları read-only, QR siparişleri onaylanabilir)
-Route::get('/kitchen-pos', [KitchenController::class, 'kitchenPos'])->name('kitchen.pos');
-Route::get('/kitchen-pos/api', [KitchenController::class, 'kitchenPosApi'])->name('kitchen.pos.api');
-Route::get('/kitchen-pos/raw', [KitchenController::class, 'kitchenPosRaw'])->name('kitchen.pos.raw');
-Route::post('/kitchen-pos/complete', [KitchenController::class, 'kitchenPosComplete'])->name('kitchen.pos.complete');
-Route::post('/kitchen-pos/uncomplete', [KitchenController::class, 'kitchenPosUncomplete'])->name('kitchen.pos.uncomplete');
-Route::patch('/kitchen-pos/qr/{order}/confirm', [KitchenController::class, 'kitchenPosConfirmQr'])->name('kitchen.pos.qr.confirm');
-Route::patch('/kitchen-pos/qr/{order}/undo', [KitchenController::class, 'kitchenPosUndoQr'])->name('kitchen.pos.qr.undo');
+// ── Symphony POS KDS ────────────────────────────────────────────────────────
+Route::get('/kitchen-pos', [SymphonyKdsController::class, 'kitchenPos'])->name('kitchen.pos');
+Route::get('/kitchen-pos/api', [SymphonyKdsController::class, 'kitchenPosApi'])->name('kitchen.pos.api');
+Route::get('/kitchen-pos/raw', [SymphonyKdsController::class, 'kitchenPosRaw'])->name('kitchen.pos.raw');
+Route::post('/kitchen-pos/complete', [SymphonyKdsController::class, 'kitchenPosComplete'])->name('kitchen.pos.complete');
+Route::post('/kitchen-pos/uncomplete', [SymphonyKdsController::class, 'kitchenPosUncomplete'])->name('kitchen.pos.uncomplete');
+Route::patch('/kitchen-pos/qr/{order}/confirm', [SymphonyKdsController::class, 'kitchenPosConfirmQr'])->name('kitchen.pos.qr.confirm');
+Route::patch('/kitchen-pos/qr/{order}/undo', [SymphonyKdsController::class, 'kitchenPosUndoQr'])->name('kitchen.pos.qr.undo');
 
-// Ana Mutfak KDS ekranı (sadece görüntüleme, ayrı veritabanı)
-Route::get('/kitchen-ana', [KitchenController::class, 'kitchenAna'])->name('kitchen.ana');
-Route::get('/kitchen-ana/api', [KitchenController::class, 'kitchenAnaApi'])->name('kitchen.ana.api');
+// ── Ana Mutfak AKDS ─────────────────────────────────────────────────────────
+Route::get('/kitchen-ana', [SymphonyKdsController::class, 'kitchenAna'])->name('kitchen.ana');
+Route::get('/kitchen-ana/api', [SymphonyKdsController::class, 'kitchenAnaApi'])->name('kitchen.ana.api');
 
 Route::get('/dashboard', function () {
     return redirect()->route('admin.dashboard');
