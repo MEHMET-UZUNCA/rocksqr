@@ -36,11 +36,16 @@ class Product extends Model
         return $this->belongsTo(Category::class);
     }
 
-    public function getPhotoUrlAttribute(): ?string
+    public function getPhotoUrlAttribute(): string
     {
-        if (!$this->photo_path) {
-            return null;
+        if ($this->photo_path) {
+            return asset('storage/' . $this->photo_path);
         }
-        return asset('storage/' . $this->photo_path);
+        return asset('images/product-placeholder.svg');
+    }
+
+    public function getHasPhotoAttribute(): bool
+    {
+        return (bool) $this->photo_path;
     }
 }

@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a1a"/>
+      <stop offset="100%" style="stop-color:#2a2a2a"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#d4af37;stop-opacity:0.7"/>
+      <stop offset="100%" style="stop-color:#e8d5b7;stop-opacity:0.7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Arka plan -->
+  <rect width="400" height="240" fill="url(#bg)"/>
+
+  <!-- Dekoratif çerçeve -->
+  <rect x="12" y="12" width="376" height="216" rx="6" fill="none" stroke="#d4af37" stroke-width="1" stroke-opacity="0.3"/>
+  <rect x="18" y="18" width="364" height="204" rx="4" fill="none" stroke="#d4af37" stroke-width="0.5" stroke-opacity="0.15"/>
+
+  <!-- Merkez tabak ikonu -->
+  <!-- Tabak gövdesi (dış elips) -->
+  <ellipse cx="200" cy="118" rx="62" ry="12" fill="none" stroke="url(#gold)" stroke-width="2"/>
+  <!-- Tabak içi -->
+  <ellipse cx="200" cy="114" rx="50" ry="9" fill="none" stroke="#d4af37" stroke-width="1" stroke-opacity="0.4"/>
+  <!-- Kapak üstü -->
+  <path d="M138 114 Q200 70 262 114" fill="#2a2a2a" stroke="url(#gold)" stroke-width="2"/>
+  <!-- Kapak tutacağı -->
+  <ellipse cx="200" cy="76" rx="7" ry="4" fill="#d4af37" fill-opacity="0.7"/>
+  <line x1="200" y1="80" x2="200" y2="90" stroke="#d4af37" stroke-width="1.5" stroke-opacity="0.6"/>
+  <!-- Yansıma efekti -->
+  <path d="M152 105 Q172 95 195 102" fill="none" stroke="#e8d5b7" stroke-width="1" stroke-opacity="0.25"/>
+
+  <!-- Çatal solda -->
+  <line x1="118" y1="88" x2="118" y2="148" stroke="#d4af37" stroke-width="1.8" stroke-opacity="0.55" stroke-linecap="round"/>
+  <line x1="112" y1="88" x2="112" y2="108" stroke="#d4af37" stroke-width="1.5" stroke-opacity="0.45" stroke-linecap="round"/>
+  <line x1="118" y1="88" x2="118" y2="105" stroke="#d4af37" stroke-width="1.5" stroke-opacity="0.45" stroke-linecap="round"/>
+  <line x1="124" y1="88" x2="124" y2="108" stroke="#d4af37" stroke-width="1.5" stroke-opacity="0.45" stroke-linecap="round"/>
+  <path d="M112 108 Q118 115 124 108" fill="none" stroke="#d4af37" stroke-width="1.5" stroke-opacity="0.45"/>
+
+  <!-- Bıçak sağda -->
+  <line x1="282" y1="88" x2="282" y2="148" stroke="#d4af37" stroke-width="1.8" stroke-opacity="0.55" stroke-linecap="round"/>
+  <path d="M282 88 Q290 98 282 108" fill="#d4af37" fill-opacity="0.2" stroke="#d4af37" stroke-width="1.2" stroke-opacity="0.45"/>
+
+  <!-- Küçük yıldız süsler -->
+  <circle cx="80" cy="40" r="1.5" fill="#d4af37" fill-opacity="0.4"/>
+  <circle cx="320" cy="40" r="1.5" fill="#d4af37" fill-opacity="0.4"/>
+  <circle cx="80" cy="200" r="1.5" fill="#d4af37" fill-opacity="0.4"/>
+  <circle cx="320" cy="200" r="1.5" fill="#d4af37" fill-opacity="0.4"/>
+  <circle cx="200" cy="30" r="1" fill="#d4af37" fill-opacity="0.3"/>
+  <circle cx="200" cy="210" r="1" fill="#d4af37" fill-opacity="0.3"/>
+
+  <!-- Alt yazı -->
+  <text x="200" y="190" text-anchor="middle" font-family="Georgia, serif" font-size="11" fill="#d4af37" fill-opacity="0.45" letter-spacing="3">ROCKS HOTEL</text>
+</svg>

@@ -138,22 +138,19 @@ class SettingsController extends Controller
         }
 
         if ($request->hasFile('logo_svg')) {
-            $file = $request->file('logo_svg');
+            $file       = $request->file('logo_svg');
             $svgContent = file_get_contents($file->getRealPath());
 
-            // Basic SVG validation - check it starts with valid SVG markup
             if (stripos($svgContent, '<svg') === false) {
                 return back()->withErrors(['logo_svg' => 'Geçersiz SVG dosyası.']);
             }
 
-            // Remove any script tags for security
-            $svgContent = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $svgContent);
+            $sanitized = $this->sanitizeSvg($svgContent);
+            if ($sanitized === null) {
+                return back()->withErrors(['logo_svg' => 'SVG dosyası işlenemedi. Farklı bir dosya deneyin.']);
+            }
 
-            // Auto-size SVG: remove fixed width/height, ensure viewBox exists
-            $svgContent = preg_replace('/(<svg[^>]*)\s+width\s*=\s*"[^"]*"/i', '$1', $svgContent);
-            $svgContent = preg_replace('/(<svg[^>]*)\s+height\s*=\s*"[^"]*"/i', '$1', $svgContent);
-
-            Setting::set('logo_svg', $svgContent);
+            Setting::set('logo_svg', $sanitized);
         }
 
         if ($request->has('remove_logo') && $request->remove_logo) {
@@ -471,5 +468,60 @@ class SettingsController extends Controller
             'bds' => 'mssql_bds_password',
             default => 'mssql_password',
         };
+    }
+
+    // SVG dosyasını DOMDocument ile sanitize eder.
+    // Tehlikeli taglar (script, foreignObject vb.) ve event/javascript attribute'ları kaldırır.
+    // Auto-size için width/height attribute'ları çıkarılır.
+    private function sanitizeSvg(string $svg): ?string
+    {
+        $dom = new \DOMDocument();
+        libxml_use_internal_errors(true);
+        if (!$dom->loadXML($svg, LIBXML_NONET | LIBXML_NOERROR)) {
+            libxml_clear_errors();
+            return null;
+        }
+        libxml_clear_errors();
+
+        $xpath = new \DOMXPath($dom);
+
+        // Tehlikeli tagları kaldır
+        $dangerous = ['script', 'foreignObject', 'iframe', 'object', 'embed', 'use', 'animate', 'set'];
+        foreach ($dangerous as $tag) {
+            foreach (iterator_to_array($xpath->query("//{$tag}") ?: []) as $node) {
+                $node->parentNode?->removeChild($node);
+            }
+        }
+
+        // Tüm elementlerde tehlikeli attribute'ları kaldır
+        $eventAttrs = [
+            'onload','onclick','onerror','onmouseover','onmouseout','onfocus','onblur',
+            'onchange','onkeypress','onkeydown','onkeyup','onsubmit','onreset',
+            'onabort','onscroll','onresize','ondblclick','oncontextmenu',
+        ];
+        foreach (iterator_to_array($xpath->query('//*') ?: []) as $el) {
+            /** @var \DOMElement $el */
+            foreach ($eventAttrs as $attr) {
+                $el->removeAttribute($attr);
+            }
+            // href / xlink:href / src ile javascript: veya data: URI engellensin
+            foreach (['href', 'xlink:href', 'src', 'action'] as $attr) {
+                $val = $el->getAttribute($attr);
+                if ($val !== '' && preg_match('/^\s*(javascript|data):/i', $val)) {
+                    $el->removeAttribute($attr);
+                }
+            }
+        }
+
+        // SVG root element: width/height kaldır (auto-size için)
+        $svgEls = $dom->getElementsByTagName('svg');
+        if ($svgEls->length > 0) {
+            /** @var \DOMElement $svgEl */
+            $svgEl = $svgEls->item(0);
+            $svgEl->removeAttribute('width');
+            $svgEl->removeAttribute('height');
+        }
+
+        return $dom->saveXML($dom->documentElement) ?: null;
     }
 }

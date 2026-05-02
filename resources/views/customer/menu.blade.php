@@ -143,17 +143,13 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             @foreach($category->activeProducts as $product)
                                 <div class="card-product">
-                                    @if($product->photo_path)
-                                        <div class="relative h-40 overflow-hidden" style="background: #2a2a2a;">
-                                            <img src="{{ $product->photo_url }}" 
-                                                 alt="{{ $product->name }}"
-                                                 class="w-full h-full object-cover" loading="lazy">
-                                        </div>
-                                    @else
-                                        <div class="relative h-40 flex items-center justify-center" style="background: linear-gradient(135deg, #2a2a2a, #1a1a1a);">
-                                            <i class="fas fa-utensils" style="font-size: 3rem; color: #d4af37; opacity: 0.5;"></i>
-                                        </div>
-                                    @endif
+                                    <div class="relative h-40 overflow-hidden" style="background: #2a2a2a;">
+                                        <img src="{{ $product->photo_url }}"
+                                             alt="{{ $product->name }}"
+                                             class="w-full h-full {{ $product->has_photo ? 'object-cover' : 'object-contain p-3' }}"
+                                             loading="lazy"
+                                             onerror="this.src='{{ asset('images/product-placeholder.svg') }}';this.classList.remove('object-cover');this.classList.add('object-contain','p-3');">
+                                    </div>
                                     <div class="p-4">
                                         <h3 class="font-bold text-lg mb-2" style="color: #e8d5b7;">{{ $product->name }}</h3>
                                         @if($product->description)

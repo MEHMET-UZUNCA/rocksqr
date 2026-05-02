@@ -46,13 +46,12 @@
                             @foreach($products as $product)
                                 <tr class="hover:bg-gray-50" data-id="{{ $product->id }}">
                                     <td class="px-4 py-3">
-                                        @if($product->photo_path)
-                                            <img src="{{ asset('storage/' . $product->photo_path) }}" alt="{{ $product->name }}" class="w-12 h-12 object-cover rounded">
-                                        @else
-                                            <div class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
-                                                <i class="fas fa-image text-gray-400"></i>
-                                            </div>
-                                        @endif
+                                        <div class="w-12 h-12 rounded overflow-hidden bg-gray-100 flex items-center justify-center">
+                                            <img src="{{ $product->photo_url }}"
+                                                 alt="{{ $product->name }}"
+                                                 class="w-full h-full {{ $product->has_photo ? 'object-cover' : 'object-contain p-1' }}"
+                                                 onerror="this.src='{{ asset('images/product-placeholder.svg') }}';this.classList.remove('object-cover');this.classList.add('object-contain','p-1');">
+                                        </div>
                                     </td>
                                     <td class="px-4 py-3">
                                         @if($product->mssql_id)

@@ -1,5 +1,224 @@
 
 
+## v1.0.87 - 2026-05-02
+
+### Refactor: KitchenController 3 ayrı controller + MssqlService + MapsOrders trait
+- **KitchenController** yalnızca QR mutfak ekranını yönetiyor (kitchen, kitchenApiOrders, kitchenSse, kitchenUpdateStatus, kitchenAckCancel) — 1382 satırdan 130 satıra indi.
+- **BarController** (yeni): bar ekranına ait tüm metodlar (bar, barApiOrders, barApiSymphony, barUpdateStatus, cancelOrder, attendWaiterCall, barSymphonyDelivered).
+- **SymphonyKdsController** (yeni): Symphony KDS ve AKDS metodları (kitchenPos\*, kitchenAna\*) — 9 metod.
+- **MssqlService** (yeni): PDO bağlantı, SQL temizleme ve case-insensitive alan okuma — 4 yerde tekrar eden ~30 satır kod tek sınıfa çıkarıldı.
+- **MapsOrders trait** (yeni): `mapOrder()` KitchenController ve BarController arasında ortaklandı.
+- Exception catch bloklarına `Log::error()` eklendi; kullanıcıya artık generic hata mesajı dönüyor (DB şema bilgisi ifşa edilmiyor).
+- `artisan route:list` ile 21 route doğrulandı.
+
+---
+
+## v1.0.86 - 2026-05-02
+
+### Bar + Kitchen: kompakt header yenileme
+- **Bar header**: `h-screen flex-col overflow:hidden` layout; SYM / QR / hazır / çağrı adet sayaçları; canlı saat + tarih.
+- **Kitchen header**: Kompakt tek satır; saat + tarih; tam ekran butonu eklendi; `auto-fill minmax(260px)` grid.
+- **Bar combined-grid**: Garson çağrıları ve hazır siparişler tek `combined-grid`'e alındı.
+- `kitchen_cards_per_page` / `bar_cards_per_page` ayarları kaldırıldı.
+
+---
+
+## v1.0.85 - 2026-05-02
+
+### Ayarlar: Sayaç renk eşikleri
+- Admin → Ayarlar'a **Sayaç Renk Eşikleri** bölümü eklendi: QR sipariş, SYM sipariş, hazır sipariş ve garson çağrısı sayaçları için bağımsız sarı / turuncu / kırmızı dakika eşikleri.
+- 12 adet yeni ayar anahtarı: `timer_qr_yellow/orange/red`, `timer_sym_*`, `timer_ready_*`, `timer_waiter_*`.
+- SettingsController: `_timer_only` form dalı, validation + kayıt.
+
+---
+
+## v1.0.84 - 2026-05-02
+
+### CSRF muafiyeti — display ekranlar
+- Bar ve Kitchen display endpoint'leri `bootstrap/app.php`'de CSRF doğrulama dışına alındı.
+- Uzun süre açık kalan ekranlarda token expire sorununu çözüyor.
+
+---
+
+## v1.0.83 - 2026-05-02
+
+### Sipariş İptal
+- **BarController::cancelOrder()**: Bar ekranından yalnızca `bar_status=new` olan QR siparişler iptal edilebilir.
+- **KitchenController::kitchenAckCancel()**: Kitchen ekranı iptal bildirimini onaylar.
+- Kitchen ekranında **"İptal Edilenler (son 5 dk)"** bölümü eklendi (kırmızı border, ban ikonu).
+- `orders.status` enum'una `cancelled` değeri eklendi (migration).
+- Yeni route'lar: `PATCH /bar/orders/{order}/cancel`, `PATCH /kitchen/orders/{order}/ack-cancel`.
+
+---
+
+## v1.0.82 - 2026-05-02
+
+### Subdomain alias ayarları
+- **SubdomainRedirect middleware**: `bar.*`, `kitchen.*`, `ana.*` subdomainleri admin'den yapılandırılabilir alias'lara yönlendiriyor.
+- **Admin → Ayarlar → Subdomain** sekmesi: bar / kitchen / ana mutfak için özel subdomain alias girişi.
+- Settings sekmeli yapıya kavuştu: **Genel / Ekran / Subdomain** sekmeleri.
+
+---
+
+## v1.0.81 - 2026-04-27
+
+### Bar KDS: MUTFAKTA badge kaldırıldı
+- QR siparişler bar'dan mutfağa gönderilmediği için MUTFAKTA badge'i gereksizdi; sadece YENİ badge'i gösteriliyor.
+
+---
+
+## v1.0.80 - 2026-04-27
+
+### Bar KDS: POS BEKLENİYOR badge kaldırıldı
+- Durum alttaki butondan takip ediliyor; kart başlığındaki POS BEKLENİYOR badge'i kaldırıldı.
+
+---
+
+## v1.0.79 - 2026-04-27
+
+### Bar KDS: SYM kartlarında POS ibaresi kaldırıldı
+- SYM rozetinde ayrıca "POS'ta" badge'i gösterilmiyordu; temizlendi.
+
+---
+
+## v1.0.78 - 2026-04-27
+
+### Bar: escapeHtml tanımsız hatası düzeltildi
+- `escapeHtml()` bar.blade'de tanımlı olmadığı için bazı kartlar görünmüyordu. `data-order-time` attribute'unda inline `.replace(/['"<>&]/g, '')` ile değiştirildi.
+
+---
+
+## v1.0.77 - 2026-04-27
+
+### Bar: Symphony siparişleri kaybolma sorunu düzeltildi
+- `lastSymOrders` cache: API geçici hata verince son bilinen siparişler korunur.
+- Stabil render key: yalnızca gerçek içerik değişince `innerHTML` güncellenir, `seconds_ago` render tetiklemez.
+- Client-side elapsed ticker: `data-order-time` ile 1 sn'de bir zaman sayacı (polling beklemez).
+
+---
+
+## v1.0.76 - 2026-04-27
+
+### Bar: srcBadge ternary syntax hatası düzeltildi
+- `renderCompletedOrders` içindeki `srcBadge` ternary sözdizimi hatası blank screen yapıyordu; düzeltildi.
+
+---
+
+## v1.0.75 - 2026-04-27
+
+### "SYMPHONY" etiketi → "SYM" olarak kısaltıldı
+- Bar ve kitchen-pos ekranlarında SYM rozeti; daha kompakt kart görünümü.
+
+---
+
+## v1.0.74 - 2026-04-27
+
+### Bar: btn syntax hatası düzeltildi
+- `renderOrders` içinde `btn = \`` syntax hatası blank screen yapıyordu; düzeltildi.
+
+---
+
+## v1.0.73 - 2026-04-27
+
+### Bar: tüm grid'lere +1 sütun
+- `waiter-calls-list`, `ready-orders-list`, `completed-grid` aynı breakpoint şemasına getirildi.
+
+---
+
+## v1.0.72 - 2026-04-27
+
+### KDS + Bar: kart genişliği daraltıldı, Onayla butonu küçültüldü
+- Kartlar daha dar: her breakpoint'e +1 sütun eklendi.
+- "Onayla → Servis" butonu `py-0.5 text-[11px]` ile küçültüldü.
+
+---
+
+## v1.0.71 - 2026-04-27
+
+### KDS + Bar: sayfa başına kart sayısı + sayfalama sistemi
+- Admin ayarı: "sayfa başına kart sayısı" (`kitchen_cards_per_page` / `bar_cards_per_page`, varsayılan 8).
+- Kartlar sayfaya sığmazsa sol altta sabit sayfalama kontrolü belirir (altın renk aktif sayfa).
+
+---
+
+## v1.0.70 - 2026-04-27
+
+### KDS + Bar: kart sütun sayısı admin ayarı
+- `kitchen_card_columns` / `bar_card_columns` admin ayarı eklendi.
+
+---
+
+## v1.0.69 - 2026-04-27
+
+### KDS + Bar: kart 3 satırlı başlık formatı
+- Kart başlığı: Masa + SYM rozeti / Chk + sipariş zamanı / garson adı.
+- `WaiterName` controller'a eklendi; bar ve mutfak aynı formata getirildi.
+
+---
+
+## v1.0.68 - 2026-04-27
+
+### Kitchen-POS: Onayla butonu daha kompakt
+
+---
+
+## v1.0.67 - 2026-04-27
+
+### Kitchen-POS: RVC (POOL BAR) etiketi kart başlığından kaldırıldı
+
+---
+
+## v1.0.66 - 2026-04-27
+
+### Kitchen-POS: kompakt kart düzeni
+- `2xl:grid-cols-5`, padding azaltıldı.
+
+---
+
+## v1.0.65 - 2026-04-27
+
+### Kitchen-POS: QR siparişler ekrandan kaldırıldı
+- `/kitchen-pos` yalnızca Symphony POS siparişlerini gösterir.
+
+---
+
+## v1.0.64 - 2026-04-27
+
+### Kitchen-POS: Chk label, büyük saat, tamamlanan sayacı
+- `Hesap #` → `Chk #`; saat `text-2xl font-bold`; `fetched-at` gizlendi; header'a `completed_today` sayacı eklendi.
+
+---
+
+## v1.0.63 - 2026-04-27
+
+### Bar: items-start hizalaması, ISO 8601 saat parse, gereksiz span kaldırıldı
+
+---
+
+## v1.0.62 - 2026-04-27
+
+### KDS: orders-grid items-start, kartlar kendi yüksekliğini alır
+
+---
+
+## v1.0.61 - 2026-04-27
+
+### KDS: condiment bir önceki URUN altına girer, combo kendi zincirini kurar
+
+---
+
+## v1.0.60 - 2026-04-27
+
+### KDS: combo/condiment parent zinciri düzeltmesi
+
+---
+
+## v1.0.59 - 2026-04-27
+
+### KDS: condiment sub_items — combo ile aynı görsel (girintili, aynı ikon/renk)
+
+---
+
 ## v1.0.58 - 2026-04-27
 
 ### Bar KDS: gereksiz badge'lerin temizlenmesi
