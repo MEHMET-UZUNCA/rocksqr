@@ -1,231 +1,363 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>{{ \App\Models\Setting::get('site_title', 'QR Menu') }}{{ $tableNo ? ' - Masa ' . $tableNo : '' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --primary: #0f0f0f;
-            --secondary: #1a1a1a;
-            --light: #2a2a2a;
-            --gold: #d4af37;
-            --silver: #c0c0c0;
-            --accent: #e8d5b7;
-        }
-        * { font-family: 'Poppins', sans-serif; }
-        body { 
-            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+        * { font-family: 'Poppins', sans-serif; box-sizing: border-box; }
+        body {
+            background: #0f0f0f;
             color: #e8d5b7;
+            padding-bottom: 70px;
         }
-        .rocks-header {
-            background: linear-gradient(90deg, #0f0f0f 0%, #1a1a1a 50%, #0f0f0f 100%);
-            border-bottom: 3px solid #d4af37;
-            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        /* Header */
+        .app-header {
+            background: linear-gradient(90deg, #0a0a0a 0%, #181818 50%, #0a0a0a 100%);
+            border-bottom: 2px solid #d4af37;
+            box-shadow: 0 2px 12px rgba(212,175,55,0.2);
         }
         .rocks-logo {
-            font-size: 2rem;
+            font-size: 1.4rem;
             font-weight: 800;
             letter-spacing: 3px;
             background: linear-gradient(90deg, #d4af37, #e8d5b7, #d4af37);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
         }
+        /* Category tabs */
+        .cat-nav {
+            background: #111;
+            border-bottom: 1px solid #222;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .cat-nav::-webkit-scrollbar { display: none; }
+        .cat-tab {
+            white-space: nowrap;
+            padding: 10px 18px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            background: transparent;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+        }
+        .cat-tab.active, .cat-tab:hover {
+            color: #d4af37;
+            border-bottom-color: #d4af37;
+        }
+        /* Product card */
         .card-product {
-            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-            border: 2px solid #d4af37;
-            border-radius: 8px;
+            background: linear-gradient(160deg, #1c1c1c 0%, #151515 100%);
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
             overflow: hidden;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
         }
         .card-product:hover {
-            border-color: #e8d5b7;
-            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4);
-            transform: translateY(-5px);
+            border-color: #d4af37;
+            box-shadow: 0 4px 18px rgba(212,175,55,0.15);
         }
-        .btn-primary {
+        .card-img {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+            background: #1a1a1a;
+            display: block;
+        }
+        .card-img.placeholder {
+            object-fit: contain;
+            padding: 8px;
+        }
+        @media (min-width: 768px) {
+            .card-img { height: 160px; }
+        }
+        /* Buttons */
+        .btn-gold {
             background: linear-gradient(90deg, #d4af37, #e8d5b7);
             color: #0f0f0f;
             border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-gold:hover, .btn-gold:active {
+            background: linear-gradient(90deg, #c9a42e, #d4af37);
+            box-shadow: 0 3px 12px rgba(212,175,55,0.4);
+        }
+        .btn-outline-gold {
+            background: rgba(212,175,55,0.06);
+            border: 1.5px solid #d4af37;
+            color: #d4af37;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+            transition: all 0.2s;
         }
-        .btn-primary:hover {
-            background: linear-gradient(90deg, #e8d5b7, #d4af37);
-            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
-            transform: scale(1.05);
+        .btn-outline-gold:hover, .btn-outline-gold:active {
+            background: rgba(212,175,55,0.15);
         }
-        .section-title {
-            color: #d4af37;
-            font-size: 1.75rem;
-            font-weight: 700;
-            border-bottom: 2px solid #d4af37;
-            padding-bottom: 10px;
-            text-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
-        }
-        .price-tag {
-            color: #d4af37;
-            font-size: 1.25rem;
-            font-weight: 700;
-        }
-        .cart-badge {
+        /* Cart badge */
+        .badge {
             background: #d4af37;
             color: #0f0f0f;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
+            width: 18px;
+            height: 18px;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+        /* Bottom bar */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: linear-gradient(90deg, #0a0a0a 0%, #181818 50%, #0a0a0a 100%);
+            border-top: 2px solid #d4af37;
+            padding: 10px 16px;
+            z-index: 40;
+            box-shadow: 0 -4px 20px rgba(212,175,55,0.1);
+        }
+        /* Cart drawer */
+        .cart-drawer {
+            background: #111;
+            border-left: 2px solid #d4af37;
+        }
+        /* Modal */
+        #waiter-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(4px);
+            z-index: 60;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .modal-box {
+            background: linear-gradient(160deg, #1a1a1a 0%, #0f0f0f 100%);
+            border: 2px solid #d4af37;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 360px;
+        }
+        /* Section title */
+        .section-heading {
+            color: #d4af37;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #222;
+        }
+        /* Price */
+        .price {
+            color: #d4af37;
             font-weight: 700;
         }
-        .modal {
-            background: rgba(15, 15, 15, 0.95);
-            border: 2px solid #d4af37;
-            border-radius: 8px;
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1a1a;
+            border: 1px solid #d4af37;
+            color: #e8d5b7;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            z-index: 9999;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+            white-space: nowrap;
+            animation: fadeInUp 0.25s ease;
         }
-        @keyframes shimmer {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; }
-            100% { opacity: 0.6; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+            to   { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
     </style>
 </head>
-<body class="bg-primary text-white font-sans">
-    <div class="min-h-screen flex flex-col">
-        <!-- Header -->
-        <header class="rocks-header sticky top-0 z-40">
-            <div class="max-w-6xl mx-auto px-4 py-6 flex justify-between items-center">
+<body>
+
+    <!-- ===== HEADER ===== -->
+    <header class="app-header sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <!-- Logo + Title -->
+            <div class="flex items-center gap-2.5">
+                @if(\App\Models\Setting::get('logo_svg'))
+                    <div class="h-7 w-auto [&>svg]:max-h-full [&>svg]:w-auto">{!! \App\Models\Setting::get('logo_svg') !!}</div>
+                @else
+                    <div class="rocks-logo">ROCKS</div>
+                @endif
                 <div>
-                    @if(\App\Models\Setting::get('logo_svg'))
-                        <div class="h-10 w-auto [&>svg]:max-h-full [&>svg]:w-auto">{!! \App\Models\Setting::get('logo_svg') !!}</div>
-                    @else
-                        <div class="rocks-logo">ROCKS</div>
-                    @endif
-                    <p class="text-sm" style="color: #d4af37;">QR MENU</p>
+                    <div class="text-xs font-bold" style="color:#d4af37;letter-spacing:2px;line-height:1.1;">QR MENU</div>
                     @if($tableNo)
-                        <p class="text-xs" style="color: #c0c0c0;">Masa {{ $tableNo }}</p>
+                        <div class="text-xs" style="color:#666;">Masa {{ $tableNo }}</div>
                     @endif
-                </div>
-                <div class="flex items-center gap-3">
-                    <button onclick="showWaiterNote()" class="sm:hidden px-4 py-3 rounded font-bold border-2 border-gold text-gold hover:bg-gold/20 transition">
-                        <i class="fas fa-bell"></i>
-                    </button>
-                    <button onclick="document.getElementById('cart-drawer').classList.toggle('translate-x-full')" 
-                            class="flex items-center gap-2 px-6 py-3 btn-primary">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span class="cart-badge" id="cart-count">0</span>
-                    </button>
                 </div>
             </div>
-        </header>
-
-        <!-- Main Content -->
-        <main class="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
-            <!-- Menu Items by Category -->
-            @foreach($categories as $category)
-                <section class="mb-12">
-                    <h2 class="section-title mb-6">{{ $category->name }}</h2>
-                    
-                    @if($category->activeProducts->isEmpty())
-                        <p style="color: #c0c0c0;">Bu kategoride ürün bulunmamaktadır</p>
-                    @else
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            @foreach($category->activeProducts as $product)
-                                <div class="card-product">
-                                    <div class="relative h-40 overflow-hidden" style="background: #2a2a2a;">
-                                        <img src="{{ $product->photo_url }}"
-                                             alt="{{ $product->name }}"
-                                             class="w-full h-full {{ $product->has_photo ? 'object-cover' : 'object-contain p-3' }}"
-                                             loading="lazy"
-                                             onerror="this.src='{{ asset('images/product-placeholder.svg') }}';this.classList.remove('object-cover');this.classList.add('object-contain','p-3');">
-                                    </div>
-                                    <div class="p-4">
-                                        <h3 class="font-bold text-lg mb-2" style="color: #e8d5b7;">{{ $product->name }}</h3>
-                                        @if($product->description)
-                                            <p class="text-sm mb-3" style="color: #c0c0c0;">{{ $product->description }}</p>
-                                        @endif
-                                        <div class="flex justify-between items-center">
-                                            <span class="price-tag">{{ number_format($product->price, 2) }} ₺</span>
-                                            <button onclick="addToCart({{ $product->id }}, '{{ $product->name }}', {{ $product->price }})" 
-                                                    class="btn-primary px-4 py-2">
-                                                <i class="fas fa-plus"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
-                </section>
-            @endforeach
-        </main>
-
-        <!-- Call Waiter Button -->
-        <footer style="background: #1a1a1a; border-top: 2px solid #d4af37; padding: 1rem;">
-            <div class="max-w-6xl mx-auto flex gap-3">
-                <button onclick="showWaiterNote()" class="flex-1 py-3 btn-primary">
-                    <i class="fas fa-bell"></i> Garson Çağır
+            <!-- Actions -->
+            <div class="flex items-center gap-2">
+                <button onclick="showWaiterNote()"
+                        class="btn-outline-gold flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold">
+                    <i class="fas fa-bell text-xs"></i>
+                    <span>Garson</span>
+                </button>
+                <button onclick="document.getElementById('cart-drawer').classList.toggle('translate-x-full')"
+                        class="btn-gold flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold">
+                    <i class="fas fa-shopping-cart text-xs"></i>
+                    <span class="badge" id="cart-count">0</span>
                 </button>
             </div>
-        </footer>
+        </div>
+    </header>
+
+    <!-- ===== CATEGORY TABS ===== -->
+    <div class="cat-nav sticky z-30" style="top:57px;">
+        <div class="max-w-6xl mx-auto flex">
+            @foreach($categories as $category)
+                <button class="cat-tab {{ $loop->first ? 'active' : '' }}"
+                        onclick="scrollToCategory('cat-{{ $loop->index }}', this)">
+                    {{ $category->name }}
+                </button>
+            @endforeach
+        </div>
     </div>
 
-    <!-- Cart Drawer -->
-    <div id="cart-drawer" class="fixed right-0 top-0 h-full w-full sm:w-96 rounded-lg z-50 translate-x-full transition-transform duration-300 flex flex-col overflow-hidden modal">
-        <div style="background: #2a2a2a; border-bottom: 2px solid #d4af37;" class="px-4 py-4 flex justify-between items-center">
-            <h2 class="text-xl font-bold" style="color: #d4af37;">Sepetim</h2>
-            <button onclick="document.getElementById('cart-drawer').classList.add('translate-x-full')" 
-                    class="text-2xl" style="color: #d4af37;">&times;</button>
-        </div>
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="max-w-6xl mx-auto px-4 pt-4 pb-2">
+        @foreach($categories as $category)
+            <section id="cat-{{ $loop->index }}" class="mb-8">
+                <h2 class="section-heading mb-3">{{ $category->name }}</h2>
 
-        <div class="flex-1 overflow-y-auto px-4 py-4" id="cart-items">
-            <p class="text-center py-8" style="color: #c0c0c0;">Sepetiniz boş</p>
-        </div>
+                @if($category->activeProducts->isEmpty())
+                    <p class="text-xs text-center py-6" style="color:#555;">Bu kategoride ürün bulunmamaktadır.</p>
+                @else
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                        @foreach($category->activeProducts as $product)
+                            <div class="card-product">
+                                <!-- Image -->
+                                <div style="background:#1a1a1a;height:100px;overflow:hidden;flex-shrink:0;">
+                                    <img src="{{ $product->photo_url }}"
+                                         alt="{{ $product->name }}"
+                                         class="card-img {{ $product->has_photo ? '' : 'placeholder' }}"
+                                         loading="lazy"
+                                         onerror="this.src='{{ asset('images/product-placeholder.svg') }}';this.classList.add('placeholder');">
+                                </div>
+                                <!-- Info -->
+                                <div class="p-2.5 flex flex-col flex-1">
+                                    <h3 class="text-xs font-semibold leading-snug mb-1" style="color:#e8d5b7;">{{ $product->name }}</h3>
+                                    @if($product->description)
+                                        <p class="text-xs mb-2 leading-snug" style="color:#555;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ $product->description }}</p>
+                                    @endif
+                                    <div class="mt-auto flex justify-between items-center gap-1">
+                                        <span class="price text-xs">{{ number_format($product->price, 2) }} ₺</span>
+                                        <button onclick="addToCart({{ $product->id }}, '{{ addslashes($product->name) }}', {{ $product->price }}, this)"
+                                                class="btn-gold w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                            <i class="fas fa-plus" style="font-size:0.65rem;"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </section>
+        @endforeach
+    </main>
 
-        <div style="border-top: 2px solid #d4af37;" class="p-4 space-y-4">
-            <div class="flex justify-between items-center text-lg font-bold">
-                <span>Toplam:</span>
-                <span class="price-tag" id="cart-total">0.00 ₺</span>
-            </div>
-
-            <textarea id="order-note" placeholder="Siparişiniz için özel not ekleyin..." 
-                      class="w-full rounded px-3 py-2 text-sm focus:outline-none" 
-                      style="background: #1a1a1a; border: 2px solid #d4af37; color: #e8d5b7;">
-            </textarea>
-
-            <button onclick="checkout()" class="w-full py-3 btn-primary font-bold">
-                Siparişi Tamamla
+    <!-- ===== BOTTOM BAR ===== -->
+    <div class="bottom-bar">
+        <div class="max-w-6xl mx-auto flex gap-2.5">
+            <button onclick="showWaiterNote()"
+                    class="btn-outline-gold flex-1 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2">
+                <i class="fas fa-bell"></i> Garson Çağır
+            </button>
+            <button onclick="document.getElementById('cart-drawer').classList.toggle('translate-x-full')"
+                    class="btn-gold flex-1 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Sepetim</span>
+                <span class="badge" id="cart-count-bottom">0</span>
             </button>
         </div>
     </div>
 
-    <!-- Waiter Note Modal -->
-    <div id="waiter-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-        <div class="modal p-6 w-full max-w-sm">
-            <h3 class="text-xl font-bold mb-4" style="color: #d4af37;">Garson Çağır</h3>
-            
-            <textarea id="waiter-note" placeholder="Size nasıl yardımcı olabiliriz?" 
-                      class="w-full rounded px-3 py-2 mb-4 focus:outline-none text-sm"
-                      style="background: #1a1a1a; border: 2px solid #d4af37; color: #e8d5b7;"></textarea>
+    <!-- ===== CART DRAWER ===== -->
+    <div id="cart-drawer" class="cart-drawer fixed right-0 top-0 h-full w-full sm:w-96 z-50 translate-x-full transition-transform duration-300 flex flex-col">
+        <div style="background:#1a1a1a;border-bottom:2px solid #d4af37;" class="px-4 py-3.5 flex justify-between items-center flex-shrink-0">
+            <h2 class="font-bold text-base" style="color:#d4af37;">
+                <i class="fas fa-shopping-cart mr-2 text-sm"></i>Sepetim
+            </h2>
+            <button onclick="document.getElementById('cart-drawer').classList.add('translate-x-full')"
+                    class="w-8 h-8 rounded-full flex items-center justify-center text-lg"
+                    style="background:#2a2a2a;color:#d4af37;">&times;</button>
+        </div>
 
-            <div class="flex gap-3">
-                <button onclick="closeWaiterModal()" class="flex-1 py-2 rounded transition"
-                        style="background: #2a2a2a; color: #c0c0c0; border: 2px solid #c0c0c0;">
-                    İptal Et
+        <div class="flex-1 overflow-y-auto px-3 py-3" id="cart-items">
+            <p class="text-center py-10 text-sm" style="color:#555;">Sepetiniz boş</p>
+        </div>
+
+        <div style="border-top:2px solid #2a2a2a;" class="p-3 space-y-2.5 flex-shrink-0">
+            <div class="flex justify-between items-center font-bold">
+                <span class="text-sm" style="color:#aaa;">Toplam</span>
+                <span class="price text-base" id="cart-total">0.00 ₺</span>
+            </div>
+            <textarea id="order-note" placeholder="Sipariş notu..." rows="2"
+                      class="w-full rounded-xl px-3 py-2 text-xs focus:outline-none resize-none"
+                      style="background:#0a0a0a;border:1px solid #2a2a2a;color:#e8d5b7;"></textarea>
+            <button onclick="checkout()" class="w-full py-3 btn-gold rounded-xl font-bold text-sm">
+                <i class="fas fa-check mr-2"></i>Siparişi Tamamla
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== WAITER MODAL ===== -->
+    <div id="waiter-modal">
+        <div class="modal-box p-5">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                     style="background:rgba(212,175,55,0.12);">
+                    <i class="fas fa-bell text-sm" style="color:#d4af37;"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm" style="color:#d4af37;">Garson Çağır</h3>
+                    @if($tableNo)
+                        <p class="text-xs" style="color:#666;">Masa {{ $tableNo }}</p>
+                    @endif
+                </div>
+            </div>
+            <textarea id="waiter-note" placeholder="Not eklemek ister misiniz? (isteğe bağlı)"
+                      rows="3"
+                      class="w-full rounded-xl px-3 py-2 mb-3 focus:outline-none text-xs resize-none"
+                      style="background:#0a0a0a;border:1px solid #333;color:#e8d5b7;"></textarea>
+            <div class="flex gap-2.5">
+                <button onclick="closeWaiterModal()"
+                        class="flex-1 py-2.5 rounded-xl text-xs font-semibold"
+                        style="background:#1a1a1a;color:#666;border:1px solid #2a2a2a;">
+                    İptal
                 </button>
-                <button onclick="submitWaiterCall({{ $tableNo }})" class="flex-1 py-2 btn-primary font-bold">
-                    Çağır
+                <button onclick="submitWaiterCall()"
+                        class="flex-1 py-2.5 btn-gold rounded-xl font-bold text-xs">
+                    <i class="fas fa-bell mr-1"></i> Çağır
                 </button>
             </div>
         </div>
@@ -233,14 +365,53 @@
 
     <script>
         let cart = {};
+        let clickLock = false;
 
-        function addToCart(productId, name, price) {
+        /* ---- Category tab scroll ---- */
+        function scrollToCategory(sectionId, tabEl) {
+            document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+            tabEl.classList.add('active');
+            tabEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            const el = document.getElementById(sectionId);
+            if (!el) return;
+            const headerH = document.querySelector('.app-header').offsetHeight;
+            const navH = document.querySelector('.cat-nav').offsetHeight;
+            const top = el.getBoundingClientRect().top + window.scrollY - headerH - navH - 8;
+            clickLock = true;
+            window.scrollTo({ top, behavior: 'smooth' });
+            setTimeout(() => { clickLock = false; }, 900);
+        }
+
+        /* ---- Active tab on scroll ---- */
+        const sections = document.querySelectorAll('section[id^="cat-"]');
+        const tabs = document.querySelectorAll('.cat-tab');
+        const observer = new IntersectionObserver((entries) => {
+            if (clickLock) return;
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const idx = Array.from(sections).indexOf(entry.target);
+                    tabs.forEach(t => t.classList.remove('active'));
+                    if (tabs[idx]) {
+                        tabs[idx].classList.add('active');
+                        tabs[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    }
+                }
+            });
+        }, { rootMargin: '-25% 0px -65% 0px' });
+        sections.forEach(s => observer.observe(s));
+
+        /* ---- Cart ---- */
+        function addToCart(productId, name, price, btn) {
             if (cart[productId]) {
                 cart[productId].quantity++;
             } else {
                 cart[productId] = { name, price, quantity: 1 };
             }
             updateCart();
+            if (btn) {
+                btn.style.transform = 'scale(0.8)';
+                setTimeout(() => btn.style.transform = '', 180);
+            }
         }
 
         function removeFromCart(productId) {
@@ -249,57 +420,52 @@
         }
 
         function updateQuantity(productId, quantity) {
-            if (quantity <= 0) {
-                removeFromCart(productId);
-            } else {
-                cart[productId].quantity = quantity;
-                updateCart();
-            }
+            if (quantity <= 0) { removeFromCart(productId); }
+            else { cart[productId].quantity = quantity; updateCart(); }
         }
 
         function updateCart() {
-            const cartCount = Object.keys(cart).length;
-            document.getElementById('cart-count').textContent = cartCount;
+            const count = Object.values(cart).reduce((s, i) => s + i.quantity, 0);
+            document.getElementById('cart-count').textContent = count;
+            document.getElementById('cart-count-bottom').textContent = count;
 
-            const cartItemsHtml = Object.entries(cart).map(([id, item]) => `
-                <div class="flex items-center justify-between bg-primary border border-gold/20 rounded p-3 mb-3">
-                    <div class="flex-1">
-                        <p class="font-semibold text-gold">${item.name}</p>
-                        <p class="text-sm text-gray-400">${item.price.toFixed(2)} ₺ adet</p>
+            const html = Object.entries(cart).map(([id, item]) => `
+                <div class="flex items-center gap-2 rounded-xl p-2.5 mb-2" style="background:#1a1a1a;border:1px solid #222;">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-semibold truncate" style="color:#e8d5b7;">${item.name}</p>
+                        <p class="text-xs" style="color:#888;">${(item.price * item.quantity).toFixed(2)} ₺</p>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="updateQuantity(${id}, ${item.quantity - 1})" class="px-2 py-1 bg-gold/20 hover:bg-gold/30 text-gold rounded text-sm">−</button>
-                        <span class="w-6 text-center text-gold font-bold">${item.quantity}</span>
-                        <button onclick="updateQuantity(${id}, ${item.quantity + 1})" class="px-2 py-1 bg-gold/20 hover:bg-gold/30 text-gold rounded text-sm">+</button>
-                        <button onclick="removeFromCart(${id})" class="ml-2 px-2 py-1 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded text-sm">✕</button>
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        <button onclick="updateQuantity(${id},${item.quantity-1})"
+                                class="w-6 h-6 rounded-lg text-xs font-bold flex items-center justify-center"
+                                style="background:#222;color:#d4af37;">−</button>
+                        <span class="w-5 text-center text-xs font-bold" style="color:#d4af37;">${item.quantity}</span>
+                        <button onclick="updateQuantity(${id},${item.quantity+1})"
+                                class="w-6 h-6 rounded-lg text-xs font-bold flex items-center justify-center"
+                                style="background:#222;color:#d4af37;">+</button>
+                        <button onclick="removeFromCart(${id})"
+                                class="w-6 h-6 rounded-lg text-xs flex items-center justify-center ml-0.5"
+                                style="background:rgba(239,68,68,0.12);color:#f87171;">✕</button>
                     </div>
                 </div>
             `).join('');
 
-            if (cartCount === 0) {
-                document.getElementById('cart-items').innerHTML = '<p class="text-gray-400 text-center py-8">Sepetiniz boş</p>';
-            } else {
-                document.getElementById('cart-items').innerHTML = cartItemsHtml;
-            }
+            document.getElementById('cart-items').innerHTML = count === 0
+                ? '<p class="text-center py-10 text-sm" style="color:#555;">Sepetiniz boş</p>'
+                : html;
 
-            const total = Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            document.getElementById('cart-total').textContent = `${total.toFixed(2)} ₺`;
+            const total = Object.values(cart).reduce((s, i) => s + i.price * i.quantity, 0);
+            document.getElementById('cart-total').textContent = total.toFixed(2) + ' ₺';
         }
 
         function checkout() {
             if (Object.keys(cart).length === 0) {
-                alert('Sepetiniz boş');
+                showToast('Sepetiniz boş.');
                 return;
             }
-
-            const items = Object.entries(cart).map(([id, item]) => ({
-                id: parseInt(id),
-                quantity: item.quantity
-            }));
-
-            const total = Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const items = Object.entries(cart).map(([id, item]) => ({ id: parseInt(id), quantity: item.quantity }));
+            const total = Object.values(cart).reduce((s, i) => s + i.price * i.quantity, 0);
             const note = document.getElementById('order-note').value;
-
             const form = document.createElement('form');
             form.method = 'POST';
             @if($tableNo)
@@ -307,52 +473,62 @@
             @else
                 form.action = '{{ route("order.place.public") }}';
             @endif
-            form.innerHTML = `
-                @csrf
+            form.innerHTML = `@csrf
                 <input type="hidden" name="items" value='${JSON.stringify(items)}'>
                 <input type="hidden" name="total_price" value="${total}">
-                <input type="hidden" name="order_note" value="${note}">
-            `;
+                <input type="hidden" name="order_note" value="${note}">`;
             document.body.appendChild(form);
             form.submit();
         }
 
+        /* ---- Waiter ---- */
         function showWaiterNote() {
-            document.getElementById('waiter-modal').classList.remove('hidden');
+            document.getElementById('waiter-modal').style.display = 'flex';
         }
-
         function closeWaiterModal() {
-            document.getElementById('waiter-modal').classList.add('hidden');
+            document.getElementById('waiter-modal').style.display = 'none';
             document.getElementById('waiter-note').value = '';
         }
-
-        function submitWaiterCall(tableNo) {
+        function submitWaiterCall() {
             const note = document.getElementById('waiter-note').value;
-
-            let url;
             @if($tableNo)
-                url = `{{ route('waiter.call', ['tableNo' => $tableNo]) }}`;
+                const url = `{{ route('waiter.call', ['tableNo' => $tableNo]) }}`;
             @else
-                url = `{{ route('waiter.call.public') }}`;
+                const url = `{{ route('waiter.call.public') }}`;
             @endif
-
             fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                 body: JSON.stringify({ note })
             })
-            .then(response => response.json())
+            .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    alert('Garson çağrıldı! En kısa sürede yanınızda olacak.');
                     closeWaiterModal();
+                    showToast('Garson çağrıldı! En kısa sürede yanınızda olacak.');
                 }
             })
-            .catch(error => console.error('Error:', error));
+            .catch(err => console.error(err));
         }
+
+        /* ---- Toast ---- */
+        function showToast(msg) {
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        /* ---- Close cart on backdrop click ---- */
+        document.addEventListener('click', (e) => {
+            const drawer = document.getElementById('cart-drawer');
+            if (!drawer.classList.contains('translate-x-full') &&
+                !drawer.contains(e.target) &&
+                !e.target.closest('[onclick*="cart-drawer"]')) {
+                drawer.classList.add('translate-x-full');
+            }
+        });
     </script>
 </body>
 </html>

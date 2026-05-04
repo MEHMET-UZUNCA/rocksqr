@@ -167,10 +167,16 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const tab = btn.dataset.tab;
         document.querySelectorAll('.tab-btn').forEach(b => {
-            b.classList.remove('active-tab', 'border-sky-600', 'text-sky-700', 'bg-sky-50');
+            b.classList.remove('active-tab',
+                'border-sky-600', 'text-sky-700', 'bg-sky-50',
+                'border-teal-600', 'text-teal-700', 'bg-teal-50');
             b.classList.add('border-transparent', 'text-gray-500');
         });
-        btn.classList.add('active-tab', 'border-sky-600', 'text-sky-700', 'bg-sky-50');
+        const colorMap = {
+            akds: ['border-teal-600', 'text-teal-700', 'bg-teal-50'],
+        };
+        const colors = colorMap[tab] ?? ['border-sky-600', 'text-sky-700', 'bg-sky-50'];
+        btn.classList.add('active-tab', ...colors);
         btn.classList.remove('border-transparent', 'text-gray-500');
         document.querySelectorAll('.tab-pane').forEach(p => {
             p.classList.toggle('hidden', p.dataset.section !== tab);
@@ -317,6 +323,8 @@ function closePreviewModal() {
 function escapeHtml(s) {
     return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 }
+
+
 </script>
 @endsection
 

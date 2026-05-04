@@ -88,6 +88,10 @@
                 class="px-3 py-1 bg-sky-600 text-white text-xs font-bold rounded-lg hover:bg-sky-700 transition">
                 <i class="fas fa-edit mr-1"></i> Seçilenleri Düzenle
             </button>
+            <button onclick="confirmBulkDelete()"
+                class="px-3 py-1 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition">
+                <i class="fas fa-trash mr-1"></i> Seçilenleri Sil
+            </button>
             <button onclick="clearSelection()"
                 class="px-3 py-1 bg-gray-400 text-white text-xs font-bold rounded-lg hover:bg-gray-500 transition">
                 <i class="fas fa-times mr-1"></i> Seçimi Kaldır
@@ -277,6 +281,9 @@
             <span class="text-xs text-gray-500 ml-2">Sadece <strong>Yeni</strong> ve <strong>Değişecek</strong> kayıtlar varsayılan olarak işaretli gelir.</span>
         </div>
         <div class="p-4 overflow-y-auto flex-1" id="symphony-content"></div>
+        <div id="symphony-error-bar" class="hidden px-6 py-2.5 bg-red-50 border-t border-red-200 text-red-700 text-sm font-semibold">
+            <i class="fas fa-exclamation-triangle mr-1"></i> <span id="symphony-error-text"></span>
+        </div>
         <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center bg-gray-50">
             <p class="text-sm text-gray-600 font-medium" id="symphony-selected-count">0 ürün seçildi</p>
             <div class="flex gap-3">
@@ -378,9 +385,9 @@ function openSymphonyImport() {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Çekiliyor...';
 
-    fetch('/admin/sync/symphony-fetch', {
+    fetch('{{ route("admin.sync.symphony-fetch") }}', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken }
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
     })
     .then(r => r.json())
     .then(data => {
@@ -524,35 +531,53 @@ function symphonySelectAll(checked) {
     updateSelectedCount();
 }
 
+function showSymphonyError(msg) {
+    const bar = document.getElementById('symphony-error-bar');
+    const txt = document.getElementById('symphony-error-text');
+    txt.textContent = msg;
+    bar.classList.remove('hidden');
+}
+
+function hideSymphonyError() {
+    document.getElementById('symphony-error-bar').classList.add('hidden');
+}
+
 function importSelected() {
     const items = Array.from(document.querySelectorAll('.item-check:checked'))
         .map(cb => symphonyItemsMap[cb.dataset.itemKey])
         .filter(Boolean);
     if (items.length === 0) return;
 
+    hideSymphonyError();
     const btn = document.getElementById('btn-import-selected');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> İçe Aktarılıyor...';
 
-    fetch('/admin/sync/symphony-import', {
+    fetch('{{ route("admin.sync.symphony-import") }}', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json',
+        },
         body: JSON.stringify({ items })
     })
     .then(r => r.json())
     .then(data => {
-        closeSymphonyModal();
         if (data.success) {
+            closeSymphonyModal();
             showMsg('success', data.message);
             setTimeout(() => location.reload(), 1800);
         } else {
-            showMsg('error', data.message || 'İçe aktarma hatası.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-download mr-1"></i> Seçilenleri İçe Aktar';
+            showSymphonyError(data.message || 'İçe aktarma başarısız.');
         }
     })
     .catch(err => {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-download mr-1"></i> Seçilenleri İçe Aktar';
-        showMsg('error', 'Hata: ' + err.message);
+        showSymphonyError('Sunucu bağlantı hatası: ' + err.message);
     });
 }
 
@@ -995,5 +1020,69 @@ function applyMssqlChanges() {
         });
     }).catch(err => showMsg('error', 'MSSQL guncelleme hatasi: ' + err.message));
 }
+
+// ─── Toplu Silme ─────────────────────────────────────────────────────────────
+
+function confirmBulkDelete() {
+    const ids = Array.from(document.querySelectorAll('#sync-table .row-check:checked')).map(cb => cb.value);
+    if (ids.length === 0) return;
+    document.getElementById('delete-count').textContent = ids.length;
+    document.getElementById('bulk-delete-modal').classList.remove('hidden');
+}
+
+function closeBulkDeleteModal() {
+    document.getElementById('bulk-delete-modal').classList.add('hidden');
+}
+
+function executeBulkDelete() {
+    const ids = Array.from(document.querySelectorAll('#sync-table .row-check:checked')).map(cb => parseInt(cb.value));
+    closeBulkDeleteModal();
+
+    fetch('{{ route("admin.sync.bulk-delete") }}', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+        body: JSON.stringify({ ids })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) { showMsg('error', data.message || 'Silme başarısız.'); return; }
+        ids.forEach(id => {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            if (row) row.remove();
+        });
+        clearSelection();
+        showMsg('success', `${data.deleted} ürün silindi.`);
+    })
+    .catch(err => showMsg('error', 'Silme hatası: ' + err.message));
+}
 </script>
+
+{{-- Toplu Silme Onay Modalı --}}
+<div id="bulk-delete-modal" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <i class="fas fa-trash text-red-600"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-gray-900 text-base">Ürünleri Sil</h3>
+                <p class="text-sm text-gray-500"><span id="delete-count">0</span> ürün kalıcı olarak silinecek.</p>
+            </div>
+        </div>
+        <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-5">
+            <i class="fas fa-exclamation-triangle mr-1"></i> Bu işlem geri alınamaz.
+        </p>
+        <div class="flex gap-3">
+            <button onclick="closeBulkDeleteModal()"
+                    class="flex-1 py-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">
+                İptal
+            </button>
+            <button onclick="executeBulkDelete()"
+                    class="flex-1 py-2 rounded-lg bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition">
+                <i class="fas fa-trash mr-1"></i> Evet, Sil
+            </button>
+        </div>
+    </div>
+</div>
+
 @endsection

@@ -1,5 +1,39 @@
 
 
+## v1.0.88 - 2026-05-04
+
+### Admin: Ürünler ve Kategoriler sayfa iyileştirmeleri
+- **Ürünler** sayfasına filtre bar eklendi: metin arama (ad / product code), kategori dropdown (otomatik filtrele), sayfa başına seçici (20/50/100/200/500/Tümü — otomatik filtrele).
+- Tüm kolon başlıkları tıklanabilir sıralama desteği kazandı (N, #, Product Code, Ürün Adı, Kategori, Fiyat, Aktif/Pasif).
+- Global satır numarası sütunu (N) ve kategori içi sıra numarası sütunu (#, amber badge) eklendi.
+- **Sıralama Düzenle** modalı eklendi: SortableJS sürükle-bırak, kategoriye göre gruplu, pozisyon numaraları anlık güncelleniyor.
+- **Toplu Seç / Sil**: checkbox, seçim çubuğu, onay modalı — `sync/bulk-delete` endpoint kullanıyor.
+- **Toplu Güncelle**: satır içi düzenleme (ad, kategori, fiyat), önizleme modalı, `sync/bulk-update` endpoint.
+- **Kategoriler** sayfasına filtre bar eklendi: metin arama, sayfa başına seçici, tıklanabilir kolon başlıkları (Ad, Ürün Sayısı, Sıra, Durum), global satır numarası.
+- Her iki sayfada da seçici elemanlar (`per_page`, `category`) değişince form otomatik gönderiliyor.
+
+### Symphony Import düzeltmesi
+- `Product::withTrashed()` eksikliği: soft-delete ürünü yeniden içe aktarırken `UNIQUE` kısıtlaması patlıyordu — restore akışı eklendi.
+- `Accept: application/json` header eksikliği: sunucu hatalarında JSON yerine HTML geliyordu, `.json()` parse hatası modal yerine konsola düşüyordu — modal içi hata çubuğu eklendi.
+- `showSymphonyError()` / `hideSymphonyError()` fonksiyonları eklendi.
+
+### Soft-delete + UNIQUE kısıtlaması düzeltmesi
+- `AdminCategoryController::store()`: `Rule::unique()->whereNull('deleted_at')` ile doğrulama; aynı isimli soft-deleted kategori varsa otomatik restore + güncelle.
+- `AdminCategoryController::update()`: `Rule::unique()->ignore()->whereNull('deleted_at')` + slug üretiminde `withTrashed()` kontrolü.
+- `AdminProductController::store/update()`: `mssql_id` için `Rule::unique()->whereNull('deleted_at')` (store) ve `->ignore()` (update).
+- `SyncController::symphonyImport()`: kategori oluşturmada `withTrashed()` + `try/catch QueryException 1062` fallback.
+
+### Müşteri QR menü yeniden tasarımı
+- Mobil öncelikli tam sayfa yeniden yazım: yapışkan kategori sekmeleri, ürün kartları, kompakt header.
+- `lang="tr"`, `maximum-scale=1.0`, alt navigation bar, kaydırma gizleme, placeholder görsel desteği.
+
+### Diğer
+- `SettingsController::resolvePasswordKey()`: `akds` şifre anahtarı eklendi.
+- MSSQL ayarlar sayfası AKDS sekmesi renk paleti (teal) eklendi.
+- `routes/web.php`: `products/for-reorder`, `products/reorder`, `sync/bulk-delete` route'ları eklendi.
+
+---
+
 ## v1.0.87 - 2026-05-02
 
 ### Refactor: KitchenController 3 ayrı controller + MssqlService + MapsOrders trait

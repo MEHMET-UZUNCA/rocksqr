@@ -464,8 +464,9 @@ class SettingsController extends Controller
     private function resolvePasswordKey(string $section): string
     {
         return match ($section) {
-            'kds' => 'mssql_kds_password',
-            'bds' => 'mssql_bds_password',
+            'kds'  => 'mssql_kds_password',
+            'bds'  => 'mssql_bds_password',
+            'akds' => 'mssql_akds_password',
             default => 'mssql_password',
         };
     }

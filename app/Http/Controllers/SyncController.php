@@ -53,6 +53,18 @@ class SyncController extends Controller
         ]);
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'ids'   => 'required|array|min:1|max:200',
+            'ids.*' => 'integer|exists:products,id',
+        ]);
+
+        $deleted = Product::whereIn('id', $request->ids)->delete();
+
+        return response()->json(['success' => true, 'deleted' => $deleted]);
+    }
+
     public function bulkUpdate(Request $request)
     {
         $request->validate([
@@ -453,36 +465,61 @@ class SyncController extends Controller
         $updatedProducts   = 0;
         $createdCategories = 0;
         $categoryCache     = [];
+        $categorySort      = [];
 
+        try {
         foreach ($request->items as $item) {
             $groupName = trim($item['family_group']);
 
             if (!isset($categoryCache[$groupName])) {
-                $category = Category::withTrashed()->whereRaw('LOWER(TRIM(name)) = ?', [strtolower($groupName)])->first();
+                // MySQL UNIQUE ignores soft-delete — exact + case-insensitive lookup, both withTrashed
+                $category = Category::withTrashed()->where('name', $groupName)->first()
+                    ?? Category::withTrashed()->whereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($groupName))])->first();
+
                 if ($category) {
                     if ($category->trashed()) $category->restore();
                 } else {
-                    $baseSlug = Str::slug($groupName);
-                    $slug     = $baseSlug ?: 'kategori-' . uniqid();
+                    $baseSlug = Str::slug($groupName) ?: 'kategori-' . uniqid();
+                    $slug     = $baseSlug;
                     $suffix   = 1;
-                    while (Category::where('slug', $slug)->exists()) {
+                    // slug kontrolü de withTrashed — slug UNIQUE kısıtlı
+                    while (Category::withTrashed()->where('slug', $slug)->exists()) {
                         $slug = $baseSlug . '-' . $suffix++;
                     }
-                    $category = Category::create([
-                        'name'       => $groupName,
-                        'slug'       => $slug,
-                        'is_active'  => true,
-                        'sort_order' => 0,
-                    ]);
-                    $createdCategories++;
+                    try {
+                        $category = Category::create([
+                            'name'       => $groupName,
+                            'slug'       => $slug,
+                            'is_active'  => true,
+                            'sort_order' => 0,
+                        ]);
+                        $createdCategories++;
+                    } catch (\Illuminate\Database\QueryException $e) {
+                        if ((int) ($e->errorInfo[1] ?? 0) !== 1062) throw $e;
+                        // Unique ihlali — son kez tüm yollarla ara ve restore et
+                        $category = Category::withTrashed()->where('name', $groupName)->first()
+                            ?? Category::withTrashed()->where('slug', $slug)->first();
+                        if (!$category) throw $e;
+                        if ($category->trashed()) $category->restore();
+                    }
                 }
                 $categoryCache[$groupName] = $category->id;
             }
 
             $categoryId = $categoryCache[$groupName];
-            $existing   = Product::where('mssql_id', $item['mssql_id'])->first();
+
+            if (!isset($categorySort[$groupName])) {
+                $categorySort[$groupName] = 0;
+            }
+            $importSortOrder = $categorySort[$groupName]++ * 10;
+
+            // withTrashed: mssql_id UNIQUE kısıtlı — soft-deleted kayıt varsa unique constraint patlar
+            $existing = Product::withTrashed()->where('mssql_id', $item['mssql_id'])->first();
 
             if ($existing) {
+                if ($existing->trashed()) {
+                    $existing->restore();
+                }
                 $existing->update([
                     'name'        => $item['name'],
                     'price'       => $item['price'],
@@ -496,10 +533,17 @@ class SyncController extends Controller
                     'mssql_id'     => $item['mssql_id'],
                     'category_id'  => $categoryId,
                     'is_available' => true,
-                    'sort_order'   => 0,
+                    'sort_order'   => $importSortOrder,
                 ]);
                 $createdProducts++;
             }
+        }
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'İçe aktarma hatası: ' . $e->getMessage(),
+            ], 500);
         }
 
         return response()->json([

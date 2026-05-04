@@ -69,6 +69,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     })->name('dashboard');
 
     Route::resource('categories', AdminCategoryController::class)->except(['show']);
+    Route::get('products/for-reorder', [AdminProductController::class, 'forReorder'])->name('products.for-reorder');
+    Route::post('products/reorder', [AdminProductController::class, 'reorder'])->name('products.reorder');
     Route::resource('products', AdminProductController::class)->except(['show']);
     Route::patch('products/{product}/toggle', [AdminProductController::class, 'toggle'])->name('products.toggle');
 
@@ -82,11 +84,13 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('mssql-settings/test', [SettingsController::class, 'mssqlTest'])->name('mssql-settings.test');
     Route::post('mssql-settings/preview', [SettingsController::class, 'mssqlPreview'])->name('mssql-settings.preview');
 
+
     // Sync
     Route::get('sync', [SyncController::class, 'index'])->name('sync');
     Route::patch('sync/mssql/{product}', [SyncController::class, 'updateMssqlId'])->name('sync.mssql');
     Route::post('sync/preview', [SyncController::class, 'previewBulk'])->name('sync.preview');
     Route::post('sync/bulk-update', [SyncController::class, 'bulkUpdate'])->name('sync.bulk');
+    Route::delete('sync/bulk-delete', [SyncController::class, 'bulkDelete'])->name('sync.bulk-delete');
     Route::post('sync/fetch-mssql', [SyncController::class, 'fetchMssql'])->name('sync.fetch-mssql');
     Route::post('sync/apply-mssql', [SyncController::class, 'applyMssql'])->name('sync.apply-mssql');
     Route::post('sync/symphony-fetch', [SyncController::class, 'symphonyFetch'])->name('sync.symphony-fetch');
