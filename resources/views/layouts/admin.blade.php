@@ -73,6 +73,9 @@
                 <a href="{{ route('admin.mssql-settings') }}" class="hover:text-gold transition">
                     <i class="fas fa-server mr-1"></i> MSSQL
                 </a>
+                <a href="{{ route('admin.reports.kitchen') }}" class="hover:text-gold transition">
+                    <i class="fas fa-chart-line mr-1"></i> Raporlar
+                </a>
                 <a href="{{ route('admin.settings') }}" class="hover:text-gold transition">
                     <i class="fas fa-cog mr-1"></i> Ayarlar
                 </a>

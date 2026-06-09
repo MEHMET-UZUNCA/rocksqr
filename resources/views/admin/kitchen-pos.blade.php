@@ -30,6 +30,10 @@
         .msg-flash { animation: flash 1.2s ease-in-out infinite; }
         @keyframes pulse-qr { 0%,100% { border-color: #a855f7; box-shadow: 0 0 0 0 rgba(168,85,247,0.4);} 50% { border-color: #d946ef; box-shadow: 0 0 0 6px rgba(168,85,247,0);} }
         .qr-card { animation: pulse-qr 2s ease-in-out infinite; }
+        @keyframes kpos-chip-marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        #kpos-ticker-inner { display: flex; align-items: stretch; gap: 6px; flex-wrap: nowrap; }
+        .kpos-chip-text { display: inline-block; white-space: nowrap; will-change: transform; line-height: 1.2; }
+        #kpos-completed-bar ::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="bg-gray-900 font-poppins text-white min-h-screen">
@@ -66,7 +70,7 @@
         </div>
     </header>
 
-    <main class="p-2">
+    <main class="p-2" style="padding-bottom:60px">
         <!-- Checksiz Mutfak Mesajları -->
         <div id="checkless-section" class="hidden mb-6">
             <h2 class="text-lg font-semibold text-yellow-400 mb-3 flex items-center gap-2">
@@ -87,25 +91,50 @@
             <p class="text-gray-500 mt-2">Symphony POS'tan yeni siparisler otomatik gorunecek.</p>
         </div>
 
-        <!-- Tamamlananlar -->
-        <div id="completed-section" class="hidden mt-8 border-t border-gray-700 pt-6">
-            <h2 class="text-lg font-semibold text-emerald-400 mb-3 flex items-center gap-2">
-                <i class="fas fa-check-double"></i>
-                Son Tamamlananlar
-                <span id="completed-limit-badge" class="text-xs bg-gray-700 px-2 py-0.5 rounded-full text-gray-400"></span>
-            </h2>
-            <div id="completed-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 opacity-80"></div>
-        </div>
+        <!-- Son tamamlananlar artık sabit alt şeritte gösteriliyor -->
 
         <div id="error-box" class="hidden mt-6 p-4 bg-red-900/40 border border-red-500/60 rounded-lg text-red-300">
             <i class="fas fa-exclamation-triangle mr-2"></i><span id="error-msg"></span>
         </div>
     </main>
 
+    <!-- Son Tamamlananlar: sabit alt şerit (2 satır kart) -->
+    <div id="kpos-completed-bar" class="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 px-2 py-1" style="z-index:50">
+        <div class="flex items-start gap-2">
+            <div class="flex flex-col items-center justify-center shrink-0 border-r border-gray-700 pr-2 mr-0.5" style="min-width:42px">
+                <span class="text-emerald-400 font-bold text-[11px] leading-none">SON</span>
+                <span id="kpos-completed-limit" class="text-emerald-300 font-bold text-base leading-tight tabular-nums">—</span>
+            </div>
+            <div class="flex-1 overflow-x-auto" style="-webkit-overflow-scrolling:touch;scrollbar-width:none">
+                <div id="kpos-ticker-inner" class="h-full"><span class="text-gray-600 text-xs italic flex items-center h-full">Henüz tamamlanan yok.</span></div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let previousIds = [];
         let previousMsgKeys = [];
         let isFirstLoad = true;
+        let lastCompletedBarKey = '';
+
+        // ── Sayaç kalıcılığı (localStorage) ─────────────────────────────────
+        // API her 5sn'de DOM'u yeniden kursa da start time localStorage'da saklanır.
+        const LS_PREFIX = 'kpos_start_';
+
+        function getStartTime(groupKey, apiOrderTime) {
+            const lsKey = LS_PREFIX + groupKey;
+            const stored = localStorage.getItem(lsKey);
+            if (stored) return stored;
+            // İlk kez görüldü: API zamanı geçerliyse kullan, değilse şimdiki zaman
+            const t = apiOrderTime ? new Date(apiOrderTime.replace(' ', 'T')) : null;
+            const ts = (t && !isNaN(t.getTime())) ? apiOrderTime : new Date().toISOString();
+            localStorage.setItem(lsKey, ts);
+            return ts;
+        }
+
+        function clearStartTime(groupKey) {
+            localStorage.removeItem(LS_PREFIX + groupKey);
+        }
 
         function updateClock() {
             const now = new Date();
@@ -201,7 +230,9 @@
             if (order.source === 'qr') {
                 return buildQrOrderCard(order);
             }
-            const elapsed = elapsedSince(order.order_time);
+            const groupKey = order.check_number ? String(order.check_number) : ('T' + (order.table_no || ''));
+            const startTime = getStartTime(groupKey, order.order_time);
+            const elapsed = elapsedSince(startTime);
             const minTotal = elapsed ? Math.floor(elapsed / 60) : 0;
             const timeBg = minTotal > 15 ? 'bg-red-600' : minTotal > 10 ? 'bg-yellow-600' : 'bg-green-600';
             const isNew = elapsed != null && elapsed < 120;
@@ -284,6 +315,11 @@
             const allUnitIds = (order.items || []).flatMap(it =>
                 (it.unit_ids && it.unit_ids.length) ? it.unit_ids : (it.item_id ? [String(it.item_id)] : [])
             );
+            // Ürün isimleri → tamamlama sonrası alt şerit için localStorage'a yazılacak
+            const itemNamesList = (order.items || [])
+                .filter(it => !it.is_returned)
+                .map(it => `${it.name} x${it.qty}`)
+                .join(' · ');
 
             return `
             <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden">
@@ -298,7 +334,7 @@
                     </div>
                     <div class="flex items-center justify-between mt-0.5">
                         <span class="text-[11px] text-gray-400">${checkLabel}</span>
-                        <span class="elapsed-counter px-2 py-0.5 rounded text-xs ${timeBg}" data-order-time="${escapeHtml(order.order_time || '')}">${fmtElapsed(elapsed)}</span>
+                        <span class="elapsed-counter px-2 py-0.5 rounded text-xs ${timeBg}" data-order-time="${escapeHtml(startTime)}">${fmtElapsed(elapsed)}</span>
                     </div>
                     ${order.waiter_name ? `<div class="text-[11px] text-gray-300 mt-0.5"><i class="fas fa-user mr-1 text-gray-500"></i>${escapeHtml(order.waiter_name)}</div>` : ''}
                 </div>
@@ -306,10 +342,12 @@
                 ${messagesHtml}${marsHtml}
                 <div class="px-2 pt-1 pb-1 border-t border-gray-700">
                     <button data-complete-kind="check"
-                            data-complete-gk="${escapeHtml(order.check_number ? String(order.check_number) : ('T' + (order.table_no || '')))}"
+                            data-complete-gk="${escapeHtml(groupKey)}"
                             data-complete-cn="${escapeHtml(order.check_number ? String(order.check_number) : '')}"
                             data-complete-tno="${escapeHtml(String(order.table_no || ''))}"
                             data-complete-items="${escapeHtml(JSON.stringify(allUnitIds))}"
+                            data-complete-start="${escapeHtml(startTime)}"
+                            data-complete-names="${escapeHtml(itemNamesList)}"
                             onclick="completeOrderFromBtn(this)"
                             class="w-full py-0.5 bg-emerald-600 hover:bg-emerald-700 rounded text-[11px] font-bold text-white">
                         <i class="fas fa-check-circle mr-0.5"></i>Onayla → Servis
@@ -319,7 +357,9 @@
         }
 
         function buildQrOrderCard(order) {
-            const elapsed = elapsedSince(order.order_time);
+            const groupKey = 'Q' + order.qr_order_id;
+            const startTime = getStartTime(groupKey, order.order_time);
+            const elapsed = elapsedSince(startTime);
             const minTotal = elapsed ? Math.floor(elapsed / 60) : 0;
             const timeBg = minTotal > 15 ? 'bg-red-600' : minTotal > 10 ? 'bg-yellow-600' : 'bg-green-600';
 
@@ -344,7 +384,7 @@
                         <span class="px-2 py-1 rounded text-xs font-bold bg-purple-700 text-white">QR #${order.qr_order_id}</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="elapsed-counter px-2 py-1 rounded text-xs ${timeBg}" data-order-time="${escapeHtml(order.order_time || '')}">${fmtElapsed(elapsed)}</span>
+                        <span class="elapsed-counter px-2 py-1 rounded text-xs ${timeBg}" data-order-time="${escapeHtml(startTime)}">${fmtElapsed(elapsed)}</span>
                     </div>
                 </div>
                 <div class="px-4 py-1 text-xs text-purple-300 border-b border-purple-800"><i class="fas fa-mobile-screen mr-1"></i>QR Menu siparişi</div>
@@ -429,8 +469,9 @@
         }
 
         function buildChecklessCard(msg) {
-            const elapsed = elapsedSince(msg.item_time);
             const groupKey = 'M' + (msg.item_id || '');
+            const startTime = getStartTime(groupKey, msg.item_time);
+            const elapsed = elapsedSince(startTime);
             const isMars = msg.line_kind === 'MARS';
             const borderColor = isMars ? 'border-orange-500/70' : 'border-yellow-500/70';
             const bgColor     = isMars ? 'bg-orange-950/40' : 'bg-yellow-900/30';
@@ -448,7 +489,7 @@
                     <span class="${textColor} font-bold">
                         <i class="fas ${icon} mr-1"></i>${title}
                     </span>
-                    <span class="elapsed-counter text-xs ${textColor}" data-order-time="${escapeHtml(msg.item_time || '')}">${fmtElapsed(elapsed)}</span>
+                    <span class="elapsed-counter text-xs ${textColor}" data-order-time="${escapeHtml(startTime)}">${fmtElapsed(elapsed)}</span>
                 </div>
                 <div class="text-white font-medium">${body}</div>
                 ${msg.rvc ? `<div class="text-xs text-gray-400 mt-1"><i class="fas fa-store mr-1"></i>${escapeHtml(msg.rvc)}</div>` : ''}
@@ -473,14 +514,21 @@
 
         function completeOrderFromBtn(btn) {
             const itemKeys = JSON.parse(btn.dataset.completeItems || '[]');
-            completeOrder(btn.dataset.completeKind, btn.dataset.completeGk, btn.dataset.completeCn, btn.dataset.completeTno, itemKeys);
+            const startTime = btn.dataset.completeStart || null;
+            const itemNames = btn.dataset.completeNames || '';
+            completeOrder(btn.dataset.completeKind, btn.dataset.completeGk, btn.dataset.completeCn, btn.dataset.completeTno, itemKeys, startTime, itemNames);
         }
 
-        function completeOrder(kind, groupKey, checkNumber, tableNo, itemKeys) {
+        function completeOrder(kind, groupKey, checkNumber, tableNo, itemKeys, startTime, itemNames) {
+            if (itemNames) localStorage.setItem('kpos_items_' + groupKey, itemNames);
             postJson('/kitchen-pos/complete', {
                 kind, group_key: groupKey, check_number: checkNumber, table_no: tableNo,
                 item_keys: itemKeys || [],
-            }).then(() => fetchOnce()).catch(e => console.error(e));
+                first_seen_at: startTime || null,
+            }).then(() => {
+                clearStartTime(groupKey);
+                fetchOnce();
+            }).catch(e => console.error(e));
         }
 
         function uncomplete(groupKey) {
@@ -491,7 +539,8 @@
 
         function confirmQr(orderId) {
             postJson('/kitchen-pos/qr/' + orderId + '/confirm', {}, 'PATCH')
-                .then(() => fetchOnce()).catch(e => console.error(e));
+                .then(() => { clearStartTime('Q' + orderId); fetchOnce(); })
+                .catch(e => console.error(e));
         }
 
         function undoQr(orderId) {
@@ -544,10 +593,7 @@
                 grid.innerHTML = orders.map(buildOrderCard).join('');
             }
 
-            // Tamamlananlar
-            const compSect = document.getElementById('completed-section');
-            const compGrid = document.getElementById('completed-grid');
-            const compBadge = document.getElementById('completed-limit-badge');
+            // Tamamlananlar → alt şerit
             const allCompleted = [...completed, ...completedMsgs, ...completedChecks]
                 .sort((a, b) => {
                     const ta = Date.parse(a.completed_at || 0) || 0;
@@ -555,13 +601,7 @@
                     return tb - ta;
                 })
                 .slice(0, completedLimit);
-            if (allCompleted.length > 0) {
-                compSect.classList.remove('hidden');
-                compBadge.textContent = `son ${completedLimit}`;
-                compGrid.innerHTML = allCompleted.map(buildCompletedOrderCard).join('');
-            } else {
-                compSect.classList.add('hidden');
-            }
+            renderCompletedBar(allCompleted, completedLimit);
 
             // Yeni sipariş sesi
             const ids = orders.map(o => o.source === 'qr' ? ('Q' + o.qr_order_id) : (o.check_number || ('T' + o.table_no)));
@@ -579,6 +619,91 @@
             previousIds = ids;
             previousMsgKeys = msgKeys;
             isFirstLoad = false;
+        }
+
+        function fmtPrep(secs) {
+            if (!secs) return '';
+            const m = Math.floor(secs / 60), s = secs % 60;
+            return m > 0 ? `${m} dk ${s} sn` : `${s} sn`;
+        }
+
+        function renderCompletedBar(allCompleted, limit) {
+            const inner = document.getElementById('kpos-ticker-inner');
+            const limitEl = document.getElementById('kpos-completed-limit');
+            if (limitEl && limit) limitEl.textContent = limit;
+            if (!inner) return;
+
+            // Aynı liste ise DOM'a dokunma → animasyon sıfırlanmasın
+            const newKey = (allCompleted || []).map(o => (o.group_key || '') + (o.completed_at || '')).join('|');
+            if (newKey === lastCompletedBarKey) return;
+            lastCompletedBarKey = newKey;
+
+            if (!allCompleted || allCompleted.length === 0) {
+                inner.innerHTML = '<span class="text-gray-600 text-xs italic pl-1">Henüz tamamlanan yok.</span>';
+                return;
+            }
+
+            inner.innerHTML = allCompleted.map(order => {
+                const tableLabel = order.table_no ? 'M' + escapeHtml(String(order.table_no)) : '—';
+                let borderCls, accentCls, badgeHtml, titleHtml, contentText, undoFn;
+
+                if (order.is_check) {
+                    borderCls  = 'border-blue-800';
+                    accentCls  = 'bg-blue-950/60';
+                    const chkLabel = order.check_number ? 'Chk #' + escapeHtml(String(order.check_number)) : 'Checksiz';
+                    badgeHtml  = `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-700 text-blue-100">SYM</span>`;
+                    titleHtml  = `<span class="font-bold text-blue-200 text-xs">${tableLabel}</span> ${badgeHtml} <span class="text-blue-300 text-[10px]">${chkLabel}</span>`;
+                    const storedItems = localStorage.getItem('kpos_items_' + (order.group_key || ''));
+                    const prep = fmtPrep(order.prep_seconds);
+                    contentText = storedItems || (prep ? `Hazırlık: ${prep}` : chkLabel);
+                    const gk = escapeHtml(order.group_key || '');
+                    undoFn = `uncomplete('${gk}')`;
+                } else if (order.is_message) {
+                    borderCls  = 'border-yellow-800';
+                    accentCls  = 'bg-yellow-950/60';
+                    badgeHtml  = `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-yellow-700 text-yellow-100">MSG</span>`;
+                    titleHtml  = `<span class="font-bold text-yellow-200 text-xs">${tableLabel}</span> ${badgeHtml}`;
+                    contentText = (order.qty > 1 ? `x${order.qty} ` : '') + (order.name || 'Mesaj') + (order.note ? ' — ' + order.note : '');
+                    const gk = escapeHtml(order.group_key || '');
+                    undoFn = `uncomplete('${gk}')`;
+                } else {
+                    borderCls  = 'border-purple-800';
+                    accentCls  = 'bg-purple-950/60';
+                    const qrId = order.qr_order_id || order.id || 0;
+                    badgeHtml  = `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-purple-700 text-purple-100">QR</span>`;
+                    titleHtml  = `<span class="font-bold text-purple-200 text-xs">${tableLabel}</span> ${badgeHtml} <span class="text-purple-300 text-[10px]">#${qrId}</span>`;
+                    contentText = (order.items || []).map(i => `${i.name||''} x${i.qty||1}`).join(' · ') || '—';
+                    undoFn = `undoQr(${Number(qrId)})`;
+                }
+
+                return `<div class="flex-shrink-0 border ${borderCls} rounded-lg overflow-hidden" style="min-width:150px;max-width:210px">
+                    <div class="${accentCls} px-2" style="padding-top:4px;padding-bottom:0">
+                        <div class="flex items-center gap-1 leading-none flex-wrap" style="margin-bottom:2px">${titleHtml}</div>
+                        <div class="overflow-hidden">
+                            <span class="kpos-chip-text text-[10px] text-gray-300" style="line-height:1.2">${escapeHtml(contentText)}</span>
+                        </div>
+                    </div>
+                    <div class="px-1.5" style="padding-top:2px;padding-bottom:3px">
+                        <button onclick="${undoFn}"
+                            class="w-full bg-amber-500 hover:bg-amber-600 active:bg-amber-700 rounded text-black font-bold text-[10px] transition" style="padding:1px 0;line-height:1.4">
+                            <i class="fas fa-undo mr-0.5"></i>Geri Al
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            // Her kart içeriği her zaman kayar; data-orig ile çift katlanmayı önle
+            requestAnimationFrame(() => {
+                inner.querySelectorAll('.kpos-chip-text').forEach(span => {
+                    const orig = (span.dataset.orig || span.textContent).trim();
+                    if (!orig) return;
+                    span.dataset.orig = orig;
+                    span.textContent = orig + '    ·    ' + orig;
+                    // 30px/sn hız, minimum 6 saniye
+                    const dur = Math.max(6, (span.scrollWidth / 2) / 30);
+                    span.style.animation = `kpos-chip-marquee ${dur}s linear infinite`;
+                });
+            });
         }
 
         function fetchOnce() {

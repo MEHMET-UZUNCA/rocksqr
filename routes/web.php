@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\AdminCategoryController;
 use App\Http\Controllers\AdminProductController;
+use App\Http\Controllers\AdminReportController;
 use App\Http\Controllers\KitchenController;
 use App\Http\Controllers\BarController;
 use App\Http\Controllers\SymphonyKdsController;
@@ -73,6 +74,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('products/reorder', [AdminProductController::class, 'reorder'])->name('products.reorder');
     Route::resource('products', AdminProductController::class)->except(['show']);
     Route::patch('products/{product}/toggle', [AdminProductController::class, 'toggle'])->name('products.toggle');
+
+    // Reports
+    Route::get('reports/kitchen', [AdminReportController::class, 'kitchen'])->name('reports.kitchen');
 
     // Settings
     Route::get('settings', [SettingsController::class, 'index'])->name('settings');

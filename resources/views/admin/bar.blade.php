@@ -125,6 +125,30 @@
         let _waiterCards = [];    // Shared top-bar state
         let _readyCards  = [];    // Shared top-bar state
 
+        // ── Sayaç kalıcılığı (kitchen-pos ile ortak localStorage) ───────────
+        // kitchen-pos ve bar ekranı aynı kpos_start_ anahtarını paylaşır,
+        // böylece Symphony hesapları her iki ekranda da aynı süreyi gösterir.
+        const LS_PREFIX = 'kpos_start_';
+
+        function getStartTime(groupKey, apiOrderTime) {
+            const lsKey = LS_PREFIX + groupKey;
+            const stored = localStorage.getItem(lsKey);
+            if (stored) return stored;
+            const t = apiOrderTime ? new Date(apiOrderTime.replace(' ', 'T')) : null;
+            const ts = (t && !isNaN(t.getTime())) ? apiOrderTime : new Date().toISOString();
+            localStorage.setItem(lsKey, ts);
+            return ts;
+        }
+
+        function clearStartTime(groupKey) {
+            localStorage.removeItem(LS_PREFIX + groupKey);
+        }
+
+        function symGroupKey(order) {
+            // Must match kitchen-pos.blade.php format: bare check_number (no prefix) or T+tableNo
+            return order.check_number ? String(order.check_number) : ('T' + (order.table_no || ''));
+        }
+
         function refreshTopBar() {
             const topBar = document.getElementById('top-bar');
             const grid   = document.getElementById('combined-grid');
@@ -379,7 +403,7 @@
                 body: JSON.stringify({ group_key: groupKey })
             })
             .then(r => r.json())
-            .then(() => fetchData())
+            .then(() => { clearStartTime(groupKey); fetchData(); })
             .catch(err => console.error(err));
         }
 
@@ -509,6 +533,9 @@
                 // Symphony için bar eşikleri (5/10 dk), QR için eski eşikler (10/15 dk)
                 const timeBg = timerBg(minTotal, isSymphony ? TIMER.sym : TIMER.qr);
 
+                const gk = isSymphony ? symGroupKey(order) : null;
+                const startTime = isSymphony ? getStartTime(gk, order.order_time) : (order.order_time || '');
+
                 let items = [];
                 try { items = Array.isArray(order.items) ? order.items : JSON.parse(order.items); }
                 catch(e) { items = []; }
@@ -571,7 +598,7 @@
                         </div>
                         <div class="flex items-center justify-between mt-0.5">
                             <span class="text-[11px] text-gray-400">${chkLabel}</span>
-                            <span class="bar-elapsed px-2 py-0.5 rounded text-sm font-bold ${timeBg}" data-order-time="${(order.order_time || '').replace(/['"<>&]/g, '')}" data-is-symphony="${isSymphony ? '1' : '0'}">${timeStr}</span>
+                            <span class="bar-elapsed px-2 py-0.5 rounded text-sm font-bold ${timeBg}" data-order-time="${startTime.replace(/['"<>&]/g, '')}" data-is-symphony="${isSymphony ? '1' : '0'}">${timeStr}</span>
                         </div>
                         ${isSymphony && order.waiter_name ? `<div class="text-[11px] text-gray-300 mt-0.5"><i class="fas fa-user mr-1 text-gray-500"></i>${order.waiter_name}</div>` : ''}
                     </div>

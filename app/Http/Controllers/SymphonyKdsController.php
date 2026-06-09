@@ -69,15 +69,16 @@ class SymphonyKdsController extends Controller
     public function kitchenPosComplete(Request $request)
     {
         $validated = $request->validate([
-            'kind'         => 'required|in:check,checkless_msg',
-            'group_key'    => 'required|string|max:64',
-            'check_number' => 'nullable|string|max:64',
-            'table_no'     => 'nullable|string|max:32',
-            'name'         => 'nullable|string|max:255',
-            'note'         => 'nullable|string|max:255',
-            'qty'          => 'nullable|integer|min:1|max:999',
-            'item_keys'    => 'nullable|array',
-            'item_keys.*'  => 'string|max:128',
+            'kind'          => 'required|in:check,checkless_msg',
+            'group_key'     => 'required|string|max:64',
+            'check_number'  => 'nullable|string|max:64',
+            'table_no'      => 'nullable|string|max:32',
+            'name'          => 'nullable|string|max:255',
+            'note'          => 'nullable|string|max:255',
+            'qty'           => 'nullable|integer|min:1|max:999',
+            'item_keys'     => 'nullable|array',
+            'item_keys.*'   => 'string|max:128',
+            'first_seen_at' => 'nullable|string|max:64',
         ]);
 
         $existing = DB::table('kitchen_pos_completions')->where('group_key', $validated['group_key'])->first();
@@ -86,6 +87,30 @@ class SymphonyKdsController extends Controller
             $existingKeys ?: [],
             array_filter($validated['item_keys'] ?? [], fn($k) => $k !== '')
         )));
+
+        // Hazırlık süresi: önce kitchen_item_times'dan first_seen_at bul
+        $firstSeenAt = null;
+        if (!empty($validated['check_number'])) {
+            $dbFirst = DB::table('kitchen_item_times')
+                ->where('check_number', $validated['check_number'])
+                ->min('first_seen_at');
+            if ($dbFirst) $firstSeenAt = $dbFirst;
+        }
+        // DB'de yoksa client'tan gelen zamanı kullan
+        if (!$firstSeenAt && !empty($validated['first_seen_at'])) {
+            try {
+                $parsed = \Carbon\Carbon::parse($validated['first_seen_at']);
+                if ($parsed->isPast()) {
+                    $firstSeenAt = $parsed->format('Y-m-d H:i:s');
+                }
+            } catch (\Exception) {}
+        }
+
+        $prepSeconds = $firstSeenAt
+            ? max(0, (int) now()->diffInSeconds(\Carbon\Carbon::parse($firstSeenAt)))
+            : null;
+
+        $completedAt = now();
 
         DB::table('kitchen_pos_completions')->updateOrInsert(
             ['group_key' => $validated['group_key']],
@@ -96,7 +121,9 @@ class SymphonyKdsController extends Controller
                 'name'             => $validated['name'] ?? null,
                 'note'             => $validated['note'] ?? null,
                 'qty'              => $validated['qty'] ?? 1,
-                'completed_at'     => now(),
+                'completed_at'     => $completedAt,
+                'first_seen_at'    => $firstSeenAt,
+                'prep_seconds'     => $prepSeconds,
                 'served_item_keys' => json_encode($newKeys),
             ]
         );
@@ -451,6 +478,7 @@ class SymphonyKdsController extends Controller
                     'name'         => $r->name,
                     'note'         => $r->note,
                     'qty'          => (int) ($r->qty ?? 1),
+                    'prep_seconds' => $r->prep_seconds,
                     'completed_at' => $r->completed_at,
                 ])->all();
 
@@ -464,6 +492,7 @@ class SymphonyKdsController extends Controller
                     'group_key'    => $r->group_key,
                     'table_no'     => $r->table_no,
                     'check_number' => $r->check_number,
+                    'prep_seconds' => $r->prep_seconds,
                     'completed_at' => $r->completed_at,
                 ])->all();
 
