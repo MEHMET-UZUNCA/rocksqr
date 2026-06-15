@@ -23,3 +23,4 @@ auth.json
 .env.*.local
 /composer-setup.php
 /composer.phar
+.claude/
