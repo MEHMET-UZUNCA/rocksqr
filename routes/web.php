@@ -13,9 +13,7 @@ use App\Http\Controllers\SyncController;
 use App\Http\Controllers\AdminQrController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [MenuController::class, 'index'])->name('home');
 
 Route::get('/menu', [MenuController::class, 'index'])->name('menu.index');
 Route::get('/table/{tableNo}', [MenuController::class, 'show'])->name('menu.table');
