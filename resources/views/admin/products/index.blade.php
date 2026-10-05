@@ -181,7 +181,7 @@
                                         <div class="w-12 h-12 rounded overflow-hidden bg-gray-100 flex items-center justify-center">
                                             <img src="{{ $product->photo_url }}"
                                                  alt="{{ $product->name }}"
-                                                 class="w-full h-full {{ $product->has_photo ? 'object-cover' : 'object-contain p-1' }}"
+                                                 class="w-full h-full object-cover"
                                                  onerror="this.src='{{ asset('images/product-placeholder.svg') }}';this.classList.remove('object-cover');this.classList.add('object-contain','p-1');">
                                         </div>
                                     </td>

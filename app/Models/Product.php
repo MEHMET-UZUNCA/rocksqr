@@ -41,7 +41,7 @@ class Product extends Model
         if ($this->photo_path) {
             return asset('storage/' . $this->photo_path);
         }
-        return asset('images/product-placeholder.svg');
+        return asset('images/product-default.webp');
     }
 
     public function getHasPhotoAttribute(): bool

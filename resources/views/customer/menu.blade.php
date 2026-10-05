@@ -397,12 +397,12 @@
                 @if(\App\Models\Setting::get('logo_svg'))
                     <div class="logo-wrap">{!! \App\Models\Setting::get('logo_svg') !!}</div>
                     <div class="border-l border-[#E3D5C3] pl-3">
-                        <div class="brand-sub">Oda Servisi Menü</div>
+                        <div class="brand-sub">Rocks Services QR</div>
                     </div>
                 @else
                     <div>
                         <div class="brand-title">ROCKS HOTEL</div>
-                        <div class="brand-sub">Oda Servisi Menü</div>
+                        <div class="brand-sub">Rocks Services QR</div>
                     </div>
                 @endif
             </div>
@@ -448,13 +448,13 @@
                         @foreach($category->activeProducts as $product)
                             @php $isHero = ! $heroRendered; @endphp
 
-                            @if($isHero)
+                            @if($isHero && $product->has_photo)
                             <!-- Hero product -->
                             <div class="hero-card">
                                 <div class="hero-img-wrap">
                                     <img src="{{ $product->photo_url }}"
                                          alt="{{ $product->name }}"
-                                         class="hero-img {{ $product->has_photo ? '' : 'placeholder' }}"
+                                         class="hero-img"
                                          onerror="this.src='{{ asset('images/product-placeholder.svg') }}';this.classList.add('placeholder');">
                                 </div>
                                 <div class="p-4">
@@ -479,7 +479,7 @@
                             <div class="menu-row p-3 flex gap-3">
                                 <img src="{{ $product->photo_url }}"
                                      alt="{{ $product->name }}"
-                                     class="row-img {{ $product->has_photo ? '' : 'placeholder' }}"
+                                     class="row-img"
                                      loading="lazy"
                                      onerror="this.src='{{ asset('images/product-placeholder.svg') }}';this.classList.add('placeholder');">
                                 <div class="flex-1 min-w-0 flex flex-col">
@@ -848,7 +848,7 @@
             fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                body: JSON.stringify({ note })
+                body: JSON.stringify({ note, room_no: localStorage.getItem(ROOM_KEY) || '' })
             })
             .then(r => {
                 if (!r.ok) throw new Error('HTTP ' + r.status);
