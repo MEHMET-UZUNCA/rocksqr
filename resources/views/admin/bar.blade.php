@@ -36,6 +36,11 @@
             75% { transform: translateX(5px); }
         }
         .waiter-alert { animation: shake 0.5s ease-in-out infinite; }
+        @keyframes ready-blink {
+            0%, 100% { background-color: #022c22; border-color: #10b981; }
+            50%      { background-color: #065f46; border-color: #6ee7b7; }
+        }
+        .ready-blink { animation: ready-blink 0.9s ease-in-out infinite; }
     </style>
 </head>
 <body class="bg-gray-900 font-poppins text-white h-screen flex flex-col" style="overflow:hidden">
@@ -80,13 +85,28 @@
         </div>
     </header>
 
-    <!-- Garson Çağrıları + Sipariş Hazır: tek grid -->
+    <!-- Garson Çağrıları: üst şerit -->
     <div id="top-bar" class="hidden px-2 py-1">
-        <div id="combined-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-2"></div>
+        <div id="waiter-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-2"></div>
     </div>
 
-    <main class="p-2 flex-1 min-h-0 overflow-y-auto" style="padding-bottom:50px">
-        <div id="orders-grid" class="grid gap-1.5 items-start" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr))"></div>
+    <main class="p-2 flex-1 min-h-0 flex flex-col" style="padding-bottom:50px">
+        <div id="boards" class="grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1 min-h-0">
+            <section class="flex flex-col min-h-0 border border-gray-700 rounded-lg bg-gray-900/60">
+                <div class="flex items-center justify-between px-3 py-1.5 bg-gray-800 border-b border-gray-700 rounded-t-lg">
+                    <span class="font-bold text-sm text-orange-400 tracking-wide"><i class="fas fa-inbox mr-1.5"></i>GELEN SİPARİŞLER</span>
+                    <span id="incoming-count" class="text-xs font-bold bg-orange-900/60 border border-orange-700 text-orange-200 rounded px-1.5">0</span>
+                </div>
+                <div id="incoming-grid" class="flex-1 min-h-0 overflow-y-auto p-1.5 grid gap-1.5 items-start content-start" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr))"></div>
+            </section>
+            <section class="flex flex-col min-h-0 border border-gray-700 rounded-lg bg-gray-900/60">
+                <div class="flex items-center justify-between px-3 py-1.5 bg-gray-800 border-b border-gray-700 rounded-t-lg">
+                    <span class="font-bold text-sm text-blue-400 tracking-wide"><i class="fas fa-utensils mr-1.5"></i>HAZIRLANAN SİPARİŞLER</span>
+                    <span id="preparing-count" class="text-xs font-bold bg-blue-900/60 border border-blue-700 text-blue-200 rounded px-1.5">0</span>
+                </div>
+                <div id="preparing-grid" class="flex-1 min-h-0 overflow-y-auto p-1.5 grid gap-1.5 items-start content-start" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr))"></div>
+            </section>
+        </div>
         <div id="no-orders" class="hidden text-center py-20">
             <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
             <p class="text-2xl text-gray-400">Tum siparisler tamamlandi!</p>
@@ -120,10 +140,10 @@
         let previousWaiterIds = [];
         let previousReadyIds = [];
         let isFirstLoad = true;
-        let lastSymOrders = [];   // Symphony API hata verince son bilinen siparisleri koru
-        let lastOrderKeys = '';   // Flicker onlemek icin stabil key
-        let _waiterCards = [];    // Shared top-bar state
-        let _readyCards  = [];    // Shared top-bar state
+        let lastSymOrders = [];     // Symphony API hata verince son bilinen siparisleri koru
+        let lastIncomingKeys = '';  // Sol kolon flicker onleme anahtari
+        let lastPreparingKeys = ''; // Sag kolon flicker onleme anahtari
+        let _waiterCards = [];      // Shared top-bar state (sadece garson cagrilari)
 
         // ── Sayaç kalıcılığı (kitchen-pos ile ortak localStorage) ───────────
         // kitchen-pos ve bar ekranı aynı kpos_start_ anahtarını paylaşır,
@@ -152,21 +172,21 @@
         function locLabel(order) {
             const t = order.table_no ? 'TABLE ' + order.table_no : '';
             const r = order.room_no ? 'ROOM' + order.room_no : '';
-            return [t, r].filter(Boolean).join(' ') || 'Paket';
+            const base = [t, r].filter(Boolean).join(' ') || 'Paket';
+            // Ayni odadan/masadan gelen birden fazla aktif siparis varsa sira rozeti
+            return order._seqTotal > 1 ? base + ' #' + order._seq + '/' + order._seqTotal : base;
         }
 
         function refreshTopBar() {
             const topBar = document.getElementById('top-bar');
-            const grid   = document.getElementById('combined-grid');
-            const all    = [..._waiterCards, ..._readyCards];
+            const grid   = document.getElementById('waiter-grid');
 
-            // Header badge sayılarını daima güncelle (0 bile olsa göster)
+            // Header badge sayisini daima guncelle (0 bile olsa goster)
             document.getElementById('header-waiter-count').textContent = _waiterCards.length;
-            document.getElementById('header-ready-count').textContent  = _readyCards.length;
 
-            if (all.length === 0) { topBar.classList.add('hidden'); return; }
+            if (_waiterCards.length === 0) { topBar.classList.add('hidden'); return; }
             topBar.classList.remove('hidden');
-            grid.innerHTML = all.join('');
+            grid.innerHTML = _waiterCards.join('');
         }
 
         function updateClock() {
@@ -226,17 +246,21 @@
         function playReadySound() {
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                [783.99, 1046.5, 1318.5].forEach((freq, i) => {
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.value = freq;
-                    gain.gain.setValueAtTime(0.4, ctx.currentTime + i * 0.15);
-                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.4);
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.start(ctx.currentTime + i * 0.15);
-                    osc.stop(ctx.currentTime + i * 0.15 + 0.4);
+                // Mutfak "hazır" zili — çan vuruşu (yeni sipariş sesinden belirgin şekilde farklı)
+                [0, 0.35, 0.7].forEach((t) => {
+                    [1567.98, 2093.0].forEach((freq, k) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.value = freq;
+                        const at = ctx.currentTime + t + k * 0.02;
+                        gain.gain.setValueAtTime(k === 0 ? 0.4 : 0.2, at);
+                        gain.gain.exponentialRampToValueAtTime(0.001, at + 0.4);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(at);
+                        osc.stop(at + 0.4);
+                    });
                 });
             } catch(e) { console.log('Audio error:', e); }
         }
@@ -259,26 +283,6 @@
             } catch(e) { console.log('Audio error:', e); }
         }
 
-        function updateStatus(orderId, newStatus) {
-            fetch(`/bar/orders/${orderId}/status`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({ status: newStatus })
-            })
-            .then(async (r) => {
-                const data = await r.json();
-                if (!r.ok || data.success === false) {
-                    throw new Error(data.message || 'Durum guncellenemedi.');
-                }
-                return data;
-            })
-            .then(() => fetchData())
-            .catch(err => console.error(err));
-        }
-
         function attendWaiterCall(callId) {
             fetch(`/bar/waiter-calls/${callId}/attend`, {
                 method: 'PATCH',
@@ -290,10 +294,6 @@
             .then(r => r.json())
             .then(data => { if (data.success) fetchData(); })
             .catch(err => console.error(err));
-        }
-
-        function confirmOrder(orderId) {
-            updateStatus(orderId, 'preparing');
         }
 
         let _cancelPendingId = null;
@@ -309,14 +309,11 @@
             _cancelPendingId = null;
 
             // Optimistik: kart anında kaldır
-            const card = document.querySelector(`[data-order-id="${orderId}"]`);
+            const card = document.querySelector(`#incoming-grid [data-order-id="${orderId}"]`);
             if (card) card.remove();
-            const grid = document.getElementById('orders-grid');
-            if (grid && grid.querySelectorAll('[data-order-id]').length === 0) {
-                grid.classList.add('hidden');
-                document.getElementById('no-orders').classList.remove('hidden');
-            }
-            lastOrderKeys = ''; // Force re-render on next fetchData
+            document.getElementById('incoming-count').textContent =
+                document.querySelectorAll('#incoming-grid [data-order-id]').length;
+            lastIncomingKeys = ''; // Force re-render on next fetchData
 
             fetch(`/bar/orders/${orderId}/cancel`, {
                 method: 'PATCH',
@@ -332,7 +329,7 @@
                 if (!r.ok || data.success === false) {
                     const msg = data.message || ('HTTP ' + r.status);
                     showToast('İptal hatası: ' + msg, 'error');
-                    lastOrderKeys = '';
+                    lastIncomingKeys = '';
                     fetchData();
                     return;
                 }
@@ -340,7 +337,7 @@
             })
             .catch(err => {
                 showToast('Bağlantı hatası: ' + err.message, 'error');
-                lastOrderKeys = '';
+                lastIncomingKeys = '';
                 fetchData();
             });
         });
@@ -427,197 +424,204 @@
             .catch(err => console.error(err));
         }
 
-        function renderReadyOrders(readyOrders, readyLimit = null) {
-            if (!readyOrders || readyOrders.length === 0) {
-                _readyCards = [];
-                refreshTopBar();
-                return;
-            }
-            _readyCards = readyOrders.map(order => {
-                const isSymphony = order.source === 'symphony';
-                let items = [];
-                try { items = Array.isArray(order.items) ? order.items : JSON.parse(order.items); }
-                catch(e) { items = []; }
-
-                // Symphony check kaydında placeholder varsa lastSymOrders'dan gerçek ürünleri al
-                if (isSymphony && items.length === 1 && items[0].name && items[0].name.startsWith('Adisyon #')) {
-                    const match = lastSymOrders.find(s =>
-                        s.group_key === order.group_key ||
-                        (order.table_no && String(s.table_no) === String(order.table_no))
-                    );
-                    if (match && match.items && match.items.length > 0) {
-                        items = match.items;
-                    }
-                }
-
-                const itemSummary = items.map(i => {
-                    const nm = i.name || (i.id ? getProductName(i.id) : '');
-                    return `${nm} x${i.quantity || i.qty || 1}`;
-                }).join(', ');
-
-                // Sayaç "hazir olali" suresini saymali; order_time siparis verilme ani oldugundan
-                // hazir olma anini ready_since_seconds'tan turetiyoruz.
-                const readySecs = Math.max(0, (order.ready_since_seconds ?? order.seconds_ago) || 0);
-                const readyStartIso = new Date(Date.now() - readySecs * 1000).toISOString();
-                const timeStr = String(Math.floor(readySecs / 3600)).padStart(2,'0') + ':'
-                              + String(Math.floor((readySecs % 3600) / 60)).padStart(2,'0') + ':'
-                              + String(readySecs % 60).padStart(2,'0');
-                const readyMinTotal = Math.floor(readySecs / 60);
-                const readyTimeBg = timerBg(readyMinTotal, TIMER.ready);
-                const hasNote = order.order_note && order.order_note.trim() !== '';
-                const deliveredHtml = isSymphony
-                    ? `<button onclick="markSymphonyDelivered('${order.group_key}')" class="mt-1.5 w-full py-0.5 bg-emerald-600 hover:bg-emerald-700 rounded text-white font-bold text-[10px]"><i class="fas fa-truck mr-1"></i>Servis Edildi</button>`
-                    : `<button onclick="markQrDelivered(${order.id})" class="mt-1.5 w-full py-0.5 bg-emerald-600 hover:bg-emerald-700 rounded text-white font-bold text-[10px]"><i class="fas fa-truck mr-1"></i>Servis Edildi</button>`;
-                const srcBadge = isSymphony
-                    ? `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server"></i></span>`
-                    : `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-orange-700 text-orange-100"><i class="fas fa-mobile-screen"></i></span>`;
-                return `<div class="bg-emerald-950 rounded-lg p-2 text-xs">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="font-bold text-emerald-300">${locLabel(order)} ${srcBadge}</span>
-                        <span class="ready-elapsed text-[10px] ${readyTimeBg} px-1.5 py-0.5 rounded text-white font-bold" data-order-time="${readyStartIso}">${timeStr}</span>
-                    </div>
-                    <p class="text-gray-300 text-[10px] truncate">${itemSummary || '—'}</p>
-                    ${hasNote ? `<p class="text-yellow-400 text-[10px] truncate"><i class="fas fa-exclamation-triangle mr-0.5"></i>${order.order_note}</p>` : ''}
-                    ${deliveredHtml}
-                </div>`;
-            });
-            refreshTopBar();
+        function orderSig(o) {
+            const id = o.source === 'symphony' ? ('S:' + (o.group_key || o.check_number || o.table_no)) : ('Q:' + o.id);
+            return id + '|' + (o.bar_status || '') + (o.in_symphony ? '|S1' : '|S0') + '|' + (o.kitchen_status || '') + '|' + (o.items || []).length;
         }
 
-        function renderOrders(orders) {
-            const grid = document.getElementById('orders-grid');
-            const noOrders = document.getElementById('no-orders');
+        function renderReadyCard(order) {
+            const isSymphony = order.source === 'symphony';
+            let items = [];
+            try { items = Array.isArray(order.items) ? order.items : JSON.parse(order.items); }
+            catch(e) { items = []; }
 
-            if (orders.length === 0) {
-                grid.classList.add('hidden');
-                noOrders.classList.remove('hidden');
-                return;
+            // Symphony check kaydında placeholder varsa lastSymOrders'dan gerçek ürünleri al
+            if (isSymphony && items.length === 1 && items[0].name && items[0].name.startsWith('Adisyon #')) {
+                const match = lastSymOrders.find(s =>
+                    s.group_key === order.group_key ||
+                    (order.table_no && String(s.table_no) === String(order.table_no))
+                );
+                if (match && match.items && match.items.length > 0) {
+                    items = match.items;
+                }
             }
 
-            grid.classList.remove('hidden');
-            noOrders.classList.add('hidden');
+            const itemSummary = items.map(i => {
+                const nm = i.name || (i.id ? getProductName(i.id) : '');
+                return `${nm} x${i.quantity || i.qty || 1}`;
+            }).join(', ');
 
-            // Stabil key: siparis id/group_key + status kombinasyonu
-            // seconds_ago haric, yani sadece gercek degisim olunca yeniden render et
-            const newKeys = orders.map(o => {
-                const id = o.source === 'symphony' ? ('S:' + (o.group_key || o.check_number || o.table_no)) : ('Q:' + o.id);
-                const status = o.bar_status || '';
-                const itemCount = (o.items || []).length;
-                return id + '|' + status + '|' + itemCount;
-            }).join(',');
+            // Sayaç "hazir olali" suresini saymali; hazir olma anini ready_since_seconds'tan turetiyoruz.
+            const readySecs = Math.max(0, (order.ready_since_seconds ?? order.seconds_ago) || 0);
+            const readyStartIso = new Date(Date.now() - readySecs * 1000).toISOString();
+            const timeStr = String(Math.floor(readySecs / 3600)).padStart(2,'0') + ':'
+                          + String(Math.floor((readySecs % 3600) / 60)).padStart(2,'0') + ':'
+                          + String(readySecs % 60).padStart(2,'0');
+            const readyMinTotal = Math.floor(readySecs / 60);
+            const readyTimeBg = timerBg(readyMinTotal, TIMER.ready);
+            const hasNote = order.order_note && order.order_note.trim() !== '';
+            const deliveredHtml = isSymphony
+                ? `<button onclick="markSymphonyDelivered('${order.group_key}')" class="mt-1.5 w-full py-0.5 bg-emerald-600 hover:bg-emerald-700 rounded text-white font-bold text-[11px]"><i class="fas fa-check mr-1"></i>Tamam</button>`
+                : `<button onclick="markQrDelivered(${order.id})" class="mt-1.5 w-full py-0.5 bg-emerald-600 hover:bg-emerald-700 rounded text-white font-bold text-[11px]"><i class="fas fa-check mr-1"></i>Tamam</button>`;
+            const srcBadge = isSymphony
+                ? `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server"></i></span>`
+                : `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-orange-700 text-orange-100"><i class="fas fa-mobile-screen"></i></span>`;
+            const orderAt = (!isSymphony && order.created_at) ? `<span class="text-[9px] text-gray-500 ml-1">Sip: ${order.created_at}</span>` : '';
+            return `<div class="ready-blink border-2 border-emerald-500 rounded-lg p-2 text-xs">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="font-bold text-emerald-300">${locLabel(order)} ${srcBadge}</span>
+                    <span class="ready-elapsed text-[10px] ${readyTimeBg} px-1.5 py-0.5 rounded text-white font-bold" data-order-time="${readyStartIso}">${timeStr}</span>
+                </div>
+                <p class="text-gray-300 text-[10px] truncate">${itemSummary || '—'}${orderAt}</p>
+                ${hasNote ? `<p class="text-yellow-400 text-[10px] truncate"><i class="fas fa-exclamation-triangle mr-0.5"></i>${order.order_note}</p>` : ''}
+                ${deliveredHtml}
+            </div>`;
+        }
 
-            if (newKeys === lastOrderKeys) {
-                // Icerik degismedi — sadece elapsed sayaclarini guncelle, innerHTML dokunma
-                return;
+        function renderOrderCard(order) {
+            const isSymphony = order.source === 'symphony';
+            const isNew = !isSymphony && order.bar_status === 'new';
+            const inSym = !isSymphony && order.in_symphony === true;
+
+            let borderClass, statusBg, statusText, sourceBadge;
+            if (isSymphony) {
+                borderClass = 'border-blue-500';
+                statusBg = 'bg-blue-600';
+                statusText = 'POS';
+                sourceBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYM</span>`;
+            } else {
+                borderClass = isNew
+                    ? (inSym ? 'new-order border-gold' : 'border-orange-500')
+                    : 'border-green-500';
+                statusBg = isNew ? (inSym ? 'bg-yellow-500' : 'bg-orange-500') : 'bg-blue-500';
+                statusText = isNew ? (inSym ? 'YENI' : 'POS BEKLENIYOR') : 'MUTFAKTA';
+                sourceBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-700 text-orange-100"><i class="fas fa-mobile-screen mr-0.5"></i>QR</span>`;
             }
-            lastOrderKeys = newKeys;
 
-            grid.innerHTML = orders.map(order => {
-                const isSymphony = order.source === 'symphony';
-                const isNew = !isSymphony && order.bar_status === 'new';
+            const totalSecs = order.seconds_ago || 0;
+            const hrs = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
+            const mins = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
+            const secs = String(totalSecs % 60).padStart(2, '0');
+            const timeStr = hrs + ':' + mins + ':' + secs;
+            const minTotal = Math.floor(totalSecs / 60);
+            // Symphony için bar eşikleri (5/10 dk), QR için eski eşikler (10/15 dk)
+            const timeBg = timerBg(minTotal, isSymphony ? TIMER.sym : TIMER.qr);
 
-                // Symphony'ler her zaman onaylı sayılır (POS'a girilmiş)
-                let borderClass, statusBg, statusText, sourceBadge;
-                if (isSymphony) {
-                    borderClass = 'border-blue-500';
-                    statusBg = 'bg-blue-600';
-                    statusText = 'POS';
-                    sourceBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYM</span>`;
-                } else {
-                    const inSym = order.in_symphony === true;
-                    borderClass = isNew
-                        ? (inSym ? 'new-order border-gold' : 'border-orange-500')
-                        : 'border-green-500';
-                    statusBg = isNew ? (inSym ? 'bg-yellow-500' : 'bg-orange-500') : 'bg-blue-500';
-                    statusText = isNew ? (inSym ? 'YENI' : 'POS BEKLENIYOR') : 'MUTFAKTA';
-                    sourceBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-700 text-orange-100"><i class="fas fa-mobile-screen mr-0.5"></i>QR</span>`;
-                }
+            const gk = isSymphony ? symGroupKey(order) : null;
+            const startTime = isSymphony ? getStartTime(gk, order.order_time) : (order.order_time || '');
 
-                const totalSecs = order.seconds_ago || 0;
-                const hrs = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
-                const mins = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
-                const secs = String(totalSecs % 60).padStart(2, '0');
-                const timeStr = hrs + ':' + mins + ':' + secs;
-                const minTotal = Math.floor(totalSecs / 60);
-                // Symphony için bar eşikleri (5/10 dk), QR için eski eşikler (10/15 dk)
-                const timeBg = timerBg(minTotal, isSymphony ? TIMER.sym : TIMER.qr);
+            let items = [];
+            try { items = Array.isArray(order.items) ? order.items : JSON.parse(order.items); }
+            catch(e) { items = []; }
 
-                const gk = isSymphony ? symGroupKey(order) : null;
-                const startTime = isSymphony ? getStartTime(gk, order.order_time) : (order.order_time || '');
-
-                let items = [];
-                try { items = Array.isArray(order.items) ? order.items : JSON.parse(order.items); }
-                catch(e) { items = []; }
-
-                const itemsHtml = items.map(item => {
-                    const name = item.name || (item.id ? getProductName(item.id) : '');
-                    const qty  = item.quantity || item.qty || 1;
-                    const note = item.note || '';
-                    return `<div class="flex justify-between py-0.5 border-b border-gray-700">
-                        <span class="truncate pr-2">${name}${note ? ` <span class="text-yellow-400 text-xs">(${note})</span>` : ''}</span>
-                        <span class="font-bold text-gold shrink-0">x${qty}</span>
-                    </div>`;
-                }).join('');
-
-                const chkLabel = isSymphony && order.check_number ? `Chk #${order.check_number}` : (isSymphony ? '' : `Chk #${order.id}`);
-
-                let footer;
-                if (isSymphony) {
-                    footer = `<div class="px-2 py-1 border-t border-gray-700">
-                        <div class="w-full py-1 bg-blue-600/30 border border-blue-500 rounded text-xs font-bold text-center text-blue-200 flex items-center justify-center gap-1">
-                            <i class="fas fa-server"></i> POS'ta
-                        </div>
-                    </div>`;
-                } else {
-                    const priceLine = order.total_price ? `<div class="px-2 py-1 border-t border-gray-700 flex justify-between items-center">
-                        <span class="font-bold text-gold text-sm">${parseFloat(order.total_price).toFixed(2)} TL</span>
-                    </div>` : '';
-                    const inSym = order.in_symphony === true;
-                    let btn;
-                    if (isNew && inSym) {
-                        btn = `<button onclick="confirmOrder(${order.id})" class="w-full py-0.5 bg-gold hover:bg-yellow-600 text-primary rounded text-[11px] font-bold transition flex items-center justify-center gap-1">
-                                <i class="fas fa-check-circle"></i> Onayla (POS'ta var)
-                            </button>`;
-                    } else if (isNew && !inSym) {
-                        btn = `<div class="flex gap-1">
-                                <div class="flex-1 py-1 bg-gray-700 text-gray-400 rounded text-xs font-bold flex items-center justify-center gap-1">
-                                    <i class="fas fa-hourglass-half animate-pulse"></i> POS bekleniyor...
-                                </div>
-                                <button onclick="cancelOrder(${order.id})" class="px-2 py-1 bg-red-700 hover:bg-red-600 text-white rounded text-[11px] font-bold transition flex items-center justify-center gap-1" title="Siparişi iptal et">
-                                    <i class="fas fa-times"></i> İptal
-                                </button>
-                            </div>`;
-                    } else {
-                        btn = `<div class="w-full py-1 bg-blue-600/40 border border-blue-500 rounded text-xs font-bold text-center flex items-center justify-center gap-1 text-blue-100">
-                                <i class="fas fa-utensils"></i> Mutfakta hazirlaniyor
-                            </div>`;
-                    }
-                    footer = `${priceLine}<div class="px-2 py-1 border-t border-gray-700">${btn}</div>`;
-                }
-
-                return `
-                <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden" data-order-id="${order.id}">
-                    <div class="px-2 py-1 bg-gray-750 border-b border-gray-700">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xl font-bold text-gold">${locLabel(order)}</span>
-                            <div class="flex items-center gap-1">
-                                ${sourceBadge}
-                                ${(!isSymphony && statusText === 'YENI') ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${statusBg}">${statusText}</span>` : ''}
-                            </div>
-                        </div>
-                        <div class="flex items-center justify-between mt-0.5">
-                            <span class="text-[11px] text-gray-400">${chkLabel}</span>
-                            <span class="bar-elapsed px-2 py-0.5 rounded text-sm font-bold ${timeBg}" data-order-time="${startTime.replace(/['"<>&]/g, '')}" data-is-symphony="${isSymphony ? '1' : '0'}">${timeStr}</span>
-                        </div>
-                        ${isSymphony && order.waiter_name ? `<div class="text-[11px] text-gray-300 mt-0.5"><i class="fas fa-user mr-1 text-gray-500"></i>${order.waiter_name}</div>` : ''}
-                    </div>
-                    <div class="px-2 py-1 text-sm">
-                        ${itemsHtml || '<div class="text-gray-500 text-center py-1">Urun yok</div>'}
-                        ${order.order_note ? `<div class="mt-1 p-1.5 bg-yellow-900/30 rounded text-yellow-300 text-xs"><i class="fas fa-sticky-note mr-1"></i>${order.order_note}</div>` : ''}
-                    </div>
-                    ${footer}
+            const itemsHtml = items.map(item => {
+                const name = item.name || (item.id ? getProductName(item.id) : '');
+                const qty  = item.quantity || item.qty || 1;
+                const note = item.note || '';
+                return `<div class="flex justify-between py-0.5 border-b border-gray-700">
+                    <span class="truncate pr-2">${name}${note ? ` <span class="text-yellow-400 text-xs">(${note})</span>` : ''}</span>
+                    <span class="font-bold text-gold shrink-0">x${qty}</span>
                 </div>`;
             }).join('');
+
+            const chkLabel = isSymphony && order.check_number ? `Chk #${order.check_number}` : (isSymphony ? '' : `Chk #${order.id}`);
+
+            let footer;
+            if (isSymphony) {
+                footer = `<div class="px-2 py-1 border-t border-gray-700">
+                    <div class="w-full py-1 bg-blue-600/30 border border-blue-500 rounded text-xs font-bold text-center text-blue-200 flex items-center justify-center gap-1">
+                        <i class="fas fa-server"></i> POS'ta
+                    </div>
+                </div>`;
+            } else {
+                const priceLine = order.total_price ? `<div class="px-2 py-1 border-t border-gray-700 flex justify-between items-center">
+                    <span class="font-bold text-gold text-sm">${parseFloat(order.total_price).toFixed(2)} TL</span>
+                </div>` : '';
+                let btn;
+                if (isNew && inSym) {
+                    // Onay butonu kalkti: Symphony'ye giren siparis otomatik sag kolona duser
+                    btn = `<div class="w-full py-1 bg-blue-600/30 border border-blue-500 rounded text-xs font-bold text-center text-blue-200 flex items-center justify-center gap-1">
+                            <i class="fas fa-server"></i> POS'a alındı
+                        </div>`;
+                } else if (isNew && !inSym) {
+                    btn = `<div class="flex gap-1">
+                            <div class="flex-1 py-1 bg-gray-700 text-gray-400 rounded text-xs font-bold flex items-center justify-center gap-1">
+                                <i class="fas fa-hourglass-half animate-pulse"></i> POS bekleniyor...
+                            </div>
+                            <button onclick="cancelOrder(${order.id})" class="px-2 py-1 bg-red-700 hover:bg-red-600 text-white rounded text-[11px] font-bold transition flex items-center justify-center gap-1" title="Siparişi iptal et">
+                                <i class="fas fa-times"></i> İptal
+                            </button>
+                        </div>`;
+                } else {
+                    btn = `<div class="w-full py-1 bg-blue-600/40 border border-blue-500 rounded text-xs font-bold text-center flex items-center justify-center gap-1 text-blue-100">
+                            <i class="fas fa-utensils"></i> Mutfakta hazirlaniyor
+                        </div>`;
+                }
+                footer = `${priceLine}<div class="px-2 py-1 border-t border-gray-700">${btn}</div>`;
+            }
+
+            return `
+            <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden" data-order-id="${order.id}">
+                <div class="px-2 py-1 bg-gray-750 border-b border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xl font-bold text-gold">${locLabel(order)}</span>
+                        <div class="flex items-center gap-1">
+                            ${sourceBadge}
+                            ${(!isSymphony && statusText === 'YENI') ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${statusBg}">${statusText}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between mt-0.5">
+                        <span class="text-[11px] text-gray-400">${chkLabel}</span>
+                        <span class="bar-elapsed px-2 py-0.5 rounded text-sm font-bold ${timeBg}" data-order-time="${startTime.replace(/['"<>&]/g, '')}" data-is-symphony="${isSymphony ? '1' : '0'}">${timeStr}</span>
+                    </div>
+                    ${isSymphony && order.waiter_name ? `<div class="text-[11px] text-gray-300 mt-0.5"><i class="fas fa-user mr-1 text-gray-500"></i>${order.waiter_name}</div>` : ''}
+                </div>
+                <div class="px-2 py-1 text-sm">
+                    ${itemsHtml || '<div class="text-gray-500 text-center py-1">Urun yok</div>'}
+                    ${order.order_note ? `<div class="mt-1 p-1.5 bg-yellow-900/30 rounded text-yellow-300 text-xs"><i class="fas fa-sticky-note mr-1"></i>${order.order_note}</div>` : ''}
+                </div>
+                ${footer}
+            </div>`;
+        }
+
+        function renderBoards(orders, readyOrders) {
+            // Kolon ayrimi: POS'a girmemis yeni QR siparisleri solda,
+            // gerisi (Symphony, POS'a giren QR, mutfakta olanlar) sagda.
+            const incoming = [], preparing = [];
+            orders.forEach(order => {
+                const isSymphony = order.source === 'symphony';
+                // Hazir QR siparisler ayri "hazir" karti olarak en uste cikar
+                if (!isSymphony && order.kitchen_status === 'ready') return;
+                const toRight = isSymphony || order.in_symphony === true
+                    || order.bar_status !== 'new'
+                    || (order.kitchen_status && order.kitchen_status !== 'new');
+                (toRight ? preparing : incoming).push(order);
+            });
+
+            const readyHtml     = (readyOrders || []).map(renderReadyCard);
+            const preparingHtml = preparing.map(renderOrderCard);
+            const incomingHtml  = incoming.map(renderOrderCard);
+
+            // Sol kolon — icerik degismediyse yeniden cizme (flicker onleme)
+            const inKey = incoming.map(orderSig).join(',');
+            if (inKey !== lastIncomingKeys) {
+                lastIncomingKeys = inKey;
+                document.getElementById('incoming-grid').innerHTML = incomingHtml.join('');
+            }
+            document.getElementById('incoming-count').textContent = incomingHtml.length;
+
+            // Sag kolon — hazir kartlar en ustte
+            const prepKey = [...(readyOrders || []), ...preparing].map(orderSig).join(',');
+            if (prepKey !== lastPreparingKeys) {
+                lastPreparingKeys = prepKey;
+                document.getElementById('preparing-grid').innerHTML = [...readyHtml, ...preparingHtml].join('');
+            }
+            document.getElementById('preparing-count').textContent = readyHtml.length + preparingHtml.length;
+            document.getElementById('header-ready-count').textContent = readyHtml.length;
+
+            const empty = incomingHtml.length === 0 && preparingHtml.length === 0 && readyHtml.length === 0;
+            document.getElementById('boards').classList.toggle('hidden', empty);
+            document.getElementById('no-orders').classList.toggle('hidden', !empty);
         }
 
         function renderCompletedOrders(completedOrders, limit, attendedCalls) {
@@ -694,10 +698,6 @@
             refreshTopBar();
         }
 
-        function renderSymphonyOrders(symphonyOrders) {
-            // Artık kullanılmıyor — Symphony siparişleri ana grid'de QR ile birlikte renderlanıyor.
-        }
-
         function fetchData() {
             Promise.all([
                 fetch('/bar/api/orders').then(r => r.json()).catch(() => null),
@@ -735,6 +735,8 @@
 
                 const currentOrderIds = qrOrders.map(o => o.id);
                 const currentWaiterIds = (data.waiter_calls || []).map(c => c.id);
+                // Hazir bildirimi icin stabil anahtar (Symphony'de id=0 oldugundan group_key kullan)
+                const currentReadyKeys = (data.ready_orders || []).map(o => o.group_key ? 'S:' + o.group_key : 'Q:' + o.id);
 
                 if (!isFirstLoad) {
                     const newOrders = currentOrderIds.filter(id => !previousOrderIds.includes(id));
@@ -748,19 +750,34 @@
                     }
                 }
 
-                const currentReadyIds = (data.ready_orders || []).map(o => o.id);
                 if (!isFirstLoad) {
-                    const newReady = currentReadyIds.filter(id => !previousReadyIds.includes(id));
+                    const newReady = currentReadyKeys.filter(k => !previousReadyIds.includes(k));
                     if (newReady.length > 0) playReadySound();
                 }
 
                 previousOrderIds  = currentOrderIds;
                 previousWaiterIds = currentWaiterIds;
-                previousReadyIds  = currentReadyIds;
+                previousReadyIds  = currentReadyKeys;
                 isFirstLoad = false;
 
-                renderOrders(allOrders);
-                renderReadyOrders(data.ready_orders || [], data.ready_orders_limit || null);
+                // Hazir QR siparisler ayri "hazir" karti olarak gosterilir
+                const activeOrders = allOrders.filter(o => !(o.source !== 'symphony' && o.kitchen_status === 'ready'));
+
+                // Ayni odadan/masadan gelen aktif siparisler: #sira/toplam rozeti (en eski = #1)
+                const locKey = o => o.table_no ? 'T' + o.table_no : (o.room_no ? 'R' + o.room_no : '');
+                const groups = {};
+                [...activeOrders, ...(data.ready_orders || [])].forEach(o => {
+                    const k = locKey(o);
+                    if (!k) return;
+                    (groups[k] = groups[k] || []).push(o);
+                });
+                Object.values(groups).forEach(list => {
+                    if (list.length < 2) return;
+                    list.sort((a, b) => (b.seconds_ago || 0) - (a.seconds_ago || 0));
+                    list.forEach((o, i) => { o._seq = i + 1; o._seqTotal = list.length; });
+                });
+
+                renderBoards(activeOrders, data.ready_orders || []);
                 renderCompletedOrders(data.completed_orders || [], data.completed_orders_limit || null, data.attended_calls || []);
                 renderWaiterCalls(data.waiter_calls || []);
             }).catch(err => console.error('Fetch error:', err));
