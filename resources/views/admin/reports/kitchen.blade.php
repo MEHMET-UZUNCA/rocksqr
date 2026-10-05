@@ -27,15 +27,21 @@ function prepBadge(?int $s): string {
             <h2 class="text-2xl font-bold text-gray-900"><i class="fas fa-chart-line mr-2 text-amber-500"></i>Mutfak Hazırlık Raporu</h2>
             <p class="text-sm text-gray-500 mt-0.5">Symphony POS — Kitchen Pos tamamlama süreleri</p>
         </div>
-        <form method="GET" action="{{ route('admin.reports.kitchen') }}" class="flex items-center gap-2">
-            <label class="text-sm text-gray-600 font-medium">Dönem:</label>
-            <select name="range" onchange="this.form.submit()"
-                    class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-300 outline-none">
-                @foreach(['1'=>'Bugün','7'=>'Son 7 gün','30'=>'Son 30 gün','90'=>'Son 90 gün','all'=>'Tüm zamanlar'] as $val=>$label)
-                    <option value="{{ $val }}" {{ $range == $val ? 'selected' : '' }}>{{ $label }}</option>
-                @endforeach
-            </select>
-        </form>
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="flex rounded-lg overflow-hidden border border-gray-200 text-sm">
+                <span class="px-3 py-1.5 bg-amber-100 text-amber-800 font-bold">Mutfak Hazırlık</span>
+                <a href="{{ route('admin.reports.durations') }}" class="px-3 py-1.5 bg-white text-gray-600 hover:bg-gray-50 transition">Süre Raporu</a>
+            </div>
+            <form method="GET" action="{{ route('admin.reports.kitchen') }}" class="flex items-center gap-2">
+                <label class="text-sm text-gray-600 font-medium">Dönem:</label>
+                <select name="range" onchange="this.form.submit()"
+                        class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-300 outline-none">
+                    @foreach(['1'=>'Bugün','7'=>'Son 7 gün','30'=>'Son 30 gün','90'=>'Son 90 gün','all'=>'Tüm zamanlar'] as $val=>$label)
+                        <option value="{{ $val }}" {{ $range == $val ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </form>
+        </div>
     </div>
 
     {{-- Özet kartlar --}}
