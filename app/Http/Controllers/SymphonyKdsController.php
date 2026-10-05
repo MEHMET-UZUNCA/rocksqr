@@ -129,6 +129,8 @@ class SymphonyKdsController extends Controller
                 'first_seen_at'    => $firstSeenAt,
                 'prep_seconds'     => $prepSeconds,
                 'served_item_keys' => json_encode($newKeys),
+                // Yeni onay gelen grup bar'da daha önce "Teslim edildi" işaretlendiyse tekrar hazır şeridine düşsün
+                'delivered_at'     => null,
             ]
         );
 

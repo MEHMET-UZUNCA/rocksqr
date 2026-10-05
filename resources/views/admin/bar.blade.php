@@ -191,11 +191,9 @@
         function visibleItems(order) {
             let items = parseItems(order);
             if (order.source === 'symphony' && items.length === 1 && String(items[0].name || '').startsWith('Adisyon #')) {
-                const match = lastSymOrders.find(s =>
-                    s.group_key === order.group_key ||
-                    (order.table_no && String(s.table_no) === String(order.table_no))
-                );
+                const match = findSymOrder(order);
                 if (match && match.items && match.items.length > 0) items = match.items;
+                else if (Array.isArray(order.db_items) && order.db_items.length > 0) items = order.db_items;
             }
             const hasFood = items.some(i => itemClass(i) === 'food');
             return items.filter(i => {
@@ -213,6 +211,15 @@
         function symGroupKey(order) {
             // Must match kitchen-pos.blade.php format: bare check_number (no prefix) or T+tableNo
             return order.check_number ? String(order.check_number) : ('T' + (order.table_no || ''));
+        }
+
+        function findSymOrder(order) {
+            // Mutfak onay kaydında group_key bare ('2245'), canlı feed'de C önekli ('C2245') olabilir
+            const norm = k => String(k || '').replace(/^C/, '');
+            return lastSymOrders.find(s =>
+                norm(s.group_key) === norm(order.group_key) ||
+                (order.table_no && String(s.table_no) === String(order.table_no))
+            );
         }
 
         function locLabel(order, tc = 'text-gold', rc = 'text-amber-300') {
@@ -465,7 +472,7 @@
 
         function orderSig(o) {
             const id = o.source === 'symphony' ? ('S:' + (o.group_key || o.check_number || o.table_no)) : ('Q:' + o.id);
-            return id + '|' + (o.bar_status || '') + (o.in_symphony ? '|S1' : '|S0') + '|' + (o.kitchen_status || '') + '|' + (o.items || []).length;
+            return id + '|' + (o.bar_status || '') + (o.in_symphony ? '|S1' : '|S0') + '|' + (o.kitchen_status || '') + '|' + (o.items || []).length + '|' + (o.served_count || 0);
         }
 
         function renderReadyCard(order) {
@@ -499,15 +506,31 @@
                 ? `<span class="px-1 rounded text-[8px] font-bold bg-blue-700 text-blue-100 shrink-0">SYM</span>`
                 : `<span class="px-1 rounded text-[8px] font-bold bg-orange-700 text-orange-100 shrink-0">QR</span>`;
             const chkLabel = isSymphony ? (order.check_number ? `Chk #${order.check_number}` : '') : `Chk #${order.id}`;
+            const symMatch = isSymphony ? findSymOrder(order) : null;
+            const waiterLine = symMatch && symMatch.waiter_name
+                ? `<div class="text-[9px] text-gray-400 truncate mt-0.5 mb-1"><i class="fas fa-user mr-0.5 text-gray-500"></i>${escapeHtml(symMatch.waiter_name)}</div>`
+                : '';
+            // Onay sayacı: hazır adet / toplam adet (toplam feed'den çıkarılamazsa hazır sayısı)
+            const feedTotal = symMatch && Array.isArray(symMatch.items)
+                ? symMatch.items.reduce((a, i) => a + (i.qty || i.quantity || 1), 0) : 0;
+            const servedCount = order.served_count || 0;
+            const totalCount = feedTotal > servedCount ? feedTotal : (order.total_units || servedCount);
+            const counterChip = isSymphony && order.kind !== 'checkless_msg' && servedCount > 0
+                ? `<span class="px-1 rounded text-[8px] font-bold bg-emerald-700 text-emerald-100 shrink-0">${servedCount}/${totalCount}</span>`
+                : '';
             return `<div class="ready-blink border-2 border-emerald-500 rounded-lg p-1.5 text-[11px]">
                 <div class="flex items-start justify-between gap-1">
                     <div class="min-w-0 leading-tight">${locLabel(order, 'text-emerald-300', 'text-emerald-200')}</div>
                     ${srcBadge}
                 </div>
                 <div class="flex items-center justify-between gap-1 mt-0.5 mb-1">
-                    <span class="text-[9px] text-emerald-200/60 truncate">${chkLabel}</span>
+                    <div class="flex items-center gap-1 min-w-0">
+                        <span class="text-[9px] text-emerald-200/60 truncate">${chkLabel}</span>
+                        ${counterChip}
+                    </div>
                     <span class="ready-elapsed text-[10px] ${readyTimeBg} px-1 py-0.5 rounded text-white font-bold shrink-0" data-order-time="${readyStartIso}">${timeStr}</span>
                 </div>
+                ${waiterLine}
                 <div>${itemRows || '<div class="text-gray-400 text-center py-0.5">—</div>'}</div>
                 ${msgSummary ? `<p class="text-yellow-300 text-[10px] leading-snug mt-0.5"><i class="fas fa-bullhorn mr-0.5"></i>${msgSummary}</p>` : ''}
                 ${hasNote ? `<p class="text-yellow-400 text-[10px] truncate mt-0.5"><i class="fas fa-exclamation-triangle mr-0.5"></i>${escapeHtml(order.order_note)}</p>` : ''}

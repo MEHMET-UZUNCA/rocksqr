@@ -280,6 +280,8 @@
                               data-item-last="${isLast ? '1' : '0'}"
                               data-item-start="${escapeHtml(startTime)}"
                               data-item-names="${escapeHtml(itemNamesList)}"
+                              data-item-self="${escapeHtml(it.name)}"
+                              data-item-self-qty="${it.qty}"
                               onclick="serveItem(this)"
                               title="${isLast ? 'Son ürün → hesap tamamlanır' : 'Ürünü hazır işaretle'}"
                               class="px-1.5 py-0.5 rounded text-[10px] font-bold border border-amber-500/70 bg-amber-600/20 hover:bg-amber-600/50 text-amber-200 transition shrink-0">
@@ -545,15 +547,20 @@
             const itemKeys = JSON.parse(btn.dataset.completeItems || '[]');
             const startTime = btn.dataset.completeStart || null;
             const itemNames = btn.dataset.completeNames || '';
-            completeOrder(btn.dataset.completeKind, btn.dataset.completeGk, btn.dataset.completeCn, btn.dataset.completeTno, itemKeys, startTime, itemNames);
+            completeOrder(btn.dataset.completeKind, btn.dataset.completeGk, btn.dataset.completeCn, btn.dataset.completeTno, itemKeys, startTime, itemNames, '', '');
         }
 
-        function completeOrder(kind, groupKey, checkNumber, tableNo, itemKeys, startTime, itemNames) {
+        function completeOrder(kind, groupKey, checkNumber, tableNo, itemKeys, startTime, itemNames, selfName, selfQty) {
             if (itemNames) localStorage.setItem('kpos_items_' + groupKey, itemNames);
+            // kind=item: onaylanan urunun kendi adi/adedi bar hazir kartina yazilmak üzere gider;
+            // kind=check: tüm grup listesi (feed kaybolduğunda yedek içerik). 250: DB varchar sınırı.
+            const nm = ((kind === 'check' ? itemNames : selfName) || '').substring(0, 250);
             postJson('/kitchen-pos/complete', {
                 kind, group_key: groupKey, check_number: checkNumber, table_no: tableNo,
                 item_keys: itemKeys || [],
                 first_seen_at: startTime || null,
+                name: nm || null,
+                qty: kind === 'item' ? (parseInt(selfQty, 10) || null) : null,
             }).then(() => {
                 clearStartTime(groupKey);
                 fetchOnce();
@@ -570,7 +577,8 @@
             // Son bekleyen ürünse hesabı tamamen tamamla (kind=check → bar hazır düşer)
             const kind = btn.dataset.itemLast === '1' ? 'check' : 'item';
             completeOrder(kind, btn.dataset.itemGk, btn.dataset.itemCn || '', btn.dataset.itemTno || '',
-                JSON.parse(btn.dataset.itemUnits || '[]'), btn.dataset.itemStart || null, btn.dataset.itemNames || '');
+                JSON.parse(btn.dataset.itemUnits || '[]'), btn.dataset.itemStart || null, btn.dataset.itemNames || '',
+                btn.dataset.itemSelf || '', btn.dataset.itemSelfQty || '');
         }
 
         function unserveItem(btn) {

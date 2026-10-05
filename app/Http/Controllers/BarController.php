@@ -91,12 +91,13 @@ class BarController extends Controller
             ->values()
             ->all();
 
-        // Symphony KDS onayları — delivered_at IS NULL olanlar bar "servise götür" şeridinde
-        // kind=item satırları ürün bazlı ara hazır kayıtlarıdır; bara ancak tüm ürünler
-        // hazır olup kind=check'e yükselince düşer.
+        // Symphony KDS onayları — delivered_at IS NULL olanlar bar "servise götür" şeridinde.
+        // kind=item satırları kısmi (ürün bazlı) onaylardır: tek ürün onaylandığında da
+        // bara gerçek ürün adıyla düşer. kind=check kartları canlı feed'den çözülür;
+        // feed'de yoksa db_items (onay anında persist edilen ürün listesi) yedek içerik olur.
         $symphonyReady = DB::table('kitchen_pos_completions')
             ->whereNull('delivered_at')
-            ->whereIn('kind', ['check', 'checkless_msg'])
+            ->whereIn('kind', ['check', 'checkless_msg', 'item'])
             ->orderByDesc('completed_at')
             ->limit($completedLimit)
             ->get();
@@ -108,9 +109,15 @@ class BarController extends Controller
             $itemName          = trim((string) ($row->name ?? ''));
             $qty               = (int) ($row->qty ?? 1);
 
-            $itemsArr = $row->kind === 'check'
-                ? [['id' => null, 'name' => 'Adisyon #' . ($row->check_number ?: '-'), 'quantity' => 1]]
-                : [['id' => null, 'name' => $itemName !== '' ? $itemName : 'Mutfak mesajı', 'quantity' => max(1, $qty)]];
+            if ($row->kind === 'item') {
+                $itemsArr = [['id' => null, 'name' => $itemName !== '' ? $itemName : 'Mutfak ürünü', 'quantity' => max(1, $qty)]];
+                $dbItems  = null;
+            } else {
+                $itemsArr = [['id' => null, 'name' => 'Adisyon #' . ($row->check_number ?: '-'), 'quantity' => 1]];
+                $dbItems  = $row->kind === 'check' && $itemName !== '' ? $this->namesToItems($itemName) : null;
+            }
+
+            $servedCount = count(json_decode((string) ($row->served_item_keys ?? '[]'), true) ?: []);
 
             $readyOrders[] = [
                 'id'                  => 0,
@@ -119,6 +126,10 @@ class BarController extends Controller
                 'kind'                => $row->kind,
                 'table_no'            => $row->table_no,
                 'items'               => $itemsArr,
+                'db_items'            => $dbItems,
+                'waiter_name'         => null,
+                'served_count'        => $servedCount,
+                'total_units'         => $row->kind === 'item' ? null : $servedCount,
                 'total_price'         => 0,
                 'order_note'          => $itemName !== '' && $row->kind !== 'check' ? trim((string) ($row->note ?? '')) : null,
                 'status'              => 'ready',
@@ -325,6 +336,20 @@ class BarController extends Controller
         $m['items']    = array_values($items);
         $m['has_food'] = $hasFood;
         return $m;
+    }
+
+    // "Adana Kebap x2 · Lahmacun x3" biçimindeki persist edilmiş liste → kart ürün satırları
+    private function namesToItems(?string $names): array
+    {
+        $out = [];
+        foreach (array_filter(array_map('trim', explode('·', (string) $names)), fn ($p) => $p !== '') as $part) {
+            if (preg_match('/^(.+?)\s*x(\d+)$/u', $part, $m)) {
+                $out[] = ['id' => null, 'name' => trim($m[1]), 'quantity' => max(1, (int) $m[2])];
+            } else {
+                $out[] = ['id' => null, 'name' => $part, 'quantity' => 1];
+            }
+        }
+        return $out;
     }
 
     private function qrItemCat(int $productId): string
