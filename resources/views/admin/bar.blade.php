@@ -55,11 +55,15 @@
     </style>
 </head>
 <body class="bg-gray-900 font-poppins text-white h-screen flex flex-col" style="overflow:hidden">
-    <header class="bg-primary px-2 py-1 flex items-center gap-3 min-w-0 shrink-0">
-        <span id="clock" class="text-gold font-extrabold text-xl xl:text-2xl tabular-nums leading-none whitespace-nowrap"></span>
-        <span id="clock-date" class="text-gray-300 text-xl xl:text-2xl font-normal leading-none whitespace-nowrap hidden md:inline"></span>
-        <div class="flex-1"></div>
+    <header class="bg-primary px-2 py-1 flex items-center gap-2 min-w-0 shrink-0">
+        <span class="font-extrabold text-base xl:text-lg text-orange-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-inbox mr-1.5"></i>GELEN SİPARİŞLER</span>
+        <span id="incoming-count" class="text-sm font-bold bg-orange-900/60 border border-orange-700 text-orange-200 rounded px-1.5 shrink-0">0</span>
         <div class="w-px self-stretch bg-gray-400/40 shrink-0"></div>
+        <span id="clock" class="text-gold font-extrabold text-xl xl:text-2xl tabular-nums leading-none whitespace-nowrap"></span>
+        <span id="clock-date" class="text-gray-300 text-xl xl:text-2xl font-normal leading-none whitespace-nowrap"></span>
+        <div class="flex-1"></div>
+        <span class="font-extrabold text-base xl:text-lg text-blue-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-utensils mr-1.5"></i>HAZIRLANAN SİPARİŞLER</span>
+        <span id="preparing-count" class="text-sm font-bold bg-blue-900/60 border border-blue-700 text-blue-200 rounded px-1.5 shrink-0">0</span>
         <div class="flex items-center gap-1.5 shrink-0">
             <div class="flex items-center gap-1 bg-blue-900/60 border border-blue-700 rounded px-2 py-0.5">
                 <i class="fas fa-server text-blue-400 text-[10px]"></i>
@@ -92,27 +96,15 @@
     </header>
 
     <main class="p-1 flex-1 min-h-0 flex flex-col" style="padding-bottom:42px">
-        <div id="boards" class="flex-1 min-h-0 flex flex-col">
-            <div class="pb-1 grid grid-cols-1 lg:grid-cols-2 gap-2 items-center shrink-0">
-                <div class="flex items-center gap-2 min-w-0">
-                    <span class="font-extrabold text-lg md:text-xl 2xl:text-2xl text-orange-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-inbox mr-2"></i>GELEN SİPARİŞLER</span>
-                    <span id="incoming-count" class="text-sm font-bold bg-orange-900/60 border border-orange-700 text-orange-200 rounded px-1.5 shrink-0">0</span>
-                </div>
-                <div class="flex items-center gap-2 min-w-0">
-                    <span class="font-extrabold text-lg md:text-xl 2xl:text-2xl text-blue-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-utensils mr-2"></i>HAZIRLANAN SİPARİŞLER</span>
-                    <span id="preparing-count" class="text-sm font-bold bg-blue-900/60 border border-blue-700 text-blue-200 rounded px-1.5 shrink-0">0</span>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 flex-1 min-h-0">
-                <section class="relative min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden">
-                    <div class="watermark"><span>ROCKS SERVICES BDS</span></div>
-                    <div id="incoming-grid" class="relative h-full overflow-y-auto p-1 grid gap-1 items-start content-start" style="grid-template-columns: repeat(6, minmax(0, 1fr))"></div>
-                </section>
-                <section class="relative min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden">
-                    <div class="watermark"><span>ROCKS SERVICES BDS</span></div>
-                    <div id="preparing-grid" class="relative h-full overflow-y-auto p-1 grid gap-1 items-start content-start" style="grid-template-columns: repeat(6, minmax(0, 1fr))"></div>
-                </section>
-            </div>
+        <div id="boards" class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-2">
+            <section class="relative min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden">
+                <div class="watermark"><span>ROCKS SERVICES BDS</span></div>
+                <div id="incoming-grid" class="relative h-full overflow-y-auto p-1 grid gap-1 items-start content-start" style="grid-template-columns: repeat(6, minmax(0, 1fr))"></div>
+            </section>
+            <section class="relative min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden">
+                <div class="watermark"><span>ROCKS SERVICES BDS</span></div>
+                <div id="preparing-grid" class="relative h-full overflow-y-auto p-1 grid gap-1 items-start content-start" style="grid-template-columns: repeat(6, minmax(0, 1fr))"></div>
+            </section>
         </div>
         <div id="no-orders" class="hidden text-center py-20">
             <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
@@ -224,11 +216,11 @@
         }
 
         function locLabel(order, tc = 'text-gold', rc = 'text-amber-300') {
-            const t = order.table_no ? `<span class="${tc} font-extrabold text-[13px]">T${escapeHtml(order.table_no)}</span>` : '';
-            const r = order.room_no ? `<span class="${rc} font-bold text-[13px]">R${escapeHtml(order.room_no)}</span>` : '';
-            const base = [t, r].filter(Boolean).join(' ') || 'Paket';
-            // Ayni odadan/masadan gelen birden fazla aktif siparis varsa sira rozeti
-            return order._seqTotal > 1 ? base + ` <span class="text-gray-400 text-[10px]">#${order._seq}/${order._seqTotal}</span>` : base;
+            // Konum etiketi alt alta: "TBL 15" / "RM 2313" (tek konumluysa tek satir)
+            const seq = order._seqTotal > 1 ? ` <span class="text-gray-400 text-[10px]">#${order._seq}/${order._seqTotal}</span>` : '';
+            const t = order.table_no ? `<div class="${tc} font-extrabold text-[13px] truncate leading-tight">TBL ${escapeHtml(order.table_no)}${seq}</div>` : '';
+            const r = order.room_no ? `<div class="${rc} font-bold text-[13px] truncate leading-tight">RM ${escapeHtml(order.room_no)}</div>` : '';
+            return (t + r) || `<div class="${tc} font-extrabold text-[13px] truncate leading-tight">Paket</div>`;
         }
 
         function refreshTopBar() {
@@ -508,11 +500,9 @@
                 : `<span class="px-1 rounded text-[8px] font-bold bg-orange-700 text-orange-100 shrink-0">QR</span>`;
             const chkLabel = isSymphony ? (order.check_number ? `Chk #${order.check_number}` : '') : `Chk #${order.id}`;
             return `<div class="ready-blink border-2 border-emerald-500 rounded-lg p-1.5 text-[11px]">
-                <div class="flex items-center justify-between gap-1">
-                    <span class="flex items-center gap-1 min-w-0">
-                        <span class="truncate leading-tight">${locLabel(order, 'text-emerald-300', 'text-emerald-200')}</span>
-                        ${srcBadge}
-                    </span>
+                <div class="flex items-start justify-between gap-1">
+                    <div class="min-w-0 leading-tight">${locLabel(order, 'text-emerald-300', 'text-emerald-200')}</div>
+                    ${srcBadge}
                 </div>
                 <div class="flex items-center justify-between gap-1 mt-0.5 mb-1">
                     <span class="text-[9px] text-emerald-200/60 truncate">${chkLabel}</span>
@@ -618,11 +608,9 @@
             return `
             <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden text-[11px]" data-order-id="${order.id}">
                 <div class="px-1 py-0.5 bg-gray-750 border-b border-gray-700">
-                    <div class="flex items-center justify-between gap-1">
-                        <span class="flex items-center gap-1 min-w-0">
-                            <span class="truncate leading-tight">${locLabel(order)}</span>
-                            ${sourceBadge}
-                        </span>
+                    <div class="flex items-start justify-between gap-1">
+                        <div class="min-w-0 leading-tight">${locLabel(order)}</div>
+                        ${sourceBadge}
                     </div>
                     <div class="flex items-center justify-between gap-1 mt-0.5">
                         <span class="text-[9px] text-gray-400 truncate">${metaLeft}</span>
@@ -712,7 +700,7 @@
                 const srcBadge = isSymphony
                     ? `<span class="bg-blue-800 text-blue-200 text-[9px] px-1 rounded font-bold">SYM</span>`
                     : `<span class="bg-orange-800 text-orange-200 text-[9px] px-1 rounded font-bold">QR</span>`;
-                const tableLabel = order.table_no ? 'T' + order.table_no : (order.room_no ? 'ROOM' + order.room_no : 'Pkt');
+                const tableLabel = order.table_no ? 'TBL ' + escapeHtml(order.table_no) : (order.room_no ? 'RM ' + escapeHtml(order.room_no) : 'Pkt');
                 const isCancelled = order.status === 'cancelled' || order.bar_status === 'cancelled';
                 if (isCancelled) {
                     return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-red-900 rounded px-2 py-1 text-xs text-red-400" style="min-width:160px;max-width:240px">
