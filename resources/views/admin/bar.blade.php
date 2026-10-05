@@ -48,26 +48,17 @@
         }
         .watermark span {
             font-weight: 800; letter-spacing: 0.15em; white-space: nowrap;
-            color: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.08);
             font-size: min(3.5vw, 64px);
             transform: rotate(-45deg);
         }
     </style>
 </head>
 <body class="bg-gray-900 font-poppins text-white h-screen flex flex-col" style="overflow:hidden">
-    <header class="bg-primary px-2 py-1 flex items-center gap-2 min-w-0 shrink-0">
-        <div class="flex items-center gap-1 bg-yellow-900/60 border border-yellow-700 rounded px-2 py-0.5 shrink-0">
-            <i class="fas fa-wine-glass text-gold text-[10px]"></i>
-            <span class="text-gold font-bold text-sm">{{ \App\Models\Setting::get('bar_screen_title', 'KDS - Bar') }}</span>
-        </div>
-        <span class="font-extrabold text-base xl:text-lg text-orange-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-inbox mr-1.5"></i>GELEN SİPARİŞLER</span>
-        <span id="incoming-count" class="text-xs font-bold bg-orange-900/60 border border-orange-700 text-orange-200 rounded px-1.5 shrink-0">0</span>
-        <span class="text-gray-600 shrink-0">|</span>
-        <span class="font-extrabold text-base xl:text-lg text-blue-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-utensils mr-1.5"></i>HAZIRLANAN SİPARİŞLER</span>
-        <span id="preparing-count" class="text-xs font-bold bg-blue-900/60 border border-blue-700 text-blue-200 rounded px-1.5 shrink-0">0</span>
-        <div class="flex-1"></div>
+    <header class="bg-primary px-2 py-1 flex items-center gap-3 min-w-0 shrink-0">
         <span id="clock" class="text-gold font-extrabold text-xl xl:text-2xl tabular-nums leading-none whitespace-nowrap"></span>
-        <span id="clock-date" class="text-gray-300 text-xs font-medium whitespace-nowrap hidden xl:inline"></span>
+        <span id="clock-date" class="text-gray-300 text-xl xl:text-2xl font-normal leading-none whitespace-nowrap hidden md:inline"></span>
+        <div class="flex-1"></div>
         <div class="w-px self-stretch bg-gray-400/40 shrink-0"></div>
         <div class="flex items-center gap-1.5 shrink-0">
             <div class="flex items-center gap-1 bg-blue-900/60 border border-blue-700 rounded px-2 py-0.5">
@@ -101,16 +92,27 @@
     </header>
 
     <main class="p-1 flex-1 min-h-0 flex flex-col" style="padding-bottom:42px">
-        <div id="boards" class="grid grid-cols-1 lg:grid-cols-2 gap-2 flex-1 min-h-0">
-            <section class="relative min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden flex">
-                <div class="watermark"><span>ROCKS SERVICES BDS</span></div>
-                <div id="waiter-strip" class="hidden relative w-[106px] shrink-0 h-full overflow-y-auto p-1 space-y-1"></div>
-                <div id="incoming-grid" class="relative flex-1 min-w-0 h-full overflow-y-auto p-1 grid gap-1 items-start content-start" style="grid-template-columns: repeat(6, minmax(0, 1fr))"></div>
-            </section>
-            <section class="relative min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden">
-                <div class="watermark"><span>ROCKS SERVICES BDS</span></div>
-                <div id="preparing-grid" class="relative h-full overflow-y-auto p-1 grid gap-1 items-start content-start" style="grid-template-columns: repeat(6, minmax(0, 1fr))"></div>
-            </section>
+        <div id="boards" class="flex-1 min-h-0 flex flex-col">
+            <div class="pb-1 grid grid-cols-1 lg:grid-cols-2 gap-2 items-center shrink-0">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="font-extrabold text-lg md:text-xl 2xl:text-2xl text-orange-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-inbox mr-2"></i>GELEN SİPARİŞLER</span>
+                    <span id="incoming-count" class="text-sm font-bold bg-orange-900/60 border border-orange-700 text-orange-200 rounded px-1.5 shrink-0">0</span>
+                </div>
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="font-extrabold text-lg md:text-xl 2xl:text-2xl text-blue-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-utensils mr-2"></i>HAZIRLANAN SİPARİŞLER</span>
+                    <span id="preparing-count" class="text-sm font-bold bg-blue-900/60 border border-blue-700 text-blue-200 rounded px-1.5 shrink-0">0</span>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 flex-1 min-h-0">
+                <section class="relative min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden">
+                    <div class="watermark"><span>ROCKS SERVICES BDS</span></div>
+                    <div id="incoming-grid" class="relative h-full overflow-y-auto p-1 grid gap-1 items-start content-start" style="grid-template-columns: repeat(6, minmax(0, 1fr))"></div>
+                </section>
+                <section class="relative min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden">
+                    <div class="watermark"><span>ROCKS SERVICES BDS</span></div>
+                    <div id="preparing-grid" class="relative h-full overflow-y-auto p-1 grid gap-1 items-start content-start" style="grid-template-columns: repeat(6, minmax(0, 1fr))"></div>
+                </section>
+            </div>
         </div>
         <div id="no-orders" class="hidden text-center py-20">
             <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
@@ -221,12 +223,12 @@
             return order.check_number ? String(order.check_number) : ('T' + (order.table_no || ''));
         }
 
-        function locLabel(order) {
-            const t = order.table_no ? 'T' + order.table_no : '';
-            const r = order.room_no ? 'R' + order.room_no : '';
+        function locLabel(order, tc = 'text-gold', rc = 'text-amber-300') {
+            const t = order.table_no ? `<span class="${tc} font-extrabold text-[13px]">T${escapeHtml(order.table_no)}</span>` : '';
+            const r = order.room_no ? `<span class="${rc} font-bold text-[13px]">R${escapeHtml(order.room_no)}</span>` : '';
             const base = [t, r].filter(Boolean).join(' ') || 'Paket';
             // Ayni odadan/masadan gelen birden fazla aktif siparis varsa sira rozeti
-            return order._seqTotal > 1 ? base + ' #' + order._seq + '/' + order._seqTotal : base;
+            return order._seqTotal > 1 ? base + ` <span class="text-gray-400 text-[10px]">#${order._seq}/${order._seqTotal}</span>` : base;
         }
 
         function refreshTopBar() {
@@ -508,12 +510,14 @@
             return `<div class="ready-blink border-2 border-emerald-500 rounded-lg p-1.5 text-[11px]">
                 <div class="flex items-center justify-between gap-1">
                     <span class="flex items-center gap-1 min-w-0">
-                        <span class="truncate leading-tight font-bold text-emerald-300">${locLabel(order)}</span>
+                        <span class="truncate leading-tight">${locLabel(order, 'text-emerald-300', 'text-emerald-200')}</span>
                         ${srcBadge}
                     </span>
+                </div>
+                <div class="flex items-center justify-between gap-1 mt-0.5 mb-1">
+                    <span class="text-[9px] text-emerald-200/60 truncate">${chkLabel}</span>
                     <span class="ready-elapsed text-[10px] ${readyTimeBg} px-1 py-0.5 rounded text-white font-bold shrink-0" data-order-time="${readyStartIso}">${timeStr}</span>
                 </div>
-                <div class="text-[9px] text-emerald-200/60 truncate mt-0.5 mb-1">${chkLabel}</div>
                 <div>${itemRows || '<div class="text-gray-400 text-center py-0.5">—</div>'}</div>
                 ${msgSummary ? `<p class="text-yellow-300 text-[10px] leading-snug mt-0.5"><i class="fas fa-bullhorn mr-0.5"></i>${msgSummary}</p>` : ''}
                 ${hasNote ? `<p class="text-yellow-400 text-[10px] truncate mt-0.5"><i class="fas fa-exclamation-triangle mr-0.5"></i>${escapeHtml(order.order_note)}</p>` : ''}
@@ -616,12 +620,14 @@
                 <div class="px-1 py-0.5 bg-gray-750 border-b border-gray-700">
                     <div class="flex items-center justify-between gap-1">
                         <span class="flex items-center gap-1 min-w-0">
-                            <span class="font-bold text-gold truncate leading-tight">${locLabel(order)}</span>
+                            <span class="truncate leading-tight">${locLabel(order)}</span>
                             ${sourceBadge}
                         </span>
+                    </div>
+                    <div class="flex items-center justify-between gap-1 mt-0.5">
+                        <span class="text-[9px] text-gray-400 truncate">${metaLeft}</span>
                         <span class="bar-elapsed px-1 py-0.5 rounded text-[10px] font-bold ${timeBg} shrink-0" data-order-time="${startTime.replace(/['"<>&]/g, '')}" data-is-symphony="${isSymphony ? '1' : '0'}">${timeStr}</span>
                     </div>
-                    <div class="text-[9px] text-gray-400 mt-0.5 truncate">${metaLeft}</div>
                 </div>
                 <div class="px-1 py-0.5">
                     ${itemsHtml || '<div class="text-gray-400 text-center py-0.5">Urun yok</div>'}
@@ -656,17 +662,13 @@
             const preparingHtml = preparingShown.map(o => renderOrderCard(o, true));
             const incomingHtml  = incoming.map(o => renderOrderCard(o));
 
-            // Sol kolon — cagri listesi VEYA siparis icerigi degistiginde yeniden ciz.
+            // Sol kolon — cagri kartlari ile yeni siparisler ayni griddedeyken yan yana durur.
             // _lastWaiterIds anahtara dahil: incoming bosken ('' == '') cagri kartlarinin
             // hic yazilmamasi hatasi boylece cozulur.
             const inKey = _lastWaiterIds + '|' + incoming.map(orderSig).join(',');
             if (inKey !== lastIncomingKeys) {
                 lastIncomingKeys = inKey;
-                document.getElementById('incoming-grid').innerHTML = incomingHtml.join('');
-                // Cagri kartlari siparis gridinden ayri dikey seritte; cagri yokken serit gizlenir
-                const strip = document.getElementById('waiter-strip');
-                strip.innerHTML = _waiterCards.join('');
-                strip.classList.toggle('hidden', _waiterCards.length === 0);
+                document.getElementById('incoming-grid').innerHTML = _waiterCards.join('') + incomingHtml.join('');
             }
             document.getElementById('incoming-count').textContent = incomingHtml.length;
 
@@ -752,11 +754,11 @@
                 const timeBg = timerBg(minTotal, TIMER.waiter);
                 const timeStr = String(Math.floor(call.seconds_ago / 3600)).padStart(2,'0') + ':' + String(Math.floor((call.seconds_ago % 3600) / 60)).padStart(2,'0') + ':' + String(call.seconds_ago % 60).padStart(2,'0');
                 const callLabel = [call.table_no ? 'Masa ' + call.table_no : '', call.room_no ? 'ROOM ' + call.room_no : ''].filter(Boolean).join(' ') || 'Genel';
-                return `<div class="bg-red-950 rounded-lg p-1">
-                    <div class="font-bold text-red-200 text-[11px] flex items-center gap-1"><i class="fas fa-bell text-red-400 waiter-alert text-[9px] shrink-0"></i><span class="truncate">${escapeHtml(callLabel)}</span></div>
-                    <div class="mt-0.5"><span class="waiter-elapsed px-1 py-0.5 rounded text-[9px] ${timeBg} text-white font-bold" data-order-time="${(call.order_time || '').replace(/['"<>&]/g, '')}">${timeStr}</span></div>
+                return `<div class="bg-red-950 rounded-lg p-1 border border-red-800">
+                    <div class="font-bold text-red-200 text-[12px] flex items-center gap-1"><i class="fas fa-bell text-red-400 waiter-alert text-[10px] shrink-0"></i><span class="truncate">${escapeHtml(callLabel)}</span></div>
+                    <div class="mt-0.5"><span class="waiter-elapsed px-1 py-0.5 rounded text-[10px] ${timeBg} text-white font-bold" data-order-time="${(call.order_time || '').replace(/['"<>&]/g, '')}">${timeStr}</span></div>
                     ${call.note ? `<p class="text-red-300 text-[10px] mt-0.5 truncate">${escapeHtml(call.note)}</p>` : ''}
-                    <button onclick="attendWaiterCall(${call.id})" class="mt-1 w-full py-0.5 bg-green-700 hover:bg-green-600 rounded text-[9px] font-bold transition"><i class="fas fa-check mr-0.5"></i>İlgilendi</button>
+                    <button onclick="attendWaiterCall(${call.id})" class="mt-1 w-full py-0.5 bg-green-700 hover:bg-green-600 rounded text-[10px] font-bold transition"><i class="fas fa-check mr-0.5"></i>İlgilendi</button>
                 </div>`;
             });
             refreshTopBar();
