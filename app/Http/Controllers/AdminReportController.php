@@ -85,19 +85,19 @@ class AdminReportController extends Controller
             ];
         };
 
-        // ---- QR siparişleri: created_at → bar_approved_at → kitchen_started_at → kitchen_ready_at → completed_at ----
+        // ---- QR siparişleri: created_at → (bar_approved_at) → kitchen_started_at → kitchen_ready_at → completed_at ----
+        // bar_approved_at QR akışında dolmayabilir (Onayla butonu kaldırıldı) — opsiyonel aşama.
         $qrOrders = $applyRange(
             Order::where('kitchen_status', 'completed')
-                ->whereNotNull('completed_at')
-                ->whereNotNull('bar_approved_at'),
+                ->whereNotNull('completed_at'),
             'completed_at'
         )->orderByDesc('completed_at')->limit(100)->get();
 
         $qrRows = [];
         $qrBarWait = $qrStartWait = $qrPrep = $qrReadyWait = $qrTotal = [];
         foreach ($qrOrders as $o) {
-            $barWait   = (int) abs($o->created_at->diffInSeconds($o->bar_approved_at));
-            $startWait = $o->kitchen_started_at ? (int) abs($o->bar_approved_at->diffInSeconds($o->kitchen_started_at)) : null;
+            $barWait   = $o->bar_approved_at ? (int) abs($o->created_at->diffInSeconds($o->bar_approved_at)) : null;
+            $startWait = $o->kitchen_started_at ? (int) abs(($o->bar_approved_at ?? $o->created_at)->diffInSeconds($o->kitchen_started_at)) : null;
             $prep      = $o->kitchen_started_at && $o->kitchen_ready_at ? (int) abs($o->kitchen_started_at->diffInSeconds($o->kitchen_ready_at)) : null;
             $readyWait = $o->kitchen_ready_at ? (int) abs($o->kitchen_ready_at->diffInSeconds($o->completed_at)) : null;
             $total     = (int) abs($o->created_at->diffInSeconds($o->completed_at));
@@ -155,8 +155,7 @@ class AdminReportController extends Controller
         // ---- Günlük ortalama teslim süresi (QR, son 30 gün) ----
         $daily = $applyRange(
             Order::where('kitchen_status', 'completed')
-                ->whereNotNull('completed_at')
-                ->whereNotNull('bar_approved_at'),
+                ->whereNotNull('completed_at'),
             'completed_at'
         )->selectRaw('DATE(completed_at) AS day, COUNT(*) AS total, ROUND(AVG(TIMESTAMPDIFF(SECOND, created_at, completed_at))) AS avg_seconds')
             ->groupBy('day')
