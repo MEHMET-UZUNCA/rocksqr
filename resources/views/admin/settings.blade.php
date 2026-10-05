@@ -158,6 +158,22 @@
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-amber-400">
                         </div>
                     </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <label class="flex items-start gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                            <input type="checkbox" name="bar_show_drinks" value="1" class="rounded mt-0.5"
+                                   @checked(old('bar_show_drinks', $settings['bar_show_drinks']))>
+                            <span><i class="fas fa-wine-bottle mr-1"></i>İçecekler görünsün
+                                <span class="block text-xs font-normal text-gray-400">Kapalıyken Hazırlanan alanında içecek ürünleri takip edilmez</span>
+                            </span>
+                        </label>
+                        <label class="flex items-start gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                            <input type="checkbox" name="bar_show_others" value="1" class="rounded mt-0.5"
+                                   @checked(old('bar_show_others', $settings['bar_show_others']))>
+                            <span><i class="fas fa-comment-dots mr-1"></i>Diğerleri görünsün
+                                <span class="block text-xs font-normal text-gray-400">Mesaj/mars gibi yiyecek-içecek dışı satırlar</span>
+                            </span>
+                        </label>
+                    </div>
                     <button type="submit" class="py-2.5 px-5 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 transition text-sm">
                         <i class="fas fa-save mr-2"></i>Bar Ayarlarini Kaydet
                     </button>

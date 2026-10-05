@@ -44,17 +44,22 @@
     </style>
 </head>
 <body class="bg-gray-900 font-poppins text-white h-screen flex flex-col" style="overflow:hidden">
-    <header class="bg-primary px-3 py-1 flex items-center justify-between">
-        <div class="flex items-center gap-1 bg-yellow-900/60 border border-yellow-700 rounded px-2 py-0.5">
+    <header class="bg-primary px-3 py-1 flex items-center gap-2 min-w-0">
+        <div class="flex items-center gap-1 bg-yellow-900/60 border border-yellow-700 rounded px-2 py-0.5 shrink-0">
             <i class="fas fa-wine-glass text-gold text-[10px]"></i>
             <span class="text-gold font-bold text-sm">{{ \App\Models\Setting::get('bar_screen_title', 'KDS - Bar') }}</span>
         </div>
-        <div class="flex items-center gap-2">
-            <span id="clock" class="text-gold font-bold text-base tabular-nums"></span>
-            <span class="text-gray-600 text-xs">|</span>
-            <span id="clock-date" class="text-gray-300 text-xs font-medium"></span>
+        <div class="flex items-center gap-1.5 shrink-0">
+            <span class="font-bold text-sm text-orange-400 tracking-wide"><i class="fas fa-inbox mr-1"></i>GELEN SİPARİŞLER</span>
+            <span id="incoming-count" class="text-xs font-bold bg-orange-900/60 border border-orange-700 text-orange-200 rounded px-1.5">0</span>
         </div>
-        <div class="flex items-center gap-1.5">
+        <div class="w-px self-stretch bg-gray-400/40 shrink-0" style="margin:2px 0"></div>
+        <div class="flex items-center gap-1.5 shrink-0">
+            <span class="font-bold text-sm text-blue-400 tracking-wide"><i class="fas fa-utensils mr-1"></i>HAZIRLANAN SİPARİŞLER</span>
+            <span id="preparing-count" class="text-xs font-bold bg-blue-900/60 border border-blue-700 text-blue-200 rounded px-1.5">0</span>
+        </div>
+        <div class="flex-1"></div>
+        <div class="flex items-center gap-1.5 shrink-0">
             <div class="flex items-center gap-1 bg-blue-900/60 border border-blue-700 rounded px-2 py-0.5">
                 <i class="fas fa-server text-blue-400 text-[10px]"></i>
                 <span id="header-sym-count" class="text-blue-200 font-bold text-sm">0</span>
@@ -75,14 +80,19 @@
                 <span id="header-waiter-count" class="text-red-200 font-bold text-sm">0</span>
                 <span class="text-red-600 text-[10px]">çağrı</span>
             </div>
-            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse ml-1"></span>
-            <button onclick="toggleFullscreen()" id="fs-btn" class="text-gray-400 hover:text-gold transition ml-1" title="Tam ekran">
-                <i id="fs-icon" class="fas fa-expand text-sm"></i>
-            </button>
-            <a href="/admin" class="text-gray-400 hover:text-gold transition text-xs">
-                <i class="fas fa-arrow-left"></i>
-            </a>
         </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <span id="clock" class="text-gold font-bold text-base tabular-nums"></span>
+            <span class="text-gray-600 text-xs">|</span>
+            <span id="clock-date" class="text-gray-300 text-xs font-medium"></span>
+        </div>
+        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse shrink-0"></span>
+        <button onclick="toggleFullscreen()" id="fs-btn" class="text-gray-400 hover:text-gold transition" title="Tam ekran">
+            <i id="fs-icon" class="fas fa-expand text-sm"></i>
+        </button>
+        <a href="/admin" class="text-gray-400 hover:text-gold transition text-xs">
+            <i class="fas fa-arrow-left"></i>
+        </a>
     </header>
 
     <!-- Garson Çağrıları: üst şerit -->
@@ -92,19 +102,11 @@
 
     <main class="p-2 flex-1 min-h-0 flex flex-col" style="padding-bottom:50px">
         <div id="boards" class="grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1 min-h-0">
-            <section class="flex flex-col min-h-0 border border-gray-700 rounded-lg bg-gray-900/60">
-                <div class="flex items-center justify-between px-3 py-1.5 bg-gray-800 border-b border-gray-700 rounded-t-lg">
-                    <span class="font-bold text-sm text-orange-400 tracking-wide"><i class="fas fa-inbox mr-1.5"></i>GELEN SİPARİŞLER</span>
-                    <span id="incoming-count" class="text-xs font-bold bg-orange-900/60 border border-orange-700 text-orange-200 rounded px-1.5">0</span>
-                </div>
-                <div id="incoming-grid" class="flex-1 min-h-0 overflow-y-auto p-1.5 grid gap-1.5 items-start content-start" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr))"></div>
+            <section class="min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden">
+                <div id="incoming-grid" class="h-full overflow-y-auto p-1.5 grid gap-1.5 items-start content-start" style="grid-template-columns: repeat(3, 1fr)"></div>
             </section>
-            <section class="flex flex-col min-h-0 border border-gray-700 rounded-lg bg-gray-900/60">
-                <div class="flex items-center justify-between px-3 py-1.5 bg-gray-800 border-b border-gray-700 rounded-t-lg">
-                    <span class="font-bold text-sm text-blue-400 tracking-wide"><i class="fas fa-utensils mr-1.5"></i>HAZIRLANAN SİPARİŞLER</span>
-                    <span id="preparing-count" class="text-xs font-bold bg-blue-900/60 border border-blue-700 text-blue-200 rounded px-1.5">0</span>
-                </div>
-                <div id="preparing-grid" class="flex-1 min-h-0 overflow-y-auto p-1.5 grid gap-1.5 items-start content-start" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr))"></div>
+            <section class="min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden">
+                <div id="preparing-grid" class="h-full overflow-y-auto p-1.5 grid gap-1.5 items-start content-start" style="grid-template-columns: repeat(6, 1fr)"></div>
             </section>
         </div>
         <div id="no-orders" class="hidden text-center py-20">
@@ -162,6 +164,48 @@
 
         function clearStartTime(groupKey) {
             localStorage.removeItem(LS_PREFIX + groupKey);
+        }
+
+        // ── Bar kategori filtreleri (Admin → Ekran → Bar Ayarları) ─────────
+        const BAR_SHOW_DRINKS = @json((bool) \App\Models\Setting::get('bar_show_drinks', '0'));
+        const BAR_SHOW_OTHERS = @json((bool) \App\Models\Setting::get('bar_show_others', '1'));
+
+        // Symphony: MajorGroupID 1=yiyecek, 2/3=içecek, diğer=mars/mesaj. QR: cat (food/drink).
+        function itemClass(item) {
+            if (item.mg === 1) return 'food';
+            if (item.mg === 2 || item.mg === 3) return 'drink';
+            if (item.mg) return 'other';
+            return item.cat || 'food';
+        }
+
+        function itemVisible(item) {
+            const k = itemClass(item);
+            if (k === 'drink') return BAR_SHOW_DRINKS;
+            if (k === 'other') return BAR_SHOW_OTHERS;
+            return true;
+        }
+
+        function parseItems(order) {
+            try { return Array.isArray(order.items) ? order.items : (JSON.parse(order.items || '[]') || []); }
+            catch(e) { return []; }
+        }
+
+        // Gizli kategoriler elenmiş ürün listesi; Symphony hazır kartındaki
+        // 'Adisyon #' yer tutucusu lastSymOrders'tan gerçek ürünlerle çözülür.
+        function visibleItems(order) {
+            let items = parseItems(order);
+            if (order.source === 'symphony' && items.length === 1 && String(items[0].name || '').startsWith('Adisyon #')) {
+                const match = lastSymOrders.find(s =>
+                    s.group_key === order.group_key ||
+                    (order.table_no && String(s.table_no) === String(order.table_no))
+                );
+                if (match && match.items && match.items.length > 0) items = match.items;
+            }
+            return items.filter(itemVisible);
+        }
+
+        function hasVisibleItems(order) {
+            return visibleItems(order).length > 0;
         }
 
         function symGroupKey(order) {
@@ -431,20 +475,7 @@
 
         function renderReadyCard(order) {
             const isSymphony = order.source === 'symphony';
-            let items = [];
-            try { items = Array.isArray(order.items) ? order.items : JSON.parse(order.items); }
-            catch(e) { items = []; }
-
-            // Symphony check kaydında placeholder varsa lastSymOrders'dan gerçek ürünleri al
-            if (isSymphony && items.length === 1 && items[0].name && items[0].name.startsWith('Adisyon #')) {
-                const match = lastSymOrders.find(s =>
-                    s.group_key === order.group_key ||
-                    (order.table_no && String(s.table_no) === String(order.table_no))
-                );
-                if (match && match.items && match.items.length > 0) {
-                    items = match.items;
-                }
-            }
+            const items = visibleItems(order);
 
             const itemSummary = items.map(i => {
                 const nm = i.name || (i.id ? getProductName(i.id) : '');
@@ -478,7 +509,7 @@
             </div>`;
         }
 
-        function renderOrderCard(order) {
+        function renderOrderCard(order, filterItems) {
             const isSymphony = order.source === 'symphony';
             const isNew = !isSymphony && order.bar_status === 'new';
             const inSym = !isSymphony && order.in_symphony === true;
@@ -510,9 +541,8 @@
             const gk = isSymphony ? symGroupKey(order) : null;
             const startTime = isSymphony ? getStartTime(gk, order.order_time) : (order.order_time || '');
 
-            let items = [];
-            try { items = Array.isArray(order.items) ? order.items : JSON.parse(order.items); }
-            catch(e) { items = []; }
+            // Sag kolon (Hazirlanan) gizli kategorileri satirdan da eler; Gelen kolonu filtresiz
+            const items = filterItems ? parseItems(order).filter(itemVisible) : parseItems(order);
 
             const itemsHtml = items.map(item => {
                 const name = item.name || (item.id ? getProductName(item.id) : '');
@@ -592,15 +622,20 @@
                 const isSymphony = order.source === 'symphony';
                 // Hazir QR siparisler ayri "hazir" karti olarak en uste cikar
                 if (!isSymphony && order.kitchen_status === 'ready') return;
-                const toRight = isSymphony || order.in_symphony === true
+                // Ickeler gizliyken yalnizca ickeden olusan QR siparisler sol kolonda kalir
+                const toRight = isSymphony || (order.in_symphony === true && order.has_food !== false)
                     || order.bar_status !== 'new'
                     || (order.kitchen_status && order.kitchen_status !== 'new');
                 (toRight ? preparing : incoming).push(order);
             });
 
-            const readyHtml     = (readyOrders || []).map(renderReadyCard);
-            const preparingHtml = preparing.map(renderOrderCard);
-            const incomingHtml  = incoming.map(renderOrderCard);
+            // Filtreler (Admin > Ekran): butun ogeleri gizli olan kartlar gosterilmez
+            const readyShown     = (readyOrders || []).filter(hasVisibleItems);
+            const preparingShown = preparing.filter(hasVisibleItems);
+
+            const readyHtml     = readyShown.map(renderReadyCard);
+            const preparingHtml = preparingShown.map(o => renderOrderCard(o, true));
+            const incomingHtml  = incoming.map(o => renderOrderCard(o));
 
             // Sol kolon — icerik degismediyse yeniden cizme (flicker onleme)
             const inKey = incoming.map(orderSig).join(',');
@@ -611,7 +646,7 @@
             document.getElementById('incoming-count').textContent = incomingHtml.length;
 
             // Sag kolon — hazir kartlar en ustte
-            const prepKey = [...(readyOrders || []), ...preparing].map(orderSig).join(',');
+            const prepKey = [...readyShown, ...preparingShown].map(orderSig).join(',');
             if (prepKey !== lastPreparingKeys) {
                 lastPreparingKeys = prepKey;
                 document.getElementById('preparing-grid').innerHTML = [...readyHtml, ...preparingHtml].join('');
@@ -736,7 +771,9 @@
                 const currentOrderIds = qrOrders.map(o => o.id);
                 const currentWaiterIds = (data.waiter_calls || []).map(c => c.id);
                 // Hazir bildirimi icin stabil anahtar (Symphony'de id=0 oldugundan group_key kullan)
-                const currentReadyKeys = (data.ready_orders || []).map(o => o.group_key ? 'S:' + o.group_key : 'Q:' + o.id);
+                // Gizli kategoriler elendikten sonra kalan hazir kartlar ses tetikler
+                const readyShown = (data.ready_orders || []).filter(hasVisibleItems);
+                const currentReadyKeys = readyShown.map(o => o.group_key ? 'S:' + o.group_key : 'Q:' + o.id);
 
                 if (!isFirstLoad) {
                     const newOrders = currentOrderIds.filter(id => !previousOrderIds.includes(id));
@@ -766,7 +803,7 @@
                 // Ayni odadan/masadan gelen aktif siparisler: #sira/toplam rozeti (en eski = #1)
                 const locKey = o => o.table_no ? 'T' + o.table_no : (o.room_no ? 'R' + o.room_no : '');
                 const groups = {};
-                [...activeOrders, ...(data.ready_orders || [])].forEach(o => {
+                [...activeOrders, ...readyShown].forEach(o => {
                     const k = locKey(o);
                     if (!k) return;
                     (groups[k] = groups[k] || []).push(o);
@@ -777,7 +814,7 @@
                     list.forEach((o, i) => { o._seq = i + 1; o._seqTotal = list.length; });
                 });
 
-                renderBoards(activeOrders, data.ready_orders || []);
+                renderBoards(activeOrders, readyShown);
                 renderCompletedOrders(data.completed_orders || [], data.completed_orders_limit || null, data.attended_calls || []);
                 renderWaiterCalls(data.waiter_calls || []);
             }).catch(err => console.error('Fetch error:', err));

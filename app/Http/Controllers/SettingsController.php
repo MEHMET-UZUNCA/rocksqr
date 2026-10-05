@@ -20,6 +20,8 @@ class SettingsController extends Controller
             'bar_completed_display' => (int) Setting::get('bar_completed_display', 6),
             'ready_undo_seconds' => (int) Setting::get('ready_undo_seconds', 30),
             'bar_screen_title' => Setting::get('bar_screen_title', 'KDS - Bar Ekrani'),
+            'bar_show_drinks' => (int) Setting::get('bar_show_drinks', 0),
+            'bar_show_others' => (int) Setting::get('bar_show_others', 1),
             'kitchen_screen_title' => Setting::get('kitchen_screen_title', 'POOL Mutfak Ekrani'),
             'waiter_call_display' => (int) Setting::get('waiter_call_display', 10),
             'order_ready_display' => (int) Setting::get('order_ready_display', 10),
@@ -162,6 +164,8 @@ class SettingsController extends Controller
                 Setting::set('bar_completed_display', $request->bar_completed_display);
                 Setting::set('order_ready_display', $request->order_ready_display);
                 Setting::set('order_profit_display', $request->order_profit_display);
+                Setting::set('bar_show_drinks', $request->boolean('bar_show_drinks') ? '1' : '0');
+                Setting::set('bar_show_others', $request->boolean('bar_show_others') ? '1' : '0');
                 return back()->with('success', 'Bar ekran ayarları güncellendi.');
             }
 

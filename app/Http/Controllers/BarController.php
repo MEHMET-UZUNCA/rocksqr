@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\MapsOrders;
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\Setting;
 use App\Models\WaiterCall;
 use App\Services\MssqlService;
@@ -80,19 +81,22 @@ class BarController extends Controller
         $orders = Order::where('bar_status', 'new')
             ->orderBy('created_at', 'asc')
             ->get()
-            ->map(fn ($order) => $this->mapOrder($order));
+            ->map(fn ($order) => $this->mapBarOrder($order));
 
         $readyOrders = Order::where('kitchen_status', 'ready')
             ->orderBy('kitchen_ready_at', 'desc')
             ->limit($completedLimit)
             ->get()
-            ->map(fn ($order) => $this->mapOrder($order))
+            ->map(fn ($order) => $this->mapBarOrder($order))
             ->values()
             ->all();
 
         // Symphony KDS onayları — delivered_at IS NULL olanlar bar "servise götür" şeridinde
+        // kind=item satırları ürün bazlı ara hazır kayıtlarıdır; bara ancak tüm ürünler
+        // hazır olup kind=check'e yükselince düşer.
         $symphonyReady = DB::table('kitchen_pos_completions')
             ->whereNull('delivered_at')
+            ->whereIn('kind', ['check', 'checkless_msg'])
             ->orderByDesc('completed_at')
             ->limit($completedLimit)
             ->get();
@@ -256,6 +260,8 @@ class BarController extends Controller
                 );
 
                 $key = $checkNum !== null && $checkNum !== '' ? 'C' . $checkNum : 'T' . $tableNo;
+                // MajorGroupID: 1=Yiyecek, 2=İçecek, 3=Alkollü İçecek, 99=Mesaj/Mars
+                $mg = (int) $this->mssql->getField($row, ['MajorGroupID', 'major_group_id', 'MajGrp', 'maj_grp'], 0);
                 if (!isset($groups[$key])) {
                     $groups[$key] = [
                         'group_key'    => $key,
@@ -269,7 +275,7 @@ class BarController extends Controller
                 if ($orderTime && (!$groups[$key]['order_time'] || strcmp((string) $orderTime, (string) $groups[$key]['order_time']) < 0)) {
                     $groups[$key]['order_time'] = $orderTime;
                 }
-                $groups[$key]['items'][] = ['name' => $itemName, 'qty' => max(1, $qty), 'note' => $note];
+                $groups[$key]['items'][] = ['name' => $itemName, 'qty' => max(1, $qty), 'note' => $note, 'mg' => $mg];
             }
 
             uasort($groups, fn($a, $b) => strcmp((string) $a['order_time'], (string) $b['order_time']));
@@ -302,5 +308,42 @@ class BarController extends Controller
             Log::error('BDS MSSQL sorgu hatası', ['error' => $e->getMessage()]);
             return response()->json(['success' => false, 'message' => 'BDS bağlantı hatası oluştu.', 'orders' => []]);
         }
+    }
+
+    // Bar filtresi: her QR ürününe kategori sınıfı (food/drink) + siparişte yiyecek var mı
+    private function mapBarOrder(Order $order): array
+    {
+        $m = $this->mapOrder($order);
+        $items   = is_array($m['items'] ?? null) ? $m['items'] : [];
+        $hasFood = false;
+        foreach ($items as &$it) {
+            $cat = $this->qrItemCat((int) ($it['id'] ?? 0));
+            $it['cat'] = $cat;
+            if ($cat === 'food') $hasFood = true;
+        }
+        unset($it);
+        $m['items']    = array_values($items);
+        $m['has_food'] = $hasFood;
+        return $m;
+    }
+
+    private function qrItemCat(int $productId): string
+    {
+        static $drinkIds = null, $prodCats = null;
+        if ($drinkIds === null) {
+            $drinkIds = [];
+            foreach (preg_split('/[\s,]+/', (string) Setting::get('bar_qr_drink_cats', '11-30,32')) as $part) {
+                if ($part === '') continue;
+                if (str_contains($part, '-')) {
+                    [$a, $b] = array_map('intval', explode('-', $part, 2));
+                    for ($i = min($a, $b); $i <= max($a, $b); $i++) $drinkIds[$i] = true;
+                } else {
+                    $drinkIds[(int) $part] = true;
+                }
+            }
+            $prodCats = Product::pluck('category_id', 'id');
+        }
+        $catId = (int) ($prodCats[$productId] ?? 0);
+        return isset($drinkIds[$catId]) ? 'drink' : 'food';
     }
 }
