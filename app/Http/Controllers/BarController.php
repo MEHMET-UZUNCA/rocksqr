@@ -75,7 +75,7 @@ class BarController extends Controller
 
     public function barApiOrders()
     {
-        $completedLimit    = (int) Setting::get('bar_completed_display', 6);
+        $completedLimit    = (int) Setting::get('bar_completed_display', 12);
         $undoWindowSeconds = (int) Setting::get('ready_undo_seconds', 30);
 
         $orders = Order::where('bar_status', 'new')

@@ -131,7 +131,7 @@
 
     <!-- Son Tamamlananlar: sabit alt şerit -->
     <div id="completed-bar" class="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 px-2 py-1" style="z-index:50;min-height:38px">
-        <div class="flex items-center gap-2 flex-wrap" id="completed-grid"></div>
+        <div class="flex items-center gap-1 flex-wrap" id="completed-grid"></div>
     </div>
 
     <script>
@@ -725,12 +725,12 @@
                 const tableLabel = order.table_no ? 'TBL ' + escapeHtml(order.table_no) : (order.room_no ? 'RM ' + escapeHtml(order.room_no) : 'Pkt');
                 const isCancelled = order.status === 'cancelled' || order.bar_status === 'cancelled';
                 if (isCancelled) {
-                    return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-red-900 rounded px-2 py-1 text-xs text-red-400" style="min-width:160px;max-width:240px">
+                    return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-red-900 rounded px-1 py-0.5 text-xs text-red-400 max-w-[210px]">
                         <i class="fas fa-ban text-red-600 shrink-0"></i>
                         <span class="font-bold shrink-0">${tableLabel}</span>${srcBadge}<span class="text-gray-400 truncate line-through">${summary || '—'}</span>
                     </span>`;
                 }
-                return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-emerald-900 rounded px-2 py-1 text-xs text-emerald-300" style="min-width:160px;max-width:240px">
+                return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-emerald-900 rounded px-1 py-0.5 text-xs text-emerald-300 max-w-[210px]">
                     <i class="fas fa-check text-emerald-600 shrink-0"></i>
                     <span class="font-bold shrink-0">${tableLabel}</span>${srcBadge}<span class="text-gray-400 truncate">${summary || '—'}</span>
                 </span>`;
@@ -738,7 +738,7 @@
 
             const callChips = (attendedCalls || []).map(call => {
                 const tableLabel = [call.table_no ? 'M' + call.table_no : '', call.room_no ? 'ROOM' + call.room_no : ''].filter(Boolean).join(' ') || 'Gen';
-                return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-green-900 rounded px-2 py-1 text-xs text-green-300" style="min-width:120px;max-width:200px">
+                return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-green-900 rounded px-1 py-0.5 text-xs text-green-300 max-w-[170px]">
                     <i class="fas fa-bell-slash text-green-600 shrink-0"></i>
                     <span class="font-bold shrink-0">${tableLabel}</span><span class="text-gray-400 truncate">${call.note || 'Çağrı'}</span>
                 </span>`;

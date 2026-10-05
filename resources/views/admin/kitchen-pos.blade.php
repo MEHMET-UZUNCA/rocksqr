@@ -31,7 +31,7 @@
         @keyframes pulse-qr { 0%,100% { border-color: #a855f7; box-shadow: 0 0 0 0 rgba(168,85,247,0.4);} 50% { border-color: #d946ef; box-shadow: 0 0 0 6px rgba(168,85,247,0);} }
         .qr-card { animation: pulse-qr 2s ease-in-out infinite; }
         @keyframes kpos-chip-marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        #kpos-ticker-inner { display: flex; align-items: stretch; gap: 6px; flex-wrap: nowrap; }
+        #kpos-ticker-inner { display: flex; align-items: stretch; gap: 4px; flex-wrap: nowrap; }
         .kpos-chip-text { display: inline-block; white-space: nowrap; will-change: transform; line-height: 1.2; }
         #kpos-completed-bar ::-webkit-scrollbar { display: none; }
     </style>
@@ -271,7 +271,7 @@
                               onclick="unserveItem(this)"
                               title="Hazır işaretini geri al"
                               class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-700 hover:bg-emerald-600 text-emerald-100 transition shrink-0">
-                        <i class="fas fa-check mr-0.5"></i>Hazır
+                        <i class="fas fa-check mr-0.5"></i><span class="line-through">Hazır</span>
                      </button>`
                     : `<button data-item-gk="${escapeHtml(groupKey)}"
                               data-item-cn="${escapeHtml(order.check_number ? String(order.check_number) : '')}"
@@ -609,6 +609,7 @@
             const completed = data.completed || [];
             const completedMsgs = data.completed_msgs || [];
             const completedChecks = data.completed_checks || [];
+            const completedItems = data.completed_items || [];
             const completedLimit = data.completed_limit || 6;
 
             document.getElementById('order-count').textContent = orders.length;
@@ -661,8 +662,8 @@
                 grid.innerHTML = orders.map(buildOrderCard).join('');
             }
 
-            // Tamamlananlar → alt şerit
-            const allCompleted = [...completed, ...completedMsgs, ...completedChecks]
+            // Tamamlananlar → alt şerit (tek ürün onayları dahil)
+            const allCompleted = [...completed, ...completedMsgs, ...completedChecks, ...completedItems]
                 .sort((a, b) => {
                     const ta = Date.parse(a.completed_at || 0) || 0;
                     const tb = Date.parse(b.completed_at || 0) || 0;
@@ -726,6 +727,15 @@
                     contentText = storedItems || (prep ? `Hazırlık: ${prep}` : chkLabel);
                     const gk = escapeHtml(order.group_key || '');
                     undoFn = `uncomplete('${gk}')`;
+                } else if (order.is_item) {
+                    borderCls  = 'border-emerald-800';
+                    accentCls  = 'bg-emerald-950/60';
+                    badgeHtml  = `<span class="px-1 rounded text-[9px] font-bold bg-emerald-700 text-emerald-100">ÜRÜN</span>`;
+                    const chkPart = order.check_number ? ` <span class="text-emerald-300 text-[10px]">Chk #${escapeHtml(String(order.check_number))}</span>` : '';
+                    titleHtml  = `<span class="font-bold text-emerald-200 text-xs">${tableLabel}</span> ${badgeHtml}${chkPart}`;
+                    contentText = order.items_list || '—';
+                    const gk = escapeHtml(order.group_key || '');
+                    undoFn = `uncomplete('${gk}')`;
                 } else if (order.is_message) {
                     borderCls  = 'border-yellow-800';
                     accentCls  = 'bg-yellow-950/60';
@@ -744,8 +754,8 @@
                     undoFn = `undoQr(${Number(qrId)})`;
                 }
 
-                return `<div class="flex-shrink-0 border ${borderCls} rounded-lg overflow-hidden" style="min-width:150px;max-width:210px">
-                    <div class="${accentCls} px-2" style="padding-top:4px;padding-bottom:0">
+                return `<div class="flex-shrink-0 border ${borderCls} rounded-lg overflow-hidden max-w-[240px]">
+                    <div class="${accentCls} px-1.5" style="padding-top:4px;padding-bottom:0">
                         <div class="flex items-center gap-1 leading-none flex-wrap" style="margin-bottom:2px">${titleHtml}</div>
                         <div class="overflow-hidden">
                             <span class="kpos-chip-text text-[10px] text-gray-300" style="line-height:1.2">${escapeHtml(contentText)}</span>

@@ -555,6 +555,42 @@ class SymphonyKdsController extends Controller
                     'completed_at' => $r->completed_at,
                 ])->all();
 
+            // Tek ürün onayları (kind=item) → alt şeritte "ÜRÜN" çipleri
+            $completedItems = DB::table('kitchen_pos_completions')
+                ->where('kind', 'item')
+                ->orderByDesc('completed_at')
+                ->limit($completedLimit)
+                ->get();
+            $itemsOut = [];
+            foreach ($completedItems as $r) {
+                $servedSet = array_flip(json_decode((string) ($r->served_item_keys ?? '[]'), true) ?: []);
+                $names = [];
+                $chk = $checks[$r->group_key] ?? null;
+                if ($chk) {
+                    foreach ($chk['items'] as $item) {
+                        if (!empty($item['is_returned'])) continue;
+                        $units = (!empty($item['unit_ids']))
+                            ? $item['unit_ids']
+                            : ((isset($item['item_id']) && $item['item_id'] !== null && $item['item_id'] !== '') ? [(string) $item['item_id']] : []);
+                        $servedQty = 0;
+                        foreach ($units as $uid) { if (isset($servedSet[(string) $uid])) $servedQty++; }
+                        if ($servedQty > 0) $names[] = $item['name'] . ' x' . $servedQty;
+                    }
+                }
+                if (empty($names) && !empty($r->name)) {
+                    $names[] = ($r->qty > 1 ? 'x' . $r->qty . ' ' : '') . $r->name;
+                }
+                if (empty($names)) continue;
+                $itemsOut[] = [
+                    'is_item'      => true,
+                    'group_key'    => $r->group_key,
+                    'table_no'     => $r->table_no,
+                    'check_number' => $r->check_number,
+                    'items_list'   => implode(' · ', $names),
+                    'completed_at' => $r->completed_at,
+                ];
+            }
+
             $completedTodayCount = DB::table('kitchen_pos_completions')
                 ->whereDate('completed_at', today())
                 ->where('kind', '!=', 'item')
@@ -567,6 +603,7 @@ class SymphonyKdsController extends Controller
                 'completed'       => [],
                 'completed_msgs'  => $completedMsgs,
                 'completed_checks'=> $completedChecks,
+                'completed_items' => $itemsOut,
                 'completed_limit' => $completedLimit,
                 'completed_today' => $completedTodayCount,
                 'fetched_at'      => now()->format('H:i:s'),
@@ -581,6 +618,8 @@ class SymphonyKdsController extends Controller
                 'messages'        => [],
                 'completed'       => [],
                 'completed_msgs'  => [],
+                'completed_checks'=> [],
+                'completed_items' => [],
             ]);
         }
     }
