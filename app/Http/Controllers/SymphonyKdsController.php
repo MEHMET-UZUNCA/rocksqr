@@ -73,7 +73,7 @@ class SymphonyKdsController extends Controller
     public function kitchenPosComplete(Request $request)
     {
         $validated = $request->validate([
-            'kind'          => 'required|in:check,checkless_msg',
+            'kind'          => 'required|in:check,checkless_msg,item',
             'group_key'     => 'required|string|max:64',
             'check_number'  => 'nullable|string|max:64',
             'table_no'      => 'nullable|string|max:32',
@@ -132,6 +132,32 @@ class SymphonyKdsController extends Controller
             ]
         );
 
+        return response()->json(['success' => true]);
+    }
+
+    public function kitchenPosUnserveItem(Request $request)
+    {
+        $validated = $request->validate([
+            'group_key' => 'required|string|max:64',
+            'item_keys' => 'required|array',
+            'item_keys.*' => 'string|max:128',
+        ]);
+
+        $row = DB::table('kitchen_pos_completions')->where('group_key', $validated['group_key'])->first();
+        if (!$row || $row->kind !== 'item') {
+            return response()->json(['success' => false, 'message' => 'Kayıt bulunamadı.'], 404);
+        }
+
+        $served  = json_decode($row->served_item_keys ?? '[]', true) ?: [];
+        $remove  = array_flip(array_filter($validated['item_keys'], fn($k) => $k !== ''));
+        $remaining = array_values(array_filter($served, fn($k) => !isset($remove[$k])));
+
+        if (empty($remaining)) {
+            DB::table('kitchen_pos_completions')->where('group_key', $validated['group_key'])->delete();
+        } else {
+            DB::table('kitchen_pos_completions')->where('group_key', $validated['group_key'])
+                ->update(['served_item_keys' => json_encode($remaining)]);
+        }
         return response()->json(['success' => true]);
     }
 
@@ -271,21 +297,25 @@ class SymphonyKdsController extends Controller
                 $tableNo     = (string) $mssql->getField($row, ['TableNumber', 'table_number'], '');
                 $rvc         = $mssql->getField($row, ['RevenueCenter', 'revenue_center'], '');
                 $rvcId       = (int) $mssql->getField($row, ['RevenueCenterID', 'revenue_center_id'], 0);
-                $status      = (string) $mssql->getField($row, ['Status', 'status'], '');
+                $status      = (string) $mssql->getField($row, ['CheckStatus', 'check_status', 'Status', 'status'], '');
                 $name        = (string) $mssql->getField($row, ['ProductName', 'product_name', 'Name'], '');
                 $note        = (string) $mssql->getField($row, ['MessageNote', 'message_note', 'RefInfo'], '');
                 $isCondiment = (bool)(int) $mssql->getField($row, ['IsCondiment', 'is_condiment'], 0);
                 $isComboItem = (bool)(int) $mssql->getField($row, ['IsComboItem', 'is_combo_item'], 0);
                 $isReturned  = (bool)(int) $mssql->getField($row, ['IsReturned', 'is_returned'], 0);
-                $lineKind    = strtoupper((string) $mssql->getField($row, ['LineKind', 'line_kind'], 'URUN'));
+                $lineKindRaw = $mssql->getField($row, ['LineKind', 'line_kind', 'LineType', 'line_type'], null);
+                $lineKind    = $lineKindRaw !== null ? strtoupper((string) $lineKindRaw) : 'URUN';
+                // Yeni sorgu LineType değerleri → LineKind karşılıkları
+                if ($lineKind === 'PRODUCT') $lineKind = 'URUN';
+                if (in_array($lineKind, ['KITCHEN_MESSAGE', 'BAR_MESSAGE'], true)) $lineKind = 'MESAJ';
                 $waiterFull  = trim(
                     (string) $mssql->getField($row, ['WaiterName', 'waiter_name'], '') . ' ' .
                     (string) $mssql->getField($row, ['WaiterSurname', 'waiter_surname'], '')
                 );
 
-                // Eski sorgu uyumluluğu: LineKind yoksa MajGrp=99 → MESAJ
-                if ($lineKind === 'URUN') {
-                    $majGrp = (int) $mssql->getField($row, ['MajGrp', 'maj_grp'], 0);
+                // Eski sorgu uyumluluğu (LineKind/LineType yoksa): MajGrp/MajorGroupID=99 → MESAJ
+                if ($lineKindRaw === null) {
+                    $majGrp = (int) $mssql->getField($row, ['MajorGroupID', 'major_group_id', 'MajGrp', 'maj_grp'], 0);
                     if ($majGrp === 99) $lineKind = 'MESAJ';
                 }
 
@@ -464,6 +494,29 @@ class SymphonyKdsController extends Controller
                 }
             }
 
+            // Ürün bazlı hazır işaretleri (kind=item) → satırlara served bayrağı
+            $partialRows = DB::table('kitchen_pos_completions')
+                ->where('kind', 'item')
+                ->select('group_key', 'served_item_keys')
+                ->get()
+                ->keyBy('group_key');
+            foreach ($checks as $k => $chk) {
+                if (!$partialRows->has($k)) continue;
+                $servedSet = array_flip(json_decode($partialRows[$k]->served_item_keys ?? '[]', true) ?: []);
+                foreach ($checks[$k]['items'] as $i => $item) {
+                    if (!empty($item['served'])) continue;
+                    $units = (!empty($item['unit_ids']))
+                        ? $item['unit_ids']
+                        : ((isset($item['item_id']) && $item['item_id'] !== null && $item['item_id'] !== '') ? [(string) $item['item_id']] : []);
+                    if (empty($units)) continue;
+                    $allServed = true;
+                    foreach ($units as $uid) {
+                        if (!isset($servedSet[(string) $uid])) { $allServed = false; break; }
+                    }
+                    if ($allServed) $checks[$k]['items'][$i]['served'] = true;
+                }
+            }
+
             $checks = array_filter($checks, fn($c) => !empty($c['items']) || !empty($c['messages']));
             uasort($checks, fn($a, $b) => strcmp((string) $b['order_time'], (string) $a['order_time']));
 
@@ -500,7 +553,10 @@ class SymphonyKdsController extends Controller
                     'completed_at' => $r->completed_at,
                 ])->all();
 
-            $completedTodayCount = DB::table('kitchen_pos_completions')->whereDate('completed_at', today())->count();
+            $completedTodayCount = DB::table('kitchen_pos_completions')
+                ->whereDate('completed_at', today())
+                ->where('kind', '!=', 'item')
+                ->count();
 
             return response()->json([
                 'success'         => true,

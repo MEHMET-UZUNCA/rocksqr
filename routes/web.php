@@ -50,6 +50,7 @@ Route::get('/kitchen-pos/api', [SymphonyKdsController::class, 'kitchenPosApi'])-
 Route::get('/kitchen-pos/raw', [SymphonyKdsController::class, 'kitchenPosRaw'])->name('kitchen.pos.raw');
 Route::post('/kitchen-pos/complete', [SymphonyKdsController::class, 'kitchenPosComplete'])->name('kitchen.pos.complete');
 Route::post('/kitchen-pos/uncomplete', [SymphonyKdsController::class, 'kitchenPosUncomplete'])->name('kitchen.pos.uncomplete');
+Route::post('/kitchen-pos/item-unserve', [SymphonyKdsController::class, 'kitchenPosUnserveItem'])->name('kitchen.pos.item.unserve');
 Route::patch('/kitchen-pos/qr/{order}/confirm', [SymphonyKdsController::class, 'kitchenPosConfirmQr'])->name('kitchen.pos.qr.confirm');
 Route::patch('/kitchen-pos/qr/{order}/undo', [SymphonyKdsController::class, 'kitchenPosUndoQr'])->name('kitchen.pos.qr.undo');
 

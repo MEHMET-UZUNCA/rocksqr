@@ -240,19 +240,55 @@
             const isReopened = !!order.is_reopened;
             const borderClass = isAddition ? 'border-orange-500' : (isReopened ? 'border-yellow-600' : (isNew ? 'new-order border-gold' : 'border-blue-500'));
 
+            // Tüm unit_ids'leri düzleştir → served_item_keys fingerprint
+            const allUnitIds = (order.items || []).flatMap(it =>
+                (it.unit_ids && it.unit_ids.length) ? it.unit_ids : (it.item_id ? [String(it.item_id)] : [])
+            );
+            // Ürün isimleri → tamamlama sonrası alt şerit için localStorage'a yazılacak
+            const itemNamesList = (order.items || [])
+                .filter(it => !it.is_returned)
+                .map(it => `${it.name} x${it.qty}`)
+                .join(' · ');
+
+            const unservedCount = (order.items || []).filter(it => !it.is_returned && !it.served).length;
+
             const itemsHtml = (order.items || []).map(it => {
                 const isReturned  = !!it.is_returned;
                 const isCombo     = !!it.is_combo;
                 const isCond      = !!it.is_condiment;
-                const textClass   = isReturned ? 'line-through text-red-400' : '';
+                const isServed    = !!it.served;
+                const textClass   = isReturned ? 'line-through text-red-400' : (isServed ? 'line-through text-gray-500' : '');
                 const qtyColor    = isReturned ? 'text-red-400' : (isCond ? 'text-amber-300' : 'text-gold');
                 const badge = isReturned
                     ? `<span class="ml-1 px-1 py-0.5 rounded text-[9px] font-bold bg-red-700 text-white uppercase">İade</span>`
                     : (isCombo ? `<span class="ml-1 px-1 py-0.5 rounded text-[9px] font-bold bg-amber-800/80 text-amber-200 uppercase">Combo</span>` : '');
 
+                const itemUnits = (it.unit_ids && it.unit_ids.length) ? it.unit_ids : (it.item_id ? [String(it.item_id)] : []);
+                const isLast = !isReturned && !isServed && unservedCount === 1;
+                const readyBtn = isReturned ? '' : (isServed
+                    ? `<button data-item-gk="${escapeHtml(groupKey)}"
+                              data-item-units="${escapeHtml(JSON.stringify(itemUnits))}"
+                              onclick="unserveItem(this)"
+                              title="Hazır işaretini geri al"
+                              class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-700 hover:bg-emerald-600 text-emerald-100 transition shrink-0">
+                        <i class="fas fa-check mr-0.5"></i>Hazır
+                     </button>`
+                    : `<button data-item-gk="${escapeHtml(groupKey)}"
+                              data-item-cn="${escapeHtml(order.check_number ? String(order.check_number) : '')}"
+                              data-item-tno="${escapeHtml(String(order.table_no || ''))}"
+                              data-item-units="${escapeHtml(JSON.stringify(itemUnits))}"
+                              data-item-last="${isLast ? '1' : '0'}"
+                              data-item-start="${escapeHtml(startTime)}"
+                              data-item-names="${escapeHtml(itemNamesList)}"
+                              onclick="serveItem(this)"
+                              title="${isLast ? 'Son ürün → hesap tamamlanır' : 'Ürünü hazır işaretle'}"
+                              class="px-1.5 py-0.5 rounded text-[10px] font-bold border border-amber-500/70 bg-amber-600/20 hover:bg-amber-600/50 text-amber-200 transition shrink-0">
+                        Hazır
+                     </button>`);
+
                 const subHtml = (it.sub_items || []).map(sub => {
                     const subRet   = !!sub.is_returned;
-                    const subText  = subRet ? 'line-through text-red-400' : 'text-gray-300';
+                    const subText  = subRet ? 'line-through text-red-400' : (isServed ? 'line-through text-gray-500' : 'text-gray-300');
                     const subBadge = subRet ? `<span class="ml-1 px-1 py-0.5 rounded text-[9px] font-bold bg-red-700 text-white">İade</span>` : '';
                     return `<div class="flex items-center pl-4 py-0 text-sm">
                         <span class="text-amber-600 mr-1.5 select-none">└</span>
@@ -270,7 +306,10 @@
                             </div>
                             ${it.note ? `<div class="text-sm text-yellow-300"><i class="fas fa-comment-dots mr-1"></i>${escapeHtml(it.note)}</div>` : ''}
                         </div>
-                        <div class="text-xs text-gray-500 ml-2 flex-shrink-0">${formatTime(it.item_time)}</div>
+                        <div class="ml-2 flex-shrink-0 flex items-center gap-1.5">
+                            <span class="text-xs text-gray-500 ${isServed ? 'line-through' : ''}">${formatTime(it.item_time)}</span>
+                            ${readyBtn}
+                        </div>
                     </div>
                     ${subHtml}
                 </div>`;
@@ -311,21 +350,11 @@
                 ? `Chk #${escapeHtml(order.check_number)}`
                 : `<span class="text-yellow-400">CHECKSIZ</span>`;
 
-            // Tüm unit_ids'leri düzleştir → served_item_keys fingerprint
-            const allUnitIds = (order.items || []).flatMap(it =>
-                (it.unit_ids && it.unit_ids.length) ? it.unit_ids : (it.item_id ? [String(it.item_id)] : [])
-            );
-            // Ürün isimleri → tamamlama sonrası alt şerit için localStorage'a yazılacak
-            const itemNamesList = (order.items || [])
-                .filter(it => !it.is_returned)
-                .map(it => `${it.name} x${it.qty}`)
-                .join(' · ');
-
             return `
             <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden">
                 <div class="px-2 py-1 bg-gray-750 border-b border-gray-700">
                     <div class="flex items-center justify-between">
-                        <span class="text-xl font-bold text-gold">Masa ${escapeHtml(order.table_no || '-')}</span>
+                        <span class="text-xl font-bold text-gold">Masa ${escapeHtml(order.table_no || '-')}${order._seqTotal > 1 ? ` <span class="text-orange-300">#${order._seq}/${order._seqTotal}</span>` : ''}</span>
                         <div class="flex items-center gap-1">
                             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYM</span>
                             ${isAddition ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-600 text-white animate-pulse"><i class="fas fa-plus-circle mr-0.5"></i>EK</span>` : ''}
@@ -350,7 +379,7 @@
                             data-complete-names="${escapeHtml(itemNamesList)}"
                             onclick="completeOrderFromBtn(this)"
                             class="w-full py-0.5 bg-emerald-600 hover:bg-emerald-700 rounded text-[11px] font-bold text-white">
-                        <i class="fas fa-check-circle mr-0.5"></i>Onayla → Servis
+                        <i class="fas fa-check-circle mr-0.5"></i>Komple Hazır
                     </button>
                 </div>
             </div>`;
@@ -537,6 +566,23 @@
                 .catch(e => console.error(e));
         }
 
+        function serveItem(btn) {
+            // Son bekleyen ürünse hesabı tamamen tamamla (kind=check → bar hazır düşer)
+            const kind = btn.dataset.itemLast === '1' ? 'check' : 'item';
+            completeOrder(kind, btn.dataset.itemGk, btn.dataset.itemCn || '', btn.dataset.itemTno || '',
+                JSON.parse(btn.dataset.itemUnits || '[]'), btn.dataset.itemStart || null, btn.dataset.itemNames || '');
+        }
+
+        function unserveItem(btn) {
+            postJson('/kitchen-pos/item-unserve', {
+                group_key: btn.dataset.itemGk,
+                item_keys: JSON.parse(btn.dataset.itemUnits || '[]'),
+            }).then(d => {
+                if (d && d.success === false) showToast(d.message || 'Geri alınamadı.', 'error');
+                fetchOnce();
+            }).catch(e => console.error(e));
+        }
+
         function confirmQr(orderId) {
             postJson('/kitchen-pos/qr/' + orderId + '/confirm', {}, 'PATCH')
                 .then(() => { clearStartTime('Q' + orderId); fetchOnce(); })
@@ -580,6 +626,20 @@
             } else {
                 cs.classList.add('hidden');
             }
+
+            // Aynı masadan gelen siparişlere sıra rozeti (#1/2) — en eski = #1
+            const seqGroups = {};
+            orders.forEach(o => {
+                if (o.source === 'qr') return;
+                const t = String(o.table_no || '');
+                if (!t) return;
+                (seqGroups[t] = seqGroups[t] || []).push(o);
+            });
+            Object.values(seqGroups).forEach(list => {
+                if (list.length < 2) return;
+                list.sort((a, b) => String(a.order_time || '').localeCompare(String(b.order_time || '')));
+                list.forEach((o, i) => { o._seq = i + 1; o._seqTotal = list.length; });
+            });
 
             // Hesaplar
             const grid = document.getElementById('orders-grid');
