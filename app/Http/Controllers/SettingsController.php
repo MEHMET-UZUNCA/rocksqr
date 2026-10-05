@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class SettingsController extends Controller
 {
@@ -47,6 +48,12 @@ class SettingsController extends Controller
             'timer_waiter_red'    => (int) Setting::get('timer_waiter_red', 10),
         ];
 
+        // Ekran PIN (BDS / KDS / KPOS / AKDS açılış kilidi) — hash görünmez, sadece durum
+        foreach (['bar', 'kitchen', 'kpos', 'ana'] as $pinScreen) {
+            $settings["screen_pin_{$pinScreen}_enabled"] = Setting::get("screen_pin_{$pinScreen}_enabled", '') === '1';
+            $settings["screen_pin_{$pinScreen}_set"]     = Setting::get("screen_pin_{$pinScreen}", '') !== '';
+        }
+
         return view('admin.settings', compact('settings'));
     }
 
@@ -78,6 +85,35 @@ class SettingsController extends Controller
                 Setting::set($key, (int) $request->input($key));
             }
             return back()->with('success', 'Sayaç renk eşikleri güncellendi.');
+        } elseif ($request->has('_pin_only')) {
+            $request->validate([
+                'screen_pin_bar'     => 'nullable|digits_between:4,6',
+                'screen_pin_kitchen' => 'nullable|digits_between:4,6',
+                'screen_pin_kpos'    => 'nullable|digits_between:4,6',
+                'screen_pin_ana'     => 'nullable|digits_between:4,6',
+            ]);
+
+            foreach (['bar', 'kitchen', 'kpos', 'ana'] as $pinScreen) {
+                $enabled   = $request->boolean("screen_pin_{$pinScreen}_enabled");
+                $submitted = trim((string) $request->input("screen_pin_{$pinScreen}", ''));
+                $hasStored = Setting::get("screen_pin_{$pinScreen}", '') !== '';
+                $newPin    = ($submitted !== '' && $submitted !== '********') ? $submitted : null;
+
+                // PIN'i hiç atanmamış ekranı kilitli bırakma (kilitlenme koruması)
+                if ($enabled && !$hasStored && $newPin === null) {
+                    return back()->withErrors([
+                        "screen_pin_{$pinScreen}" => 'PIN etkinleştirildi ama PIN atanmadı. Önce bir PIN girin.',
+                    ])->withInput();
+                }
+
+                if ($newPin !== null) {
+                    Setting::set("screen_pin_{$pinScreen}", Hash::make($newPin));
+                }
+
+                Setting::set("screen_pin_{$pinScreen}_enabled", $enabled ? '1' : '');
+            }
+
+            return back()->with('success', 'Ekran PIN ayarları güncellendi.');
         } elseif ($request->has('_subdomain_only')) {
             $request->validate([
                 'subdomain_bar'     => ['nullable', 'string', 'max:63', 'regex:/^[a-z0-9-]*$/i'],

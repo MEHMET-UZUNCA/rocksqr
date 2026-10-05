@@ -1,5 +1,17 @@
 
 
+## v1.0.89 - 2026-10-05
+
+### Yeni: Ekran PIN kilidi (BDS / KDS / Kitchen POS / AKDS)
+- Admin → Ayarlar'a **Ekran PIN** sekmesi eklendi: her ekran için ayrı "PIN istensin" anahtarı + 4-6 haneli PIN tanımı (hash olarak saklanır, panelde görünmez).
+- `EnsureScreenPin` middleware: yalnızca ekran açılış GET route'larını (`/bar`, `/kitchen`, `/kitchen-pos`, `/kitchen-ana`) korur; API/SSE endpoint'leri ve admin paneli etkilenmez.
+- PIN doğrulama ekranı (`/screen-pin/{screen}`): dokunmatik numerik tuş takımı, fiziksel klavye desteği, hatalı PIN'de titreme animasyonu.
+- Doğru PIN sonrası 30 gün geçerli APP_KEY şifreli çerez verilir — kiosk tarayıcı her açılışta PIN sormaz.
+- PIN POST'u `throttle:5,1` ile korunur (dakikada 5 deneme); CSRF korumalı.
+- Kilitlenme koruması: PIN atanmamış bir ekran için "PIN istensin" açılamaz — önce PIN atanmalıdır.
+
+---
+
 ## v1.0.88 - 2026-05-04
 
 ### Admin: Ürünler ve Kategoriler sayfa iyileştirmeleri

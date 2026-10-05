@@ -11,6 +11,7 @@ use App\Http\Controllers\SymphonyKdsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SyncController;
 use App\Http\Controllers\AdminQrController;
+use App\Http\Controllers\ScreenPinController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [MenuController::class, 'index'])->name('home');
@@ -23,8 +24,12 @@ Route::post('/waiter-call', [MenuController::class, 'callWaiterPublic'])->name('
 Route::post('/waiter-call/{tableNo}', [MenuController::class, 'callWaiter'])->name('waiter.call');
 Route::get('/order/{order}/success', [MenuController::class, 'orderSuccess'])->name('order.success');
 
+// ── Screen PIN Gate (ekran açılış kilidi) ───────────────────────────────────
+Route::get('/screen-pin/{screen}', [ScreenPinController::class, 'show'])->name('screen.pin');
+Route::post('/screen-pin/{screen}', [ScreenPinController::class, 'unlock'])->middleware('throttle:5,1')->name('screen.pin.unlock');
+
 // ── Bar Display Screen ──────────────────────────────────────────────────────
-Route::get('/bar', [BarController::class, 'bar'])->name('bar');
+Route::get('/bar', [BarController::class, 'bar'])->name('bar')->middleware('screen-pin:bar');
 Route::get('/bar/api/orders', [BarController::class, 'barApiOrders'])->name('bar.api');
 Route::get('/bar/api/symphony', [BarController::class, 'barApiSymphony'])->name('bar.api.symphony');
 Route::patch('/bar/orders/{order}/status', [BarController::class, 'barUpdateStatus'])->name('bar.order.status');
@@ -33,14 +38,14 @@ Route::post('/bar/symphony/delivered', [BarController::class, 'barSymphonyDelive
 Route::patch('/bar/waiter-calls/{waiterCall}/attend', [BarController::class, 'attendWaiterCall'])->name('bar.waiter.attend');
 
 // ── QR Kitchen Display Screen ───────────────────────────────────────────────
-Route::get('/kitchen', [KitchenController::class, 'kitchen'])->name('kitchen');
+Route::get('/kitchen', [KitchenController::class, 'kitchen'])->name('kitchen')->middleware('screen-pin:kitchen');
 Route::get('/kitchen/api/orders', [KitchenController::class, 'kitchenApiOrders'])->name('kitchen.api');
 Route::get('/kitchen/sse', [KitchenController::class, 'kitchenSse'])->name('kitchen.sse');
 Route::patch('/kitchen/orders/{order}/status', [KitchenController::class, 'kitchenUpdateStatus'])->name('kitchen.order.status');
 Route::patch('/kitchen/orders/{order}/ack-cancel', [KitchenController::class, 'kitchenAckCancel'])->name('kitchen.order.ack-cancel');
 
 // ── Symphony POS KDS ────────────────────────────────────────────────────────
-Route::get('/kitchen-pos', [SymphonyKdsController::class, 'kitchenPos'])->name('kitchen.pos');
+Route::get('/kitchen-pos', [SymphonyKdsController::class, 'kitchenPos'])->name('kitchen.pos')->middleware('screen-pin:kpos');
 Route::get('/kitchen-pos/api', [SymphonyKdsController::class, 'kitchenPosApi'])->name('kitchen.pos.api');
 Route::get('/kitchen-pos/raw', [SymphonyKdsController::class, 'kitchenPosRaw'])->name('kitchen.pos.raw');
 Route::post('/kitchen-pos/complete', [SymphonyKdsController::class, 'kitchenPosComplete'])->name('kitchen.pos.complete');
@@ -49,7 +54,7 @@ Route::patch('/kitchen-pos/qr/{order}/confirm', [SymphonyKdsController::class, '
 Route::patch('/kitchen-pos/qr/{order}/undo', [SymphonyKdsController::class, 'kitchenPosUndoQr'])->name('kitchen.pos.qr.undo');
 
 // ── Ana Mutfak AKDS ─────────────────────────────────────────────────────────
-Route::get('/kitchen-ana', [SymphonyKdsController::class, 'kitchenAna'])->name('kitchen.ana');
+Route::get('/kitchen-ana', [SymphonyKdsController::class, 'kitchenAna'])->name('kitchen.ana')->middleware('screen-pin:ana');
 Route::get('/kitchen-ana/api', [SymphonyKdsController::class, 'kitchenAnaApi'])->name('kitchen.ana.api');
 
 Route::get('/dashboard', function () {

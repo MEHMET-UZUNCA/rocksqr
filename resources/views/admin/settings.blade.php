@@ -40,6 +40,10 @@
                    class="flex items-center gap-2 px-5 py-3 text-sm font-medium transition border-b-2 -mb-px {{ $activeTab === 'subdomain' ? 'border-indigo-500 text-indigo-700 bg-indigo-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50' }}">
                     <i class="fas fa-globe text-xs"></i> Subdomain
                 </a>
+                <a href="{{ route('admin.settings') }}?tab=pin"
+                   class="flex items-center gap-2 px-5 py-3 text-sm font-medium transition border-b-2 -mb-px {{ $activeTab === 'pin' ? 'border-purple-500 text-purple-700 bg-purple-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50' }}">
+                    <i class="fas fa-lock text-xs"></i> Ekran PIN
+                </a>
             </nav>
 
             <div class="p-6">
@@ -322,6 +326,62 @@
                     </div>
                     <button type="submit" class="py-2.5 px-5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition text-sm">
                         <i class="fas fa-save mr-2"></i>Subdomain Ayarlarini Kaydet
+                    </button>
+                </form>
+                @endif
+
+                @if($activeTab === 'pin')
+                <div class="mb-4">
+                    <p class="text-sm text-gray-500">
+                        Ekran uygulamaları (BDS, KDS, Kitchen POS, AKDS) ilk açılışta PIN sorar.
+                        Doğru PIN girilince tarayıcıda 30 gün hatırlanır. Admin paneli girişi etkilenmez.
+                    </p>
+                </div>
+                <form action="{{ route('admin.settings.update') }}?tab=pin" method="POST">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="_pin_only" value="1">
+                    @php
+                    $pinScreens = [
+                        ['key' => 'bar',     'label' => 'Bar Ekranı (BDS)',        'icon' => 'fa-wine-glass',  'dot' => 'bg-amber-500'],
+                        ['key' => 'kitchen', 'label' => 'Mutfak Ekranı (KDS)',     'icon' => 'fa-utensils',    'dot' => 'bg-orange-500'],
+                        ['key' => 'kpos',    'label' => 'Kitchen POS (Symphony)',  'icon' => 'fa-server',      'dot' => 'bg-blue-500'],
+                        ['key' => 'ana',     'label' => 'Ana Mutfak (AKDS)',       'icon' => 'fa-fire-burner', 'dot' => 'bg-teal-500'],
+                    ];
+                    @endphp
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        @foreach($pinScreens as $ps)
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="inline-block w-2.5 h-2.5 rounded-full {{ $ps['dot'] }}"></span>
+                                <i class="fas {{ $ps['icon'] }} text-gray-500 text-sm"></i>
+                                <h4 class="text-sm font-bold text-gray-800">{{ $ps['label'] }}</h4>
+                            </div>
+                            <label class="flex items-center gap-2 text-sm text-gray-700 mb-3 cursor-pointer">
+                                <input type="checkbox" name="screen_pin_{{ $ps['key'] }}_enabled" value="1" class="rounded"
+                                       @checked(old('screen_pin_'.$ps['key'].'_enabled', $settings['screen_pin_'.$ps['key'].'_enabled']))>
+                                Bu ekranda PIN istensin
+                            </label>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1">PIN (4-6 hane)</label>
+                            <input type="password" inputmode="numeric" maxlength="6" name="screen_pin_{{ $ps['key'] }}"
+                                   value="{{ old('screen_pin_'.$ps['key']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 tracking-[0.4em] font-mono text-sm focus:ring-2 focus:ring-purple-400"
+                                   placeholder="{{ $settings['screen_pin_'.$ps['key'].'_set'] ? '••••••' : 'PIN atanmadı' }}">
+                            <p class="text-xs mt-1 {{ $settings['screen_pin_'.$ps['key'].'_set'] ? 'text-gray-400' : 'text-red-400' }}">
+                                {{ $settings['screen_pin_'.$ps['key'].'_set'] ? 'Mevcut PIN kayıtlı — boş bırakılırsa değişmez.' : 'Henüz PIN atanmadı.' }}
+                            </p>
+                            @error('screen_pin_'.$ps['key'])<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
+                        </div>
+                        @endforeach
+                    </div>
+                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-4 text-xs text-purple-700">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <strong>Nasıl çalışır:</strong> Ekran ilk açılışta PIN sorar; doğru PIN girilince 30 gün boyunca bu tarayıcıda hatırlanır.
+                        PIN değiştirmek için yeni PIN yazıp kaydedin; boş bırakmak mevcut PIN'i korur.
+                        Bir ekranı tekrar kilitlemek için o tarayıcıdaki <code class="bg-purple-100 px-1 rounded">screen_auth_*</code> çerezini silin.
+                    </div>
+                    <button type="submit" class="py-2.5 px-5 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition text-sm">
+                        <i class="fas fa-save mr-2"></i>Ekran PIN Ayarlarını Kaydet
                     </button>
                 </form>
                 @endif

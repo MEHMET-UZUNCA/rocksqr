@@ -16,6 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\SubdomainRedirect::class,
         ]);
+
+        $middleware->alias([
+            'screen-pin' => \App\Http\Middleware\EnsureScreenPin::class,
+        ]);
         // Bar ve Kitchen display ekranları — uzun süre açık kalır, CSRF token expire olur
         $middleware->validateCsrfTokens(except: [
             'bar/orders/*/cancel',
