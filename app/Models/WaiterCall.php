@@ -16,6 +16,7 @@ class WaiterCall extends Model
 
     protected $fillable = [
         'table_no',
+        'room_no',
         'status',
         'note',
         'attended_at',

@@ -190,6 +190,7 @@ class BarController extends Controller
             ->map(fn ($call) => [
                 'id'         => $call->id,
                 'table_no'   => $call->table_no,
+                'room_no'    => $call->room_no,
                 'note'       => $call->note,
                 'created_at' => $call->created_at->format('H:i:s'),
                 'order_time' => $call->created_at->toIso8601String(),

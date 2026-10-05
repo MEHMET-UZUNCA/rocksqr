@@ -70,12 +70,20 @@ class MenuController extends Controller
             abort(404);
         }
 
+        $roomList = $this->roomList();
+
         $validated = $request->validate([
-            'note' => 'nullable|string|max:200',
+            'note'    => 'nullable|string|max:200',
+            'room_no' => empty($roomList)
+                ? ['nullable', 'string', 'max:16']
+                : ['nullable', 'string', 'max:16', Rule::in($roomList)],
+        ], [
+            'room_no.in' => 'Oda numarası hatalı, lütfen kontrol edin.',
         ]);
 
         WaiterCall::create([
             'table_no' => $tableNo,
+            'room_no'  => ($validated['room_no'] ?? '') !== '' ? $validated['room_no'] : null,
             'note' => $validated['note'] ?? null,
             'status' => 'pending',
         ]);
@@ -85,12 +93,20 @@ class MenuController extends Controller
 
     public function callWaiterPublic(Request $request)
     {
+        $roomList = $this->roomList();
+
         $validated = $request->validate([
-            'note' => 'nullable|string|max:200',
+            'note'    => 'nullable|string|max:200',
+            'room_no' => empty($roomList)
+                ? ['nullable', 'string', 'max:16']
+                : ['nullable', 'string', 'max:16', Rule::in($roomList)],
+        ], [
+            'room_no.in' => 'Oda numarası hatalı, lütfen kontrol edin.',
         ]);
 
         WaiterCall::create([
             'table_no' => null,
+            'room_no'  => ($validated['room_no'] ?? '') !== '' ? $validated['room_no'] : null,
             'note' => $validated['note'] ?? null,
             'status' => 'pending',
         ]);
