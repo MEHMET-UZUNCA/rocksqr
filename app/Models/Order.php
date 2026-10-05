@@ -11,6 +11,7 @@ class Order extends Model
 
     protected $fillable = [
         'table_no',
+        'room_no',
         'total_price',
         'order_note',
         'status',

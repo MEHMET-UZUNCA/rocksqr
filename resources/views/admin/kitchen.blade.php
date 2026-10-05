@@ -213,7 +213,7 @@
                     return `
                     <div class="bg-red-950/40 rounded-lg border-2 border-red-800/60 p-3 text-xs opacity-70">
                         <div class="flex items-center justify-between mb-1">
-                            <span class="font-bold text-red-400"><i class="fas fa-ban mr-1"></i>Masa ${order.table_no} #${order.id}</span>
+                            <span class="font-bold text-red-400"><i class="fas fa-ban mr-1"></i>${order.room_no ? 'Oda ' + order.room_no : 'Masa ' + order.table_no} #${order.id}</span>
                             <span class="text-gray-500">${order.created_at}</span>
                         </div>
                         <p class="line-through text-gray-500 truncate">${itemSummary || 'Urun yok'}</p>
@@ -269,7 +269,7 @@
                     <div class="flex items-center gap-3">
                         <span class="text-2xl font-bold text-gold">
                             Siparis #${order.id}
-                            <span class="text-base text-gray-300 ml-2 inline-block">Masa ${order.table_no}</span>
+                            <span class="text-base text-gray-300 ml-2 inline-block">${order.room_no ? 'Oda ' + order.room_no : (order.table_no ? 'Masa ' + order.table_no : 'QR')}</span>
                             ${hasNote ? ' <span class="text-yellow-400 text-base animate-pulse" title="Not var!"><i class="fas fa-sticky-note"></i></span>' : ''}
                         </span>
                         <span class="px-2 py-1 rounded text-xs font-bold ${statusBg}">${statusText}</span>
@@ -327,7 +327,7 @@
                     try { items = Array.isArray(o.items) ? o.items : JSON.parse(o.items); } catch(e) {}
                     const summary = items.map(i => `${getProductName(i.id)} x${i.quantity}`).join(', ');
                     return `<div class="bg-red-950/60 border border-red-700 rounded px-3 py-1.5 text-xs flex items-center gap-2">
-                        <span class="font-bold text-red-400"><i class="fas fa-ban mr-1"></i>Masa ${o.table_no} #${o.id}</span>
+                        <span class="font-bold text-red-400"><i class="fas fa-ban mr-1"></i>${o.room_no ? 'Oda ' + o.room_no : 'Masa ' + o.table_no} #${o.id}</span>
                         <span class="line-through text-gray-400">${summary || 'Urun yok'}</span>
                         <button onclick="ackCancel(${o.id})" class="ml-auto shrink-0 px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded text-[10px] font-bold">
                             <i class="fas fa-check mr-0.5"></i>Tamam

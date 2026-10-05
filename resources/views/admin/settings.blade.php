@@ -44,6 +44,10 @@
                    class="flex items-center gap-2 px-5 py-3 text-sm font-medium transition border-b-2 -mb-px {{ $activeTab === 'pin' ? 'border-purple-500 text-purple-700 bg-purple-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50' }}">
                     <i class="fas fa-lock text-xs"></i> Ekran PIN
                 </a>
+                <a href="{{ route('admin.settings') }}?tab=oda"
+                   class="flex items-center gap-2 px-5 py-3 text-sm font-medium transition border-b-2 -mb-px {{ $activeTab === 'oda' ? 'border-emerald-500 text-emerald-700 bg-emerald-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50' }}">
+                    <i class="fas fa-door-open text-xs"></i> Oda Numaraları
+                </a>
             </nav>
 
             <div class="p-6">
@@ -382,6 +386,43 @@
                     </div>
                     <button type="submit" class="py-2.5 px-5 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition text-sm">
                         <i class="fas fa-save mr-2"></i>Ekran PIN Ayarlarını Kaydet
+                    </button>
+                </form>
+                @endif
+
+                @if($activeTab === 'oda')
+                @php
+                    $roomCount = collect(explode(',', $settings['room_numbers']))->filter(fn ($r) => trim($r) !== '')->count();
+                @endphp
+                <div class="mb-4">
+                    <p class="text-sm text-gray-500">
+                        Oda servisi QR menüsünden sipariş verilebilecek oda numaralarını tanımlayın.
+                        Müşteri sipariş gönderirken bu listeden bir oda numarası girmek zorundadır.
+                    </p>
+                </div>
+                <form action="{{ route('admin.settings.update') }}?tab=oda" method="POST">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="_rooms_only" value="1">
+                    <div class="mb-4">
+                        <label for="room_numbers" class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-door-open mr-1"></i>Oda Numaraları
+                        </label>
+                        <textarea name="room_numbers" id="room_numbers" rows="8"
+                                  class="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm focus:ring-2 focus:ring-emerald-400"
+                                  placeholder="101, 102, 103, 201, 202&#10;301&#10;302">{{ old('room_numbers', $settings['room_numbers']) }}</textarea>
+                        <p class="text-xs text-gray-400 mt-1">Virgül veya alt satır ile ayırın. Maks 16 karakter her oda. Listeyi boş kaydederseniz özellik kapanır (siparişlerde oda sorulmaz).</p>
+                    </div>
+                    <div class="mb-4 p-4 rounded-lg {{ $roomCount > 0 ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-gray-50 border border-gray-200 text-gray-500' }}">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        @if($roomCount > 0)
+                            Şu anda <strong>{{ $roomCount }}</strong> oda tanımlı — QR menüde sipariş aşamasında oda numarası isteniyor.
+                        @else
+                            Henüz oda tanımlı değil — QR menüde sipariş aşamasında oda numarası istenmez.
+                        @endif
+                    </div>
+                    <button type="submit" class="py-2.5 px-5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition text-sm">
+                        <i class="fas fa-save mr-2"></i>Oda Numaralarını Kaydet
                     </button>
                 </form>
                 @endif

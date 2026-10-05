@@ -4,11 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Order;
+use App\Models\Product;
+use App\Models\Setting;
 use App\Models\WaiterCall;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class MenuController extends Controller
 {
+    private const MAX_TABLE_NO = 500;
+
+    public const MAX_ITEM_QUANTITY = 99;
+
     public function index()
     {
         $categories = Category::where('is_active', true)
@@ -17,13 +24,14 @@ class MenuController extends Controller
             ->get();
 
         $tableNo = null;
+        $roomList = $this->roomList();
 
-        return view('customer.menu', compact('categories', 'tableNo'));
+        return view('customer.menu', compact('categories', 'tableNo', 'roomList'));
     }
 
     public function show(int $tableNo)
     {
-        if ($tableNo < 1 || $tableNo > 100) {
+        if ($tableNo < 1 || $tableNo > self::MAX_TABLE_NO) {
             abort(404);
         }
 
@@ -32,65 +40,23 @@ class MenuController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        return view('customer.menu', compact('categories', 'tableNo'));
+        $roomList = $this->roomList();
+
+        return view('customer.menu', compact('categories', 'tableNo', 'roomList'));
     }
 
     public function placeOrder(Request $request, int $tableNo)
     {
-        $items = $request->input('items');
-        if (is_string($items)) {
-            $items = json_decode($items, true);
-            $request->merge(['items' => $items]);
+        if ($tableNo < 1 || $tableNo > self::MAX_TABLE_NO) {
+            abort(404);
         }
 
-        $validated = $request->validate([
-            'items' => 'required|array',
-            'items.*.id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'total_price' => 'required|numeric|min:0',
-            'order_note' => 'nullable|string|max:500',
-        ]);
-
-        $order = Order::create([
-            'table_no' => $tableNo,
-            'total_price' => $validated['total_price'],
-            'order_note' => $validated['order_note'] ?? null,
-            'status' => 'new',
-            'bar_status' => 'new',
-            'kitchen_status' => 'waiting',
-            'items_json' => json_encode($validated['items']),
-        ]);
-
-        return redirect()->route('order.success', ['order' => $order->id]);
+        return $this->storeOrder($request, $tableNo);
     }
 
     public function placeOrderPublic(Request $request)
     {
-        $items = $request->input('items');
-        if (is_string($items)) {
-            $items = json_decode($items, true);
-            $request->merge(['items' => $items]);
-        }
-
-        $validated = $request->validate([
-            'items' => 'required|array',
-            'items.*.id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'total_price' => 'required|numeric|min:0',
-            'order_note' => 'nullable|string|max:500',
-        ]);
-
-        $order = Order::create([
-            'table_no' => null,
-            'total_price' => $validated['total_price'],
-            'order_note' => $validated['order_note'] ?? null,
-            'status' => 'new',
-            'bar_status' => 'new',
-            'kitchen_status' => 'waiting',
-            'items_json' => json_encode($validated['items']),
-        ]);
-
-        return redirect()->route('order.success', ['order' => $order->id]);
+        return $this->storeOrder($request, null);
     }
 
     public function orderSuccess(Order $order)
@@ -100,6 +66,10 @@ class MenuController extends Controller
 
     public function callWaiter(Request $request, int $tableNo)
     {
+        if ($tableNo < 1 || $tableNo > self::MAX_TABLE_NO) {
+            abort(404);
+        }
+
         $validated = $request->validate([
             'note' => 'nullable|string|max:200',
         ]);
@@ -126,5 +96,86 @@ class MenuController extends Controller
         ]);
 
         return response()->json(['success' => true, 'message' => 'Waiter called successfully!']);
+    }
+
+    private function storeOrder(Request $request, ?int $tableNo)
+    {
+        $items = $request->input('items');
+        if (is_string($items)) {
+            $items = json_decode($items, true);
+            $request->merge(['items' => $items]);
+        }
+        $request->merge(['room_no' => trim((string) $request->input('room_no', ''))]);
+
+        $roomList = $this->roomList();
+
+        $rules = [
+            'items'            => 'required|array',
+            'items.*.id'       => 'required|integer|exists:products,id',
+            'items.*.quantity' => 'required|integer|min:1|max:' . self::MAX_ITEM_QUANTITY,
+            'order_note'       => 'nullable|string|max:500',
+        ];
+
+        // Oda listesi admin panelinde tanimliysa oda numarasi zorunlu ve listede olmali.
+        $rules['room_no'] = empty($roomList)
+            ? ['nullable', 'string', 'max:16']
+            : ['required', 'string', 'max:16', Rule::in($roomList)];
+
+        $validated = $request->validate($rules, [
+            'items.*.quantity.max' => 'En fazla sipariş limitine ulaşıldı.',
+            'room_no.required'     => 'Lütfen oda numaranızı girin.',
+            'room_no.in'           => 'Oda numarası hatalı, lütfen kontrol edin.',
+        ]);
+
+        // Tutar yalnızca DB fiyatlarından hesaplanır; client'tan gelen total_price kullanılmaz.
+        $products = Product::query()
+            ->whereIn('id', collect($validated['items'])->pluck('id'))
+            ->where('is_available', true)
+            ->get()
+            ->keyBy('id');
+
+        $orderItems = [];
+        $totalPrice = 0;
+
+        foreach ($validated['items'] as $item) {
+            $product = $products->get($item['id']);
+            if ($product === null) {
+                continue;
+            }
+            $orderItems[] = [
+                'id'       => $product->id,
+                'name'     => $product->name,
+                'price'    => (float) $product->price,
+                'quantity' => (int) $item['quantity'],
+            ];
+            $totalPrice += (float) $product->price * (int) $item['quantity'];
+        }
+
+        if (empty($orderItems)) {
+            return back()->withErrors(['items' => 'Sepetinizdeki ürünler artık mevcut değil.']);
+        }
+
+        $order = Order::create([
+            'table_no'       => $tableNo,
+            'room_no'        => ($validated['room_no'] ?? '') !== '' ? $validated['room_no'] : null,
+            'total_price'    => $totalPrice,
+            'order_note'     => $validated['order_note'] ?? null,
+            'status'         => 'new',
+            'bar_status'     => 'new',
+            'kitchen_status' => 'waiting',
+            'items_json'     => json_encode($orderItems),
+        ]);
+
+        return redirect()->route('order.success', ['order' => $order->id]);
+    }
+
+    private function roomList(): array
+    {
+        return collect(explode(',', (string) Setting::get('room_numbers', '')))
+            ->map(fn ($room) => trim($room))
+            ->filter(fn ($room) => $room !== '')
+            ->unique()
+            ->values()
+            ->all();
     }
 }

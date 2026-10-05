@@ -33,6 +33,10 @@ class SymphonyKdsController extends Controller
 
     public function kitchenPosConfirmQr(Order $order)
     {
+        if (in_array($order->kitchen_status, ['cancelled', 'completed'], true)) {
+            return response()->json(['success' => false, 'message' => 'Bu sipariş onaylanamaz.'], 422);
+        }
+
         $order->update([
             'kitchen_status'     => 'ready',
             'status'             => 'ready',

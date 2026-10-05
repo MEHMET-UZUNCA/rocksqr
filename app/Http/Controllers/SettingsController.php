@@ -29,6 +29,8 @@ class SettingsController extends Controller
             'subdomain_bar'     => Setting::get('subdomain_bar', ''),
             'subdomain_kitchen' => Setting::get('subdomain_kitchen', ''),
             'subdomain_ana'     => Setting::get('subdomain_ana', ''),
+            // Oda servisinde sipariş alınabilecek oda numaraları
+            'room_numbers' => Setting::get('room_numbers', ''),
             // Sayaç renk eşikleri (dakika cinsinden)
             // Aktif sipariş sayacı (QR)
             'timer_qr_yellow'  => (int) Setting::get('timer_qr_yellow', 5),
@@ -124,6 +126,23 @@ class SettingsController extends Controller
             Setting::set('subdomain_kitchen', strtolower(trim($request->subdomain_kitchen ?? '')));
             Setting::set('subdomain_ana',     strtolower(trim($request->subdomain_ana ?? '')));
             return back()->with('success', 'Subdomain ayarları güncellendi.');
+        } elseif ($request->has('_rooms_only')) {
+            $request->validate([
+                'room_numbers' => 'nullable|string|max:2000',
+            ]);
+
+            $rooms = collect(preg_split('/[\n,;]+/', (string) $request->input('room_numbers', '')))
+                ->map(fn ($room) => mb_substr(trim($room), 0, 16))
+                ->filter(fn ($room) => $room !== '')
+                ->unique()
+                ->values()
+                ->all();
+
+            Setting::set('room_numbers', implode(',', $rooms));
+
+            return back()->with('success', empty($rooms)
+                ? 'Oda numarası listesi temizlendi.'
+                : count($rooms) . ' oda numarası güncellendi.');
         } elseif ($request->has('_clear_time_only')) {            $request->validate([
                 'screen_clear_time' => ['required', 'regex:/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/'],
             ]);

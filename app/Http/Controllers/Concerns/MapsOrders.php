@@ -33,6 +33,7 @@ trait MapsOrders
         return [
             'id'                    => $order->id,
             'table_no'              => $order->table_no,
+            'room_no'               => $order->room_no,
             'items'                 => $order->items,
             'total_price'           => $order->total_price,
             'order_note'            => $order->order_note,

@@ -5,34 +5,99 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>{{ \App\Models\Setting::get('site_title', 'QR Menu') }}{{ $tableNo ? ' - Masa ' . $tableNo : '' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --ivory: #FAF7F2;
+            --card: #FFFFFF;
+            --line: #E9E1D5;
+            --espresso: #2D2420;
+            --muted: #8A7E72;
+            --bronze: #A67C52;
+            --bronze-dark: #8C6242;
+            --bronze-soft: #F3EBE1;
+        }
         * { font-family: 'Poppins', sans-serif; box-sizing: border-box; }
         body {
-            background: #0f0f0f;
-            color: #e8d5b7;
-            padding-bottom: 70px;
+            background: var(--ivory);
+            color: var(--espresso);
+            padding-bottom: 110px;
         }
+        .font-serif-display { font-family: 'Playfair Display', Georgia, serif; }
+        .text-muted { color: var(--muted); }
+        .text-bronze { color: var(--bronze); }
+
         /* Header */
         .app-header {
-            background: linear-gradient(90deg, #0a0a0a 0%, #181818 50%, #0a0a0a 100%);
-            border-bottom: 2px solid #d4af37;
-            box-shadow: 0 2px 12px rgba(212,175,55,0.2);
+            background: var(--ivory);
+            border-bottom: 1px solid var(--line);
         }
-        .rocks-logo {
-            font-size: 1.4rem;
-            font-weight: 800;
+        .logo-wrap { height: 34px; display: flex; align-items: center; }
+        .logo-wrap > svg { max-height: 100%; max-width: 180px; width: auto; height: auto; }
+        .brand-title {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.35rem;
+            font-weight: 700;
             letter-spacing: 3px;
-            background: linear-gradient(90deg, #d4af37, #e8d5b7, #d4af37);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--espresso);
+            line-height: 1.1;
         }
+        .brand-sub {
+            font-size: 0.62rem;
+            font-weight: 600;
+            letter-spacing: 3px;
+            color: var(--bronze);
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+        .chip-table {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: var(--bronze-soft);
+            color: var(--bronze-dark);
+            border: 1px solid #E3D5C3;
+            font-size: 0.68rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+        .icon-btn {
+            width: 38px; height: 38px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .icon-btn-bell { background: var(--card); border: 1px solid var(--line); color: var(--bronze); }
+        .icon-btn-bell:hover { background: var(--bronze-soft); }
+        .icon-btn-cart { background: var(--bronze); color: #fff; position: relative; }
+        .icon-btn-cart:hover { background: var(--bronze-dark); }
+        .badge {
+            position: absolute;
+            top: -4px; right: -4px;
+            background: var(--espresso);
+            color: #fff;
+            border-radius: 999px;
+            min-width: 17px; height: 17px;
+            padding: 0 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            font-weight: 700;
+            border: 2px solid var(--ivory);
+        }
+
         /* Category tabs */
         .cat-nav {
-            background: #111;
-            border-bottom: 1px solid #222;
+            background: var(--ivory);
+            border-bottom: 1px solid var(--line);
             overflow-x: auto;
             scrollbar-width: none;
             -ms-overflow-style: none;
@@ -40,154 +105,280 @@
         .cat-nav::-webkit-scrollbar { display: none; }
         .cat-tab {
             white-space: nowrap;
-            padding: 10px 18px;
+            padding: 11px 16px;
             font-size: 0.8rem;
             font-weight: 600;
-            letter-spacing: 0.5px;
-            color: #666;
+            letter-spacing: 0.3px;
+            color: var(--muted);
             cursor: pointer;
+            border: none;
             border-bottom: 2px solid transparent;
+            background: transparent;
             transition: all 0.2s;
             flex-shrink: 0;
-            background: transparent;
-            border-top: none;
-            border-left: none;
-            border-right: none;
         }
-        .cat-tab.active, .cat-tab:hover {
-            color: #d4af37;
-            border-bottom-color: #d4af37;
-        }
-        /* Product card */
-        .card-product {
-            background: linear-gradient(160deg, #1c1c1c 0%, #151515 100%);
-            border: 1px solid #2a2a2a;
-            border-radius: 12px;
-            overflow: hidden;
-            transition: border-color 0.2s, box-shadow 0.2s;
-            display: flex;
-            flex-direction: column;
-        }
-        .card-product:hover {
-            border-color: #d4af37;
-            box-shadow: 0 4px 18px rgba(212,175,55,0.15);
-        }
-        .card-img {
-            width: 100%;
-            height: 100px;
-            object-fit: cover;
-            background: #1a1a1a;
-            display: block;
-        }
-        .card-img.placeholder {
-            object-fit: contain;
-            padding: 8px;
-        }
-        @media (min-width: 768px) {
-            .card-img { height: 160px; }
-        }
-        /* Buttons */
-        .btn-gold {
-            background: linear-gradient(90deg, #d4af37, #e8d5b7);
-            color: #0f0f0f;
-            border: none;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn-gold:hover, .btn-gold:active {
-            background: linear-gradient(90deg, #c9a42e, #d4af37);
-            box-shadow: 0 3px 12px rgba(212,175,55,0.4);
-        }
-        .btn-outline-gold {
-            background: rgba(212,175,55,0.06);
-            border: 1.5px solid #d4af37;
-            color: #d4af37;
+        .cat-tab.active { color: var(--bronze-dark); border-bottom-color: var(--bronze); }
+        .cat-tab:hover { color: var(--bronze-dark); }
+
+        /* Section heading */
+        .section-heading {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.15rem;
             font-weight: 600;
+            color: var(--espresso);
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+        }
+        .section-heading::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--line);
+        }
+
+        /* Menu rows */
+        .menu-row {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .menu-row:hover { border-color: #DCCDB8; box-shadow: 0 3px 14px rgba(45,36,32,0.06); }
+        .row-img {
+            width: 84px; height: 84px;
+            border-radius: 10px;
+            object-fit: cover;
+            background: var(--bronze-soft);
+            flex-shrink: 0;
+        }
+        .row-img.placeholder { object-fit: contain; padding: 6px; }
+        .row-desc {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Hero card */
+        .hero-card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(45,36,32,0.05);
+        }
+        .hero-img-wrap { height: 190px; overflow: hidden; background: var(--bronze-soft); }
+        @media (min-width: 640px) { .hero-img-wrap { height: 250px; } }
+        .hero-img { width: 100%; height: 100%; object-fit: cover; }
+        .hero-img.placeholder { object-fit: contain; padding: 16px; }
+
+        /* Add button */
+        .btn-add {
+            background: var(--bronze);
+            color: #fff;
+            border: none;
             cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn-outline-gold:hover, .btn-outline-gold:active {
-            background: rgba(212,175,55,0.15);
-        }
-        /* Cart badge */
-        .badge {
-            background: #d4af37;
-            color: #0f0f0f;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
+            transition: all 0.15s;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.65rem;
-            font-weight: 800;
             flex-shrink: 0;
         }
-        /* Bottom bar */
-        .bottom-bar {
+        .btn-add:hover { background: var(--bronze-dark); }
+        .btn-add:active { transform: scale(0.85); }
+        .btn-add-round { width: 34px; height: 34px; border-radius: 999px; }
+        .btn-add-wide {
+            padding: 9px 18px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            gap: 7px;
+        }
+        .price { color: var(--bronze-dark); font-weight: 700; }
+        .price-serif { font-family: 'Playfair Display', Georgia, serif; }
+
+        /* Floating cart bar */
+        #cart-fab {
             position: fixed;
+            bottom: 14px; left: 14px; right: 14px;
+            max-width: 480px;
+            margin: 0 auto;
+            background: var(--espresso);
+            color: #fff;
+            border-radius: 999px;
+            padding: 8px 8px 8px 18px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            z-index: 45;
+            box-shadow: 0 8px 24px rgba(45,36,32,0.35);
+            cursor: pointer;
+            border: none;
+            width: calc(100% - 28px);
+        }
+        #cart-fab.show { display: flex; animation: fabIn 0.25s ease; }
+        @keyframes fabIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        #cart-fab .fab-btn {
+            background: var(--bronze);
+            color: #fff;
+            border-radius: 999px;
+            padding: 9px 18px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* Cart bottom sheet */
+        #cart-sheet {
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            visibility: hidden;
+        }
+        #cart-sheet.open { visibility: visible; }
+        .sheet-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(45,36,32,0.5);
+            opacity: 0;
+            transition: opacity 0.25s;
+        }
+        #cart-sheet.open .sheet-backdrop { opacity: 1; }
+        .sheet-panel {
+            position: absolute;
             bottom: 0; left: 0; right: 0;
-            background: linear-gradient(90deg, #0a0a0a 0%, #181818 50%, #0a0a0a 100%);
-            border-top: 2px solid #d4af37;
-            padding: 10px 16px;
-            z-index: 40;
-            box-shadow: 0 -4px 20px rgba(212,175,55,0.1);
+            max-width: 520px;
+            margin: 0 auto;
+            background: var(--ivory);
+            border-radius: 22px 22px 0 0;
+            max-height: 88vh;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            box-shadow: 0 -10px 40px rgba(45,36,32,0.25);
         }
-        /* Cart drawer */
-        .cart-drawer {
-            background: #111;
-            border-left: 2px solid #d4af37;
+        #cart-sheet.open .sheet-panel { transform: translateY(0); }
+        .sheet-grip { width: 42px; height: 4px; border-radius: 999px; background: #DCCDB8; margin: 10px auto 0; }
+
+        /* Cart item rows */
+        .cart-row {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        /* Modal */
+        .stepper-btn {
+            width: 27px; height: 27px;
+            border-radius: 8px;
+            background: var(--bronze-soft);
+            color: var(--bronze-dark);
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .stepper-btn:hover { background: #EADFD0; }
+        .remove-btn {
+            width: 27px; height: 27px;
+            border-radius: 8px;
+            background: #FBEAE7;
+            color: #C0392B;
+            font-size: 0.7rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        /* Inputs */
+        .field-input {
+            width: 100%;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 11px 14px;
+            font-size: 0.85rem;
+            color: var(--espresso);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .field-input::placeholder { color: #B8AB9C; }
+        .field-input:focus { border-color: var(--bronze); box-shadow: 0 0 0 3px rgba(166,124,82,0.15); }
+        .field-error { border-color: #C0392B !important; box-shadow: 0 0 0 3px rgba(192,57,43,0.12) !important; }
+
+        /* Buttons */
+        .btn-primary {
+            background: var(--bronze);
+            color: #fff;
+            border: none;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-primary:hover { background: var(--bronze-dark); }
+        .btn-primary:disabled { opacity: 0.6; cursor: wait; }
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--line);
+            color: var(--muted);
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-ghost:hover { background: var(--card); color: var(--espresso); }
+
+        /* Modal (waiter) */
         #waiter-modal {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.75);
-            backdrop-filter: blur(4px);
-            z-index: 60;
+            background: rgba(45,36,32,0.5);
+            backdrop-filter: blur(3px);
+            z-index: 70;
             align-items: center;
             justify-content: center;
             padding: 16px;
         }
         .modal-box {
-            background: linear-gradient(160deg, #1a1a1a 0%, #0f0f0f 100%);
-            border: 2px solid #d4af37;
-            border-radius: 16px;
+            background: var(--ivory);
+            border: 1px solid var(--line);
+            border-radius: 18px;
             width: 100%;
-            max-width: 360px;
+            max-width: 370px;
+            box-shadow: 0 20px 60px rgba(45,36,32,0.3);
         }
-        /* Section title */
-        .section-heading {
-            color: #d4af37;
-            font-size: 0.8rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #222;
-        }
-        /* Price */
-        .price {
-            color: #d4af37;
-            font-weight: 700;
-        }
+
         /* Toast */
         .toast {
             position: fixed;
-            bottom: 80px;
+            bottom: 96px;
             left: 50%;
             transform: translateX(-50%);
-            background: #1a1a1a;
-            border: 1px solid #d4af37;
-            color: #e8d5b7;
-            padding: 10px 18px;
-            border-radius: 10px;
+            background: var(--espresso);
+            color: #F5EFE7;
+            padding: 11px 20px;
+            border-radius: 12px;
             font-size: 0.82rem;
             z-index: 9999;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+            box-shadow: 0 8px 24px rgba(45,36,32,0.4);
             white-space: nowrap;
+            max-width: calc(100vw - 32px);
+            overflow: hidden;
+            text-overflow: ellipsis;
             animation: fadeInUp 0.25s ease;
         }
         @keyframes fadeInUp {
@@ -200,31 +391,31 @@
 
     <!-- ===== HEADER ===== -->
     <header class="app-header sticky top-0 z-40">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+        <div class="max-w-3xl mx-auto px-4 py-3 flex justify-between items-center gap-3">
             <!-- Logo + Title -->
-            <div class="flex items-center gap-2.5">
+            <div class="flex items-center gap-3 min-w-0">
                 @if(\App\Models\Setting::get('logo_svg'))
-                    <div class="h-7 w-auto [&>svg]:max-h-full [&>svg]:w-auto">{!! \App\Models\Setting::get('logo_svg') !!}</div>
+                    <div class="logo-wrap">{!! \App\Models\Setting::get('logo_svg') !!}</div>
+                    <div class="border-l border-[#E3D5C3] pl-3">
+                        <div class="brand-sub">Oda Servisi Menü</div>
+                    </div>
                 @else
-                    <div class="rocks-logo">ROCKS</div>
+                    <div>
+                        <div class="brand-title">ROCKS HOTEL</div>
+                        <div class="brand-sub">Oda Servisi Menü</div>
+                    </div>
                 @endif
-                <div>
-                    <div class="text-xs font-bold" style="color:#d4af37;letter-spacing:2px;line-height:1.1;">QR MENU</div>
-                    @if($tableNo)
-                        <div class="text-xs" style="color:#666;">Masa {{ $tableNo }}</div>
-                    @endif
-                </div>
             </div>
             <!-- Actions -->
-            <div class="flex items-center gap-2">
-                <button onclick="showWaiterNote()"
-                        class="btn-outline-gold flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold">
-                    <i class="fas fa-bell text-xs"></i>
-                    <span>Garson</span>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                @if($tableNo)
+                    <span class="chip-table"><i class="fas fa-chair text-[0.6rem]"></i> Masa {{ $tableNo }}</span>
+                @endif
+                <button onclick="showWaiterNote()" class="icon-btn icon-btn-bell" aria-label="Garson çağır">
+                    <i class="fas fa-bell text-sm"></i>
                 </button>
-                <button onclick="document.getElementById('cart-drawer').classList.toggle('translate-x-full')"
-                        class="btn-gold flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold">
-                    <i class="fas fa-shopping-cart text-xs"></i>
+                <button onclick="openCart()" class="icon-btn icon-btn-cart" aria-label="Sepetim">
+                    <i class="fas fa-basket-shopping text-sm"></i>
                     <span class="badge" id="cart-count">0</span>
                 </button>
             </div>
@@ -232,8 +423,8 @@
     </header>
 
     <!-- ===== CATEGORY TABS ===== -->
-    <div class="cat-nav sticky z-30" style="top:57px;">
-        <div class="max-w-6xl mx-auto flex">
+    <div class="cat-nav sticky z-30" id="cat-nav">
+        <div class="max-w-3xl mx-auto flex">
             @foreach($categories as $category)
                 <button class="cat-tab {{ $loop->first ? 'active' : '' }}"
                         onclick="scrollToCategory('cat-{{ $loop->index }}', this)">
@@ -244,40 +435,68 @@
     </div>
 
     <!-- ===== MAIN CONTENT ===== -->
-    <main class="max-w-6xl mx-auto px-4 pt-4 pb-2">
+    <main class="max-w-3xl mx-auto px-4 pt-5 pb-2">
+        @php $heroRendered = false; @endphp
         @foreach($categories as $category)
-            <section id="cat-{{ $loop->index }}" class="mb-8">
-                <h2 class="section-heading mb-3">{{ $category->name }}</h2>
+            <section id="cat-{{ $loop->index }}" class="mb-9">
+                <h2 class="section-heading mb-4">{{ $category->name }}</h2>
 
                 @if($category->activeProducts->isEmpty())
-                    <p class="text-xs text-center py-6" style="color:#555;">Bu kategoride ürün bulunmamaktadır.</p>
+                    <p class="text-xs text-center py-6 text-muted">Bu kategoride ürün bulunmamaktadır.</p>
                 @else
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    <div class="space-y-3">
                         @foreach($category->activeProducts as $product)
-                            <div class="card-product">
-                                <!-- Image -->
-                                <div style="background:#1a1a1a;height:100px;overflow:hidden;flex-shrink:0;">
+                            @php $isHero = ! $heroRendered; @endphp
+
+                            @if($isHero)
+                            <!-- Hero product -->
+                            <div class="hero-card">
+                                <div class="hero-img-wrap">
                                     <img src="{{ $product->photo_url }}"
                                          alt="{{ $product->name }}"
-                                         class="card-img {{ $product->has_photo ? '' : 'placeholder' }}"
-                                         loading="lazy"
+                                         class="hero-img {{ $product->has_photo ? '' : 'placeholder' }}"
                                          onerror="this.src='{{ asset('images/product-placeholder.svg') }}';this.classList.add('placeholder');">
                                 </div>
-                                <!-- Info -->
-                                <div class="p-2.5 flex flex-col flex-1">
-                                    <h3 class="text-xs font-semibold leading-snug mb-1" style="color:#e8d5b7;">{{ $product->name }}</h3>
+                                <div class="p-4">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="min-w-0">
+                                            <h3 class="font-serif-display text-lg font-semibold leading-snug">{{ $product->name }}</h3>
+                                            @if($product->description)
+                                                <p class="text-xs text-muted mt-1 leading-relaxed">{{ $product->description }}</p>
+                                            @endif
+                                        </div>
+                                        <span class="price price-serif text-xl whitespace-nowrap">{{ number_format($product->price, 2, ',', '.') }} ₺</span>
+                                    </div>
+                                    <button onclick="addToCart({{ $product->id }}, '{{ addslashes($product->name) }}', {{ $product->price }}, this)"
+                                            class="btn-add btn-add-wide mt-3">
+                                        <i class="fas fa-plus text-[0.7rem]"></i> Sepete Ekle
+                                    </button>
+                                </div>
+                            </div>
+                            @php $heroRendered = true; @endphp
+                            @else
+                            <!-- List row -->
+                            <div class="menu-row p-3 flex gap-3">
+                                <img src="{{ $product->photo_url }}"
+                                     alt="{{ $product->name }}"
+                                     class="row-img {{ $product->has_photo ? '' : 'placeholder' }}"
+                                     loading="lazy"
+                                     onerror="this.src='{{ asset('images/product-placeholder.svg') }}';this.classList.add('placeholder');">
+                                <div class="flex-1 min-w-0 flex flex-col">
+                                    <h3 class="text-sm font-semibold leading-snug">{{ $product->name }}</h3>
                                     @if($product->description)
-                                        <p class="text-xs mb-2 leading-snug" style="color:#555;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ $product->description }}</p>
+                                        <p class="row-desc text-xs text-muted mt-0.5 leading-snug">{{ $product->description }}</p>
                                     @endif
-                                    <div class="mt-auto flex justify-between items-center gap-1">
-                                        <span class="price text-xs">{{ number_format($product->price, 2) }} ₺</span>
+                                    <div class="mt-auto flex justify-between items-center gap-2 pt-1.5">
+                                        <span class="price text-sm">{{ number_format($product->price, 2, ',', '.') }} ₺</span>
                                         <button onclick="addToCart({{ $product->id }}, '{{ addslashes($product->name) }}', {{ $product->price }}, this)"
-                                                class="btn-gold w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                            <i class="fas fa-plus" style="font-size:0.65rem;"></i>
+                                                class="btn-add btn-add-round" aria-label="Sepete ekle">
+                                            <i class="fas fa-plus text-xs"></i>
                                         </button>
                                     </div>
                                 </div>
                             </div>
+                            @endif
                         @endforeach
                     </div>
                 @endif
@@ -285,48 +504,64 @@
         @endforeach
     </main>
 
-    <!-- ===== BOTTOM BAR ===== -->
-    <div class="bottom-bar">
-        <div class="max-w-6xl mx-auto flex gap-2.5">
-            <button onclick="showWaiterNote()"
-                    class="btn-outline-gold flex-1 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2">
-                <i class="fas fa-bell"></i> Garson Çağır
-            </button>
-            <button onclick="document.getElementById('cart-drawer').classList.toggle('translate-x-full')"
-                    class="btn-gold flex-1 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2">
-                <i class="fas fa-shopping-cart"></i>
-                <span>Sepetim</span>
-                <span class="badge" id="cart-count-bottom">0</span>
-            </button>
-        </div>
-    </div>
+    <!-- ===== FLOATING CART BAR ===== -->
+    <button id="cart-fab" onclick="openCart()">
+        <span class="text-sm font-medium" id="fab-info">0 ürün</span>
+        <span class="fab-btn">Sepetim <i class="fas fa-arrow-right ml-1.5 text-xs"></i></span>
+    </button>
 
-    <!-- ===== CART DRAWER ===== -->
-    <div id="cart-drawer" class="cart-drawer fixed right-0 top-0 h-full w-full sm:w-96 z-50 translate-x-full transition-transform duration-300 flex flex-col">
-        <div style="background:#1a1a1a;border-bottom:2px solid #d4af37;" class="px-4 py-3.5 flex justify-between items-center flex-shrink-0">
-            <h2 class="font-bold text-base" style="color:#d4af37;">
-                <i class="fas fa-shopping-cart mr-2 text-sm"></i>Sepetim
-            </h2>
-            <button onclick="document.getElementById('cart-drawer').classList.add('translate-x-full')"
-                    class="w-8 h-8 rounded-full flex items-center justify-center text-lg"
-                    style="background:#2a2a2a;color:#d4af37;">&times;</button>
-        </div>
-
-        <div class="flex-1 overflow-y-auto px-3 py-3" id="cart-items">
-            <p class="text-center py-10 text-sm" style="color:#555;">Sepetiniz boş</p>
-        </div>
-
-        <div style="border-top:2px solid #2a2a2a;" class="p-3 space-y-2.5 flex-shrink-0">
-            <div class="flex justify-between items-center font-bold">
-                <span class="text-sm" style="color:#aaa;">Toplam</span>
-                <span class="price text-base" id="cart-total">0.00 ₺</span>
+    <!-- ===== CART BOTTOM SHEET ===== -->
+    <div id="cart-sheet">
+        <div class="sheet-backdrop" onclick="closeCart()"></div>
+        <div class="sheet-panel">
+            <div class="sheet-grip"></div>
+            <div class="px-5 py-3 flex justify-between items-center flex-shrink-0">
+                <h2 class="font-serif-display text-xl font-semibold">Sepetim</h2>
+                <button onclick="closeCart()"
+                        class="w-8 h-8 rounded-full flex items-center justify-center text-lg"
+                        style="background:var(--bronze-soft);color:var(--bronze-dark);">&times;</button>
             </div>
-            <textarea id="order-note" placeholder="Sipariş notu..." rows="2"
-                      class="w-full rounded-xl px-3 py-2 text-xs focus:outline-none resize-none"
-                      style="background:#0a0a0a;border:1px solid #2a2a2a;color:#e8d5b7;"></textarea>
-            <button onclick="checkout()" class="w-full py-3 btn-gold rounded-xl font-bold text-sm">
-                <i class="fas fa-check mr-2"></i>Siparişi Tamamla
-            </button>
+
+            <div class="flex-1 overflow-y-auto px-4 py-2 space-y-2" id="cart-items">
+                <p class="text-center py-10 text-sm text-muted">Sepetiniz boş</p>
+            </div>
+
+            <div style="border-top:1px solid var(--line);" class="p-4 space-y-3 flex-shrink-0">
+                @if(!empty($roomList))
+                <!-- Room number -->
+                <div id="room-block">
+                    <label class="block text-[0.68rem] font-semibold uppercase tracking-widest text-muted mb-1.5">Oda Numaranız</label>
+                    <div id="room-saved" class="hidden items-center justify-between field-input !py-2.5">
+                        <span class="flex items-center gap-2 text-sm font-semibold">
+                            <i class="fas fa-door-open text-bronze"></i>
+                            Oda <span id="room-saved-no"></span>
+                        </span>
+                        <button type="button" onclick="changeRoom()"
+                                class="text-xs font-semibold text-bronze underline underline-offset-2 hover:text-bronze-dark">Değiştir</button>
+                    </div>
+                    <div id="room-input-wrap" class="hidden relative">
+                        <i class="fas fa-door-open absolute left-3.5 top-1/2 -translate-y-1/2 text-sm" style="color:#B8AB9C;"></i>
+                        <input id="room-no" type="text" inputmode="numeric" maxlength="16" placeholder="Örn: 101" autocomplete="off"
+                               class="field-input !pl-10">
+                    </div>
+                    <p id="room-error" class="hidden mt-1.5 text-xs font-medium items-center gap-1.5" style="color:#C0392B;">
+                        <i class="fas fa-circle-exclamation"></i>
+                        Oda numarası hatalı, lütfen kontrol edin.
+                    </p>
+                </div>
+                @endif
+
+                <textarea id="order-note" placeholder="Sipariş notu (isteğe bağlı)..." rows="2"
+                          class="field-input resize-none"></textarea>
+
+                <div class="flex justify-between items-center pt-1">
+                    <span class="text-sm text-muted font-medium">Toplam</span>
+                    <span class="price price-serif text-xl" id="cart-total">0,00 ₺</span>
+                </div>
+                <button onclick="checkout()" id="checkout-btn" class="w-full py-3.5 btn-primary font-bold text-sm">
+                    <i class="fas fa-check mr-2"></i>Siparişi Tamamla
+                </button>
+            </div>
         </div>
     </div>
 
@@ -334,29 +569,24 @@
     <div id="waiter-modal">
         <div class="modal-box p-5">
             <div class="flex items-center gap-3 mb-4">
-                <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                     style="background:rgba(212,175,55,0.12);">
-                    <i class="fas fa-bell text-sm" style="color:#d4af37;"></i>
+                <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                     style="background:var(--bronze-soft);">
+                    <i class="fas fa-bell text-sm text-bronze"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-sm" style="color:#d4af37;">Garson Çağır</h3>
+                    <h3 class="font-serif-display font-semibold text-base">Garson Çağır</h3>
                     @if($tableNo)
-                        <p class="text-xs" style="color:#666;">Masa {{ $tableNo }}</p>
+                        <p class="text-xs text-muted">Masa {{ $tableNo }}</p>
                     @endif
                 </div>
             </div>
             <textarea id="waiter-note" placeholder="Not eklemek ister misiniz? (isteğe bağlı)"
                       rows="3"
-                      class="w-full rounded-xl px-3 py-2 mb-3 focus:outline-none text-xs resize-none"
-                      style="background:#0a0a0a;border:1px solid #333;color:#e8d5b7;"></textarea>
+                      class="field-input resize-none mb-3"></textarea>
             <div class="flex gap-2.5">
-                <button onclick="closeWaiterModal()"
-                        class="flex-1 py-2.5 rounded-xl text-xs font-semibold"
-                        style="background:#1a1a1a;color:#666;border:1px solid #2a2a2a;">
-                    İptal
-                </button>
-                <button onclick="submitWaiterCall()"
-                        class="flex-1 py-2.5 btn-gold rounded-xl font-bold text-xs">
+                <button onclick="closeWaiterModal()" class="flex-1 py-2.5 btn-ghost text-xs">İptal</button>
+                <button onclick="submitWaiterCall()" id="waiter-submit"
+                        class="flex-1 py-2.5 btn-primary font-bold text-xs">
                     <i class="fas fa-bell mr-1"></i> Çağır
                 </button>
             </div>
@@ -366,6 +596,24 @@
     <script>
         let cart = {};
         let clickLock = false;
+        const MAX_QTY = {{ \App\Http\Controllers\MenuController::MAX_ITEM_QUANTITY }};
+        const ROOM_LIST = @js($roomList);
+        const ROOM_KEY = 'rocksqr_room_no';
+        let savedRoom = localStorage.getItem(ROOM_KEY) || '';
+
+        /* ---- Helpers ---- */
+        function fmt(n) {
+            return n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        /* ---- Sticky nav offset ---- */
+        function syncNavOffset() {
+            const header = document.querySelector('.app-header');
+            const nav = document.getElementById('cat-nav');
+            if (header && nav) nav.style.top = header.offsetHeight + 'px';
+        }
+        window.addEventListener('load', syncNavOffset);
+        window.addEventListener('resize', syncNavOffset);
 
         /* ---- Category tab scroll ---- */
         function scrollToCategory(sectionId, tabEl) {
@@ -375,7 +623,7 @@
             const el = document.getElementById(sectionId);
             if (!el) return;
             const headerH = document.querySelector('.app-header').offsetHeight;
-            const navH = document.querySelector('.cat-nav').offsetHeight;
+            const navH = document.getElementById('cat-nav').offsetHeight;
             const top = el.getBoundingClientRect().top + window.scrollY - headerH - navH - 8;
             clickLock = true;
             window.scrollTo({ top, behavior: 'smooth' });
@@ -403,13 +651,17 @@
         /* ---- Cart ---- */
         function addToCart(productId, name, price, btn) {
             if (cart[productId]) {
+                if (cart[productId].quantity >= MAX_QTY) {
+                    showToast('En fazla sipariş limitine ulaşıldı.');
+                    return;
+                }
                 cart[productId].quantity++;
             } else {
                 cart[productId] = { name, price, quantity: 1 };
             }
             updateCart();
             if (btn) {
-                btn.style.transform = 'scale(0.8)';
+                btn.style.transform = 'scale(0.85)';
                 setTimeout(() => btn.style.transform = '', 180);
             }
         }
@@ -420,51 +672,135 @@
         }
 
         function updateQuantity(productId, quantity) {
-            if (quantity <= 0) { removeFromCart(productId); }
-            else { cart[productId].quantity = quantity; updateCart(); }
+            if (quantity <= 0) { removeFromCart(productId); return; }
+            if (quantity > MAX_QTY) { showToast('En fazla sipariş limitine ulaşıldı.'); return; }
+            cart[productId].quantity = quantity;
+            updateCart();
         }
 
         function updateCart() {
-            const count = Object.values(cart).reduce((s, i) => s + i.quantity, 0);
+            const entries = Object.entries(cart);
+            const count = entries.reduce((s, [, i]) => s + i.quantity, 0);
             document.getElementById('cart-count').textContent = count;
-            document.getElementById('cart-count-bottom').textContent = count;
 
-            const html = Object.entries(cart).map(([id, item]) => `
-                <div class="flex items-center gap-2 rounded-xl p-2.5 mb-2" style="background:#1a1a1a;border:1px solid #222;">
+            const fab = document.getElementById('cart-fab');
+            if (count > 0) {
+                const total = entries.reduce((s, [, i]) => s + i.price * i.quantity, 0);
+                document.getElementById('fab-info').textContent =
+                    count + ' ürün · ' + fmt(total) + ' ₺';
+                fab.classList.add('show');
+            } else {
+                fab.classList.remove('show');
+            }
+
+            const html = entries.map(([id, item]) => `
+                <div class="cart-row">
                     <div class="flex-1 min-w-0">
-                        <p class="text-xs font-semibold truncate" style="color:#e8d5b7;">${item.name}</p>
-                        <p class="text-xs" style="color:#888;">${(item.price * item.quantity).toFixed(2)} ₺</p>
+                        <p class="text-sm font-semibold truncate">${item.name}</p>
+                        <p class="text-xs text-muted mt-0.5">${fmt(item.price * item.quantity)} ₺</p>
                     </div>
-                    <div class="flex items-center gap-1 flex-shrink-0">
-                        <button onclick="updateQuantity(${id},${item.quantity-1})"
-                                class="w-6 h-6 rounded-lg text-xs font-bold flex items-center justify-center"
-                                style="background:#222;color:#d4af37;">−</button>
-                        <span class="w-5 text-center text-xs font-bold" style="color:#d4af37;">${item.quantity}</span>
-                        <button onclick="updateQuantity(${id},${item.quantity+1})"
-                                class="w-6 h-6 rounded-lg text-xs font-bold flex items-center justify-center"
-                                style="background:#222;color:#d4af37;">+</button>
-                        <button onclick="removeFromCart(${id})"
-                                class="w-6 h-6 rounded-lg text-xs flex items-center justify-center ml-0.5"
-                                style="background:rgba(239,68,68,0.12);color:#f87171;">✕</button>
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <button onclick="updateQuantity(${id},${item.quantity-1})" class="stepper-btn">−</button>
+                        <span class="w-6 text-center text-sm font-bold">${item.quantity}</span>
+                        <button onclick="updateQuantity(${id},${item.quantity+1})" class="stepper-btn">+</button>
+                        <button onclick="removeFromCart(${id})" class="remove-btn ml-0.5"><i class="fas fa-trash-can"></i></button>
                     </div>
                 </div>
             `).join('');
 
             document.getElementById('cart-items').innerHTML = count === 0
-                ? '<p class="text-center py-10 text-sm" style="color:#555;">Sepetiniz boş</p>'
+                ? '<p class="text-center py-10 text-sm text-muted">Sepetiniz boş</p>'
                 : html;
 
-            const total = Object.values(cart).reduce((s, i) => s + i.price * i.quantity, 0);
-            document.getElementById('cart-total').textContent = total.toFixed(2) + ' ₺';
+            const total = entries.reduce((s, [, i]) => s + i.price * i.quantity, 0);
+            document.getElementById('cart-total').textContent = fmt(total) + ' ₺';
         }
 
+        /* ---- Cart sheet ---- */
+        function openCart() {
+            document.getElementById('cart-sheet').classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeCart() {
+            document.getElementById('cart-sheet').classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        /* ---- Room number ---- */
+        function initRoomUI() {
+            const block = document.getElementById('room-block');
+            if (!block) return;
+            const saved = document.getElementById('room-saved');
+            const wrap = document.getElementById('room-input-wrap');
+            if (savedRoom && ROOM_LIST.includes(savedRoom)) {
+                document.getElementById('room-saved-no').textContent = savedRoom;
+                saved.classList.remove('hidden');
+                saved.classList.add('flex');
+                wrap.classList.add('hidden');
+            } else {
+                savedRoom = '';
+                saved.classList.add('hidden');
+                saved.classList.remove('flex');
+                wrap.classList.remove('hidden');
+            }
+        }
+
+        function changeRoom() {
+            savedRoom = '';
+            localStorage.removeItem(ROOM_KEY);
+            initRoomUI();
+            setRoomError(false);
+            const input = document.getElementById('room-no');
+            if (input) input.focus();
+        }
+
+        function setRoomError(show) {
+            const err = document.getElementById('room-error');
+            if (!err) return false;
+            err.classList.toggle('hidden', !show);
+            err.classList.toggle('flex', show);
+            const input = document.getElementById('room-no');
+            const saved = document.getElementById('room-saved');
+            if (input) input.classList.toggle('field-error', show && !input.closest('.hidden'));
+            if (saved) saved.classList.toggle('field-error', show && saved.classList.contains('flex'));
+            return show;
+        }
+
+        /* ---- Checkout ---- */
         function checkout() {
             if (Object.keys(cart).length === 0) {
                 showToast('Sepetiniz boş.');
                 return;
             }
+
+            let room = '';
+            if (ROOM_LIST.length > 0) {
+                if (savedRoom && ROOM_LIST.includes(savedRoom)) {
+                    room = savedRoom;
+                } else {
+                    const input = document.getElementById('room-no');
+                    room = (input ? input.value : '').trim();
+                    if (!ROOM_LIST.includes(room)) {
+                        setRoomError(true);
+                        if (input) {
+                            input.focus();
+                            input.style.transform = 'translateX(0)';
+                            input.animate(
+                                [{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }],
+                                { duration: 250, iterations: 2 }
+                            );
+                        }
+                        return;
+                    }
+                }
+            }
+
+            if (room) localStorage.setItem(ROOM_KEY, room);
+
+            const btn = document.getElementById('checkout-btn');
+            btn.disabled = true;
+
             const items = Object.entries(cart).map(([id, item]) => ({ id: parseInt(id), quantity: item.quantity }));
-            const total = Object.values(cart).reduce((s, i) => s + i.price * i.quantity, 0);
             const note = document.getElementById('order-note').value;
             const form = document.createElement('form');
             form.method = 'POST';
@@ -473,10 +809,19 @@
             @else
                 form.action = '{{ route("order.place.public") }}';
             @endif
-            form.innerHTML = `@csrf
-                <input type="hidden" name="items" value='${JSON.stringify(items)}'>
-                <input type="hidden" name="total_price" value="${total}">
-                <input type="hidden" name="order_note" value="${note}">`;
+            const fields = {
+                _token: '{{ csrf_token() }}',
+                items: JSON.stringify(items),
+                order_note: note,
+                room_no: room,
+            };
+            Object.entries(fields).forEach(([name, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                input.value = value;
+                form.appendChild(input);
+            });
             document.body.appendChild(form);
             form.submit();
         }
@@ -490,6 +835,10 @@
             document.getElementById('waiter-note').value = '';
         }
         function submitWaiterCall() {
+            const btn = document.getElementById('waiter-submit');
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Gönderiliyor';
             const note = document.getElementById('waiter-note').value;
             @if($tableNo)
                 const url = `{{ route('waiter.call', ['tableNo' => $tableNo]) }}`;
@@ -501,14 +850,19 @@
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                 body: JSON.stringify({ note })
             })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    closeWaiterModal();
-                    showToast('Garson çağrıldı! En kısa sürede yanınızda olacak.');
-                }
+            .then(r => {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
             })
-            .catch(err => console.error(err));
+            .then(() => {
+                closeWaiterModal();
+                showToast('Garson çağrıldı! En kısa sürede yanınızda olacak.');
+            })
+            .catch(() => showToast('Çağrı gönderilemedi. Lütfen tekrar deneyin.'))
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = original;
+            });
         }
 
         /* ---- Toast ---- */
@@ -520,13 +874,21 @@
             setTimeout(() => t.remove(), 3000);
         }
 
-        /* ---- Close cart on backdrop click ---- */
-        document.addEventListener('click', (e) => {
-            const drawer = document.getElementById('cart-drawer');
-            if (!drawer.classList.contains('translate-x-full') &&
-                !drawer.contains(e.target) &&
-                !e.target.closest('[onclick*="cart-drawer"]')) {
-                drawer.classList.add('translate-x-full');
+        @if($errors->any())
+            document.addEventListener('DOMContentLoaded', () => showToast(@js($errors->first())));
+        @endif
+
+        /* ---- Init ---- */
+        document.addEventListener('DOMContentLoaded', () => {
+            initRoomUI();
+            syncNavOffset();
+            const roomInput = document.getElementById('room-no');
+            if (roomInput) {
+                roomInput.addEventListener('input', () => {
+                    roomInput.classList.remove('field-error');
+                    const err = document.getElementById('room-error');
+                    if (err) { err.classList.add('hidden'); err.classList.remove('flex'); }
+                });
             }
         });
     </script>

@@ -60,7 +60,7 @@ class KitchenController extends Controller
         if ($order->kitchen_status !== 'cancelled') {
             return response()->json(['success' => false, 'message' => 'Bu sipariş iptal durumunda değil.'], 422);
         }
-        $order->update(['kitchen_status' => 'completed']);
+        $order->update(['kitchen_status' => 'completed', 'completed_at' => now()]);
         return response()->json(['success' => true]);
     }
 

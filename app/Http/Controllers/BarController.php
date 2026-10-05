@@ -26,6 +26,10 @@ class BarController extends Controller
     {
         $request->validate(['status' => 'required|in:preparing']);
 
+        if (in_array($order->kitchen_status, ['cancelled', 'completed'], true)) {
+            return response()->json(['success' => false, 'message' => 'Bu sipariş onaylanamaz.'], 422);
+        }
+
         $order->update([
             'bar_status'    => 'approved',
             'bar_approved_at' => $order->bar_approved_at ?? now(),

@@ -464,7 +464,7 @@
                     : `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-orange-700 text-orange-100"><i class="fas fa-mobile-screen"></i></span>`;
                 return `<div class="bg-emerald-950 rounded-lg p-2 text-xs">
                     <div class="flex items-center justify-between mb-1">
-                        <span class="font-bold text-emerald-300">${order.table_no ? 'Masa ' + order.table_no : 'Paket'} ${srcBadge}</span>
+                        <span class="font-bold text-emerald-300">${order.room_no ? 'Oda ' + order.room_no : (order.table_no ? 'Masa ' + order.table_no : 'Paket')} ${srcBadge}</span>
                         <span class="ready-elapsed text-[10px] ${readyTimeBg} px-1.5 py-0.5 rounded text-white font-bold" data-order-time="${(order.order_time || '').replace(/['"<>&]/g, '')}">${timeStr}</span>
                     </div>
                     <p class="text-gray-300 text-[10px] truncate">${itemSummary || '—'}</p>
@@ -590,7 +590,7 @@
                 <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden" data-order-id="${order.id}">
                     <div class="px-2 py-1 bg-gray-750 border-b border-gray-700">
                         <div class="flex items-center justify-between">
-                            <span class="text-xl font-bold text-gold">${order.table_no ? 'Masa ' + order.table_no : 'Paket'}</span>
+                            <span class="text-xl font-bold text-gold">${order.room_no ? 'Oda ' + order.room_no : (order.table_no ? 'Masa ' + order.table_no : 'Paket')}</span>
                             <div class="flex items-center gap-1">
                                 ${sourceBadge}
                                 ${(!isSymphony && statusText === 'YENI') ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${statusBg}">${statusText}</span>` : ''}
