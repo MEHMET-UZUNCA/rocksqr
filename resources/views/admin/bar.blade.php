@@ -95,11 +95,6 @@
         </a>
     </header>
 
-    <!-- Garson Çağrıları: üst şerit -->
-    <div id="top-bar" class="hidden px-2 py-1">
-        <div id="waiter-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-2"></div>
-    </div>
-
     <main class="p-2 flex-1 min-h-0 flex flex-col" style="padding-bottom:50px">
         <div id="boards" class="grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1 min-h-0">
             <section class="min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden">
@@ -145,7 +140,8 @@
         let lastSymOrders = [];     // Symphony API hata verince son bilinen siparisleri koru
         let lastIncomingKeys = '';  // Sol kolon flicker onleme anahtari
         let lastPreparingKeys = ''; // Sag kolon flicker onleme anahtari
-        let _waiterCards = [];      // Shared top-bar state (sadece garson cagrilari)
+        let _waiterCards = [];      // Sol kolonun en ustundeki garson cagri kartlari
+        let _lastWaiterIds = null;  // Cagri listesi degisimini izlemek icin
 
         // ── Sayaç kalıcılığı (kitchen-pos ile ortak localStorage) ───────────
         // kitchen-pos ve bar ekranı aynı kpos_start_ anahtarını paylaşır,
@@ -178,20 +174,18 @@
             return item.cat || 'food';
         }
 
-        function itemVisible(item) {
-            const k = itemClass(item);
-            if (k === 'drink') return BAR_SHOW_DRINKS;
-            if (k === 'other') return BAR_SHOW_OTHERS;
-            return true;
-        }
-
         function parseItems(order) {
             try { return Array.isArray(order.items) ? order.items : (JSON.parse(order.items || '[]') || []); }
             catch(e) { return []; }
         }
 
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
         // Gizli kategoriler elenmiş ürün listesi; Symphony hazır kartındaki
         // 'Adisyon #' yer tutucusu lastSymOrders'tan gerçek ürünlerle çözülür.
+        // Mesaj satırları (mg=99) yalnızca kartta yiyecek varsa gösterilir.
         function visibleItems(order) {
             let items = parseItems(order);
             if (order.source === 'symphony' && items.length === 1 && String(items[0].name || '').startsWith('Adisyon #')) {
@@ -201,7 +195,13 @@
                 );
                 if (match && match.items && match.items.length > 0) items = match.items;
             }
-            return items.filter(itemVisible);
+            const hasFood = items.some(i => itemClass(i) === 'food');
+            return items.filter(i => {
+                const k = itemClass(i);
+                if (k === 'drink') return BAR_SHOW_DRINKS;
+                if (k === 'other') return BAR_SHOW_OTHERS && (i.mg !== 99 || hasFood);
+                return true;
+            });
         }
 
         function hasVisibleItems(order) {
@@ -222,15 +222,8 @@
         }
 
         function refreshTopBar() {
-            const topBar = document.getElementById('top-bar');
-            const grid   = document.getElementById('waiter-grid');
-
-            // Header badge sayisini daima guncelle (0 bile olsa goster)
+            // Header badge sayisini daima guncelle (0 bile olsa goster); kartlar sol kolonda
             document.getElementById('header-waiter-count').textContent = _waiterCards.length;
-
-            if (_waiterCards.length === 0) { topBar.classList.add('hidden'); return; }
-            topBar.classList.remove('hidden');
-            grid.innerHTML = _waiterCards.join('');
         }
 
         function updateClock() {
@@ -475,12 +468,15 @@
 
         function renderReadyCard(order) {
             const isSymphony = order.source === 'symphony';
-            const items = visibleItems(order);
+            const allItems = visibleItems(order);
+            const msgItems = allItems.filter(i => i.mg === 99);
+            const items = allItems.filter(i => i.mg !== 99);
 
             const itemSummary = items.map(i => {
                 const nm = i.name || (i.id ? getProductName(i.id) : '');
                 return `${nm} x${i.quantity || i.qty || 1}`;
             }).join(', ');
+            const msgSummary = msgItems.map(m => m.note || m.name).join(' • ');
 
             // Sayaç "hazir olali" suresini saymali; hazir olma anini ready_since_seconds'tan turetiyoruz.
             const readySecs = Math.max(0, (order.ready_since_seconds ?? order.seconds_ago) || 0);
@@ -504,6 +500,7 @@
                     <span class="ready-elapsed text-[10px] ${readyTimeBg} px-1.5 py-0.5 rounded text-white font-bold" data-order-time="${readyStartIso}">${timeStr}</span>
                 </div>
                 <p class="text-gray-300 text-[10px] truncate">${itemSummary || '—'}${orderAt}</p>
+                ${msgSummary ? `<p class="text-yellow-300 text-[10px] leading-snug"><i class="fas fa-bullhorn mr-0.5"></i>${escapeHtml(msgSummary)}</p>` : ''}
                 ${hasNote ? `<p class="text-yellow-400 text-[10px] truncate"><i class="fas fa-exclamation-triangle mr-0.5"></i>${order.order_note}</p>` : ''}
                 ${deliveredHtml}
             </div>`;
@@ -541,8 +538,11 @@
             const gk = isSymphony ? symGroupKey(order) : null;
             const startTime = isSymphony ? getStartTime(gk, order.order_time) : (order.order_time || '');
 
-            // Sag kolon (Hazirlanan) gizli kategorileri satirdan da eler; Gelen kolonu filtresiz
-            const items = filterItems ? parseItems(order).filter(itemVisible) : parseItems(order);
+            // Sag kolon (Hazirlanan) gizli kategorileri satirdan da eler; Gelen kolonu filtresiz.
+            // Mesaj satirlari (mg=99) urun listesinden ayrilir, okunur mesaj kutusunda gosterilir.
+            const allItems = filterItems ? visibleItems(order) : parseItems(order);
+            const msgItems = allItems.filter(item => item.mg === 99);
+            const items = allItems.filter(item => item.mg !== 99);
 
             const itemsHtml = items.map(item => {
                 const name = item.name || (item.id ? getProductName(item.id) : '');
@@ -553,6 +553,12 @@
                     <span class="font-bold text-gold shrink-0">x${qty}</span>
                 </div>`;
             }).join('');
+
+            const msgHtml = msgItems.length > 0 ? `
+                <div class="mx-1 mb-1 p-1.5 bg-yellow-900/40 border border-yellow-500/60 rounded-lg">
+                    <div class="text-[10px] text-yellow-400 font-bold uppercase mb-0.5"><i class="fas fa-bullhorn mr-1"></i>Mesajlar</div>
+                    ${msgItems.map(m => `<div class="text-yellow-100 text-sm leading-snug py-0.5">${escapeHtml(m.note || m.name)}</div>`).join('')}
+                </div>` : '';
 
             const chkLabel = isSymphony && order.check_number ? `Chk #${order.check_number}` : (isSymphony ? '' : `Chk #${order.id}`);
 
@@ -610,6 +616,7 @@
                     ${itemsHtml || '<div class="text-gray-500 text-center py-1">Urun yok</div>'}
                     ${order.order_note ? `<div class="mt-1 p-1.5 bg-yellow-900/30 rounded text-yellow-300 text-xs"><i class="fas fa-sticky-note mr-1"></i>${order.order_note}</div>` : ''}
                 </div>
+                ${msgHtml}
                 ${footer}
             </div>`;
         }
@@ -623,9 +630,10 @@
                 // Hazir QR siparisler ayri "hazir" karti olarak en uste cikar
                 if (!isSymphony && order.kitchen_status === 'ready') return;
                 // Ickeler gizliyken yalnizca ickeden olusan QR siparisler sol kolonda kalir
+                // MenuController QR siparisleri 'waiting' ile baslar; 'preparing'/'ready' olunca sag kolona duser
                 const toRight = isSymphony || (order.in_symphony === true && order.has_food !== false)
                     || order.bar_status !== 'new'
-                    || (order.kitchen_status && order.kitchen_status !== 'new');
+                    || order.kitchen_status === 'preparing' || order.kitchen_status === 'ready';
                 (toRight ? preparing : incoming).push(order);
             });
 
@@ -637,11 +645,11 @@
             const preparingHtml = preparingShown.map(o => renderOrderCard(o, true));
             const incomingHtml  = incoming.map(o => renderOrderCard(o));
 
-            // Sol kolon — icerik degismediyse yeniden cizme (flicker onleme)
+            // Sol kolon — garson cagrilari en ustte; icerik degismediyse yeniden cizme (flicker onleme)
             const inKey = incoming.map(orderSig).join(',');
             if (inKey !== lastIncomingKeys) {
                 lastIncomingKeys = inKey;
-                document.getElementById('incoming-grid').innerHTML = incomingHtml.join('');
+                document.getElementById('incoming-grid').innerHTML = _waiterCards.join('') + incomingHtml.join('');
             }
             document.getElementById('incoming-count').textContent = incomingHtml.length;
 
@@ -654,7 +662,7 @@
             document.getElementById('preparing-count').textContent = readyHtml.length + preparingHtml.length;
             document.getElementById('header-ready-count').textContent = readyHtml.length;
 
-            const empty = incomingHtml.length === 0 && preparingHtml.length === 0 && readyHtml.length === 0;
+            const empty = _waiterCards.length === 0 && incomingHtml.length === 0 && preparingHtml.length === 0 && readyHtml.length === 0;
             document.getElementById('boards').classList.toggle('hidden', empty);
             document.getElementById('no-orders').classList.toggle('hidden', !empty);
         }
@@ -711,6 +719,12 @@
         }
 
         function renderWaiterCalls(calls) {
+            // Cagri listesi degistiyse sol kolonu yeniden cizmeye zorla
+            const ids = calls.map(c => c.id).join(',');
+            if (ids !== _lastWaiterIds) {
+                _lastWaiterIds = ids;
+                lastIncomingKeys = '';
+            }
             if (calls.length === 0) {
                 _waiterCards = [];
                 refreshTopBar();
@@ -814,9 +828,9 @@
                     list.forEach((o, i) => { o._seq = i + 1; o._seqTotal = list.length; });
                 });
 
+                renderWaiterCalls(data.waiter_calls || []);
                 renderBoards(activeOrders, readyShown);
                 renderCompletedOrders(data.completed_orders || [], data.completed_orders_limit || null, data.attended_calls || []);
-                renderWaiterCalls(data.waiter_calls || []);
             }).catch(err => console.error('Fetch error:', err));
         }
 
