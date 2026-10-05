@@ -41,22 +41,23 @@
             50%      { background-color: #065f46; border-color: #6ee7b7; }
         }
         .ready-blink { animation: ready-blink 0.9s ease-in-out infinite; }
+        .watermark {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            pointer-events: none; user-select: none; overflow: hidden;
+        }
+        .watermark span {
+            font-weight: 800; letter-spacing: 0.18em; white-space: nowrap;
+            color: rgba(255,255,255,0.05);
+            font-size: min(3vw, 58px);
+        }
     </style>
 </head>
 <body class="bg-gray-900 font-poppins text-white h-screen flex flex-col" style="overflow:hidden">
-    <header class="bg-primary px-3 py-1 flex items-center gap-2 min-w-0">
+    <header class="bg-primary px-3 py-1 flex items-center gap-2 min-w-0 shrink-0">
         <div class="flex items-center gap-1 bg-yellow-900/60 border border-yellow-700 rounded px-2 py-0.5 shrink-0">
             <i class="fas fa-wine-glass text-gold text-[10px]"></i>
             <span class="text-gold font-bold text-sm">{{ \App\Models\Setting::get('bar_screen_title', 'KDS - Bar') }}</span>
-        </div>
-        <div class="flex items-center gap-1.5 shrink-0">
-            <span class="font-bold text-sm text-orange-400 tracking-wide"><i class="fas fa-inbox mr-1"></i>GELEN SİPARİŞLER</span>
-            <span id="incoming-count" class="text-xs font-bold bg-orange-900/60 border border-orange-700 text-orange-200 rounded px-1.5">0</span>
-        </div>
-        <div class="w-px self-stretch bg-gray-400/40 shrink-0" style="margin:2px 0"></div>
-        <div class="flex items-center gap-1.5 shrink-0">
-            <span class="font-bold text-sm text-blue-400 tracking-wide"><i class="fas fa-utensils mr-1"></i>HAZIRLANAN SİPARİŞLER</span>
-            <span id="preparing-count" class="text-xs font-bold bg-blue-900/60 border border-blue-700 text-blue-200 rounded px-1.5">0</span>
         </div>
         <div class="flex-1"></div>
         <div class="flex items-center gap-1.5 shrink-0">
@@ -81,11 +82,6 @@
                 <span class="text-red-600 text-[10px]">çağrı</span>
             </div>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-            <span id="clock" class="text-gold font-bold text-base tabular-nums"></span>
-            <span class="text-gray-600 text-xs">|</span>
-            <span id="clock-date" class="text-gray-300 text-xs font-medium"></span>
-        </div>
         <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse shrink-0"></span>
         <button onclick="toggleFullscreen()" id="fs-btn" class="text-gray-400 hover:text-gold transition" title="Tam ekran">
             <i id="fs-icon" class="fas fa-expand text-sm"></i>
@@ -95,19 +91,38 @@
         </a>
     </header>
 
-    <main class="p-2 flex-1 min-h-0 flex flex-col" style="padding-bottom:50px">
+    <!-- Bölüm başlıkları: GELEN en solda büyük + saat/tarih sol alanın ortasında; HAZIRLANAN sağ bölümün üstünde -->
+    <div class="px-2 pt-2 pb-1 grid grid-cols-2 gap-3 items-center shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+            <span class="font-extrabold text-lg md:text-xl 2xl:text-2xl text-orange-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-inbox mr-2"></i>GELEN SİPARİŞLER</span>
+            <span id="incoming-count" class="text-sm font-bold bg-orange-900/60 border border-orange-700 text-orange-200 rounded px-1.5 shrink-0">0</span>
+            <div class="flex-1 flex items-center justify-center gap-2 min-w-0">
+                <span id="clock" class="text-gold font-extrabold text-xl lg:text-2xl 2xl:text-3xl tabular-nums leading-none"></span>
+                <span class="text-gray-500 text-lg leading-none hidden lg:inline">|</span>
+                <span id="clock-date" class="text-gray-300 text-sm 2xl:text-base font-medium leading-none whitespace-nowrap hidden lg:inline"></span>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 min-w-0">
+            <span class="font-extrabold text-lg md:text-xl 2xl:text-2xl text-blue-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-utensils mr-2"></i>HAZIRLANAN SİPARİŞLER</span>
+            <span id="preparing-count" class="text-sm font-bold bg-blue-900/60 border border-blue-700 text-blue-200 rounded px-1.5">0</span>
+        </div>
+    </div>
+
+    <main class="p-2 pt-0 flex-1 min-h-0 flex flex-col" style="padding-bottom:50px">
         <div id="boards" class="grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1 min-h-0">
-            <section class="min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden">
-                <div id="incoming-grid" class="h-full overflow-y-auto p-1.5 grid gap-1.5 items-start content-start" style="grid-template-columns: repeat(3, 1fr)"></div>
+            <section class="relative min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden">
+                <div class="watermark"><span>ROCKS SERVICES BDS</span></div>
+                <div id="incoming-grid" class="relative h-full overflow-y-auto p-1.5 grid gap-1.5 items-start content-start" style="grid-template-columns: repeat(3, 1fr)"></div>
             </section>
-            <section class="min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden">
-                <div id="preparing-grid" class="h-full overflow-y-auto p-1.5 grid gap-1.5 items-start content-start" style="grid-template-columns: repeat(6, 1fr)"></div>
+            <section class="relative min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden">
+                <div class="watermark"><span>ROCKS SERVICES BDS</span></div>
+                <div id="preparing-grid" class="relative h-full overflow-y-auto p-1.5 grid gap-1.5 items-start content-start" style="grid-template-columns: repeat(6, 1fr)"></div>
             </section>
         </div>
         <div id="no-orders" class="hidden text-center py-20">
             <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
-            <p class="text-2xl text-gray-400">Tum siparisler tamamlandi!</p>
-            <p class="text-gray-500 mt-2">Yeni siparisler otomatik olarak gorunecek.</p>
+            <p class="text-2xl text-gray-400">Tüm siparişler tamamlandı!</p>
+            <p class="text-gray-500 mt-2">Yeni siparişler otomatik olarak görünecek.</p>
         </div>
     </main>
 
@@ -645,8 +660,10 @@
             const preparingHtml = preparingShown.map(o => renderOrderCard(o, true));
             const incomingHtml  = incoming.map(o => renderOrderCard(o));
 
-            // Sol kolon — garson cagrilari en ustte; icerik degismediyse yeniden cizme (flicker onleme)
-            const inKey = incoming.map(orderSig).join(',');
+            // Sol kolon — garson cagrilari en ustte; cagri listesi VEYA siparis icerigi
+            // degistiginde yeniden ciz. _lastWaiterIds anahtara dahil: incoming bosken
+            // ('' == '') cagri kartlarinin hic yazilmamasi hatasi boylece cozulur.
+            const inKey = _lastWaiterIds + '|' + incoming.map(orderSig).join(',');
             if (inKey !== lastIncomingKeys) {
                 lastIncomingKeys = inKey;
                 document.getElementById('incoming-grid').innerHTML = _waiterCards.join('') + incomingHtml.join('');
