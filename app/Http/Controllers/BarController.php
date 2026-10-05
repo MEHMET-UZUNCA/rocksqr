@@ -76,6 +76,7 @@ class BarController extends Controller
     public function barApiOrders()
     {
         $completedLimit    = (int) Setting::get('bar_completed_display', 12);
+        $readyLimit        = (int) Setting::get('bar_ready_display', 12);
         $undoWindowSeconds = (int) Setting::get('ready_undo_seconds', 30);
 
         $orders = Order::where('bar_status', 'new')
@@ -85,7 +86,7 @@ class BarController extends Controller
 
         $readyOrders = Order::where('kitchen_status', 'ready')
             ->orderBy('kitchen_ready_at', 'desc')
-            ->limit($completedLimit)
+            ->limit($readyLimit)
             ->get()
             ->map(fn ($order) => $this->mapBarOrder($order))
             ->values()
@@ -99,7 +100,7 @@ class BarController extends Controller
             ->whereNull('delivered_at')
             ->whereIn('kind', ['check', 'checkless_msg', 'item'])
             ->orderByDesc('completed_at')
-            ->limit($completedLimit)
+            ->limit($readyLimit)
             ->get();
 
         foreach ($symphonyReady as $row) {
@@ -147,7 +148,7 @@ class BarController extends Controller
         }
 
         usort($readyOrders, fn($a, $b) => ($a['ready_since_seconds'] ?? 99999) <=> ($b['ready_since_seconds'] ?? 99999));
-        $readyOrders = array_slice($readyOrders, 0, $completedLimit);
+        $readyOrders = array_slice($readyOrders, 0, $readyLimit);
 
         $completedOrders = Order::whereIn('kitchen_status', ['completed', 'cancelled'])
             ->orderBy('completed_at', 'desc')
@@ -228,7 +229,7 @@ class BarController extends Controller
         return response()->json([
             'orders'                => $orders->values(),
             'ready_orders'          => array_values($readyOrders),
-            'ready_orders_limit'    => $completedLimit,
+            'ready_orders_limit'    => $readyLimit,
             'completed_orders'      => collect($completedOrders)->values(),
             'completed_orders_limit'=> $completedLimit,
             'waiter_calls'          => $waiterCalls,

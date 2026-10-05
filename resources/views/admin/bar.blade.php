@@ -52,47 +52,57 @@
             font-size: min(3.5vw, 64px);
             transform: rotate(-45deg);
         }
+        /* SON şeridi: tek sıra kayan yazı (içerik sığmazsa) — çift grup kesintisiz döngü */
+        @keyframes strip-marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .strip-mask { overflow: hidden; flex: 1; min-width: 0; }
+        .strip-ticker { display: flex; align-items: center; width: max-content; animation: strip-marquee 45s linear infinite; }
+        .strip-group { display: flex; align-items: center; gap: 4px; padding-right: 4px; }
     </style>
 </head>
 <body class="bg-gray-900 font-poppins text-white h-screen flex flex-col" style="overflow:hidden">
-    <header class="bg-primary px-2 py-1 flex items-center gap-2 min-w-0 shrink-0">
-        <span class="font-extrabold text-base xl:text-lg text-orange-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-inbox mr-1.5"></i>GELEN SİPARİŞLER</span>
-        <span id="incoming-count" class="text-sm font-bold bg-orange-900/60 border border-orange-700 text-orange-200 rounded px-1.5 shrink-0">0</span>
-        <div class="w-px self-stretch bg-gray-400/40 shrink-0"></div>
-        <span id="clock" class="text-gold font-extrabold text-xl xl:text-2xl tabular-nums leading-none whitespace-nowrap"></span>
-        <span id="clock-date" class="text-gray-300 text-xl xl:text-2xl font-normal leading-none whitespace-nowrap"></span>
-        <div class="flex-1"></div>
-        <span class="font-extrabold text-base xl:text-lg text-blue-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-utensils mr-1.5"></i>HAZIRLANAN SİPARİŞLER</span>
-        <span id="preparing-count" class="text-sm font-bold bg-blue-900/60 border border-blue-700 text-blue-200 rounded px-1.5 shrink-0">0</span>
-        <div class="flex items-center gap-1.5 shrink-0">
-            <div class="flex items-center gap-1 bg-blue-900/60 border border-blue-700 rounded px-2 py-0.5">
-                <i class="fas fa-server text-blue-400 text-[10px]"></i>
-                <span id="header-sym-count" class="text-blue-200 font-bold text-sm">0</span>
-                <span class="text-blue-600 text-[10px]">SYM</span>
+    <header class="bg-primary px-1 py-1 shrink-0">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 items-center min-w-0">
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="font-extrabold text-base xl:text-lg text-orange-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-inbox mr-1.5"></i>GELEN SİPARİŞLER</span>
+                <span id="incoming-count" class="text-sm font-bold bg-orange-900/60 border border-orange-700 text-orange-200 rounded px-1.5 shrink-0">0</span>
+                <div class="w-px self-stretch bg-gray-400/40 shrink-0"></div>
+                <span id="clock" class="text-gold font-extrabold text-xl xl:text-2xl tabular-nums leading-none whitespace-nowrap"></span>
+                <span id="clock-date" class="text-gray-300 text-xl xl:text-2xl font-normal leading-none whitespace-nowrap"></span>
             </div>
-            <div class="flex items-center gap-1 bg-orange-900/60 border border-orange-700 rounded px-2 py-0.5">
-                <i class="fas fa-mobile-screen text-orange-400 text-[10px]"></i>
-                <span id="header-qr-count" class="text-orange-200 font-bold text-sm">0</span>
-                <span class="text-orange-600 text-[10px]">QR</span>
-            </div>
-            <div class="flex items-center gap-1 bg-emerald-900/60 border border-emerald-700 rounded px-2 py-0.5">
-                <i class="fas fa-concierge-bell text-emerald-400 text-[10px]"></i>
-                <span id="header-ready-count" class="text-emerald-200 font-bold text-sm">0</span>
-                <span class="text-emerald-600 text-[10px]">hazır</span>
-            </div>
-            <div class="flex items-center gap-1 bg-red-900/60 border border-red-700 rounded px-2 py-0.5">
-                <i class="fas fa-bell text-red-400 text-[10px] waiter-alert"></i>
-                <span id="header-waiter-count" class="text-red-200 font-bold text-sm">0</span>
-                <span class="text-red-600 text-[10px]">çağrı</span>
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="font-extrabold text-base xl:text-lg text-blue-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-utensils mr-1.5"></i>HAZIRLANAN SİPARİŞLER</span>
+                <span id="preparing-count" class="text-sm font-bold bg-blue-900/60 border border-blue-700 text-blue-200 rounded px-1.5 shrink-0">0</span>
+                <div class="ml-auto flex items-center gap-1.5 shrink-0">
+                    <div class="flex items-center gap-1 bg-blue-900/60 border border-blue-700 rounded px-2 py-0.5">
+                        <i class="fas fa-server text-blue-400 text-[10px]"></i>
+                        <span id="header-sym-count" class="text-blue-200 font-bold text-sm">0</span>
+                        <span class="text-blue-600 text-[10px]">SYM</span>
+                    </div>
+                    <div class="flex items-center gap-1 bg-orange-900/60 border border-orange-700 rounded px-2 py-0.5">
+                        <i class="fas fa-mobile-screen text-orange-400 text-[10px]"></i>
+                        <span id="header-qr-count" class="text-orange-200 font-bold text-sm">0</span>
+                        <span class="text-orange-600 text-[10px]">QR</span>
+                    </div>
+                    <div class="flex items-center gap-1 bg-emerald-900/60 border border-emerald-700 rounded px-2 py-0.5">
+                        <i class="fas fa-concierge-bell text-emerald-400 text-[10px]"></i>
+                        <span id="header-ready-count" class="text-emerald-200 font-bold text-sm">0</span>
+                        <span class="text-emerald-600 text-[10px]">hazır</span>
+                    </div>
+                    <div class="flex items-center gap-1 bg-red-900/60 border border-red-700 rounded px-2 py-0.5">
+                        <i class="fas fa-bell text-red-400 text-[10px] waiter-alert"></i>
+                        <span id="header-waiter-count" class="text-red-200 font-bold text-sm">0</span>
+                        <span class="text-red-600 text-[10px]">çağrı</span>
+                    </div>
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse shrink-0"></span>
+                    <button onclick="toggleFullscreen()" id="fs-btn" class="text-gray-400 hover:text-gold transition" title="Tam ekran">
+                        <i id="fs-icon" class="fas fa-expand text-sm"></i>
+                    </button>
+                    <a href="/admin" class="text-gray-400 hover:text-gold transition text-xs">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                </div>
             </div>
         </div>
-        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse shrink-0"></span>
-        <button onclick="toggleFullscreen()" id="fs-btn" class="text-gray-400 hover:text-gold transition" title="Tam ekran">
-            <i id="fs-icon" class="fas fa-expand text-sm"></i>
-        </button>
-        <a href="/admin" class="text-gray-400 hover:text-gold transition text-xs">
-            <i class="fas fa-arrow-left"></i>
-        </a>
     </header>
 
     <main class="p-1 flex-1 min-h-0 flex flex-col" style="padding-bottom:42px">
@@ -129,9 +139,12 @@
         </div>
     </div>
 
-    <!-- Son Tamamlananlar: sabit alt şerit -->
+    <!-- Son Tamamlananlar: sabit alt şerit, tek sıra (sığmazsa kayar) -->
     <div id="completed-bar" class="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 px-2 py-1" style="z-index:50;min-height:38px">
-        <div class="flex items-center gap-1 flex-wrap" id="completed-grid"></div>
+        <div class="flex items-center gap-2">
+            <span id="completed-prefix" class="inline-flex items-center gap-1 text-xs text-emerald-400 font-bold shrink-0"></span>
+            <div class="strip-mask"><div id="completed-ticker" class="strip-ticker"></div></div>
+        </div>
     </div>
 
     <script>
@@ -144,6 +157,7 @@
         let lastPreparingKeys = ''; // Sag kolon flicker onleme anahtari
         let _waiterCards = [];      // Sol kolonun en ustundeki garson cagri kartlari
         let _lastWaiterIds = null;  // Cagri listesi degisimini izlemek icin
+        let _lastCompletedKey = null; // Alt serit icerik anahtari — ayniysa DOM'a dokunma (marquee sifirlanmasin)
 
         // ── Sayaç kalıcılığı (kitchen-pos ile ortak localStorage) ───────────
         // kitchen-pos ve bar ekranı aynı kpos_start_ anahtarını paylaşır,
@@ -697,16 +711,21 @@
         }
 
         function renderCompletedOrders(completedOrders, limit, attendedCalls) {
-            const grid  = document.getElementById('completed-grid');
-            if (!grid) return;
+            const prefixEl = document.getElementById('completed-prefix');
+            const ticker   = document.getElementById('completed-ticker');
+            if (!prefixEl || !ticker) return;
+
+            prefixEl.innerHTML = `<i class="fas fa-check-double"></i> SON ${limit ? limit : ''}:`;
 
             const hasCompleted = completedOrders && completedOrders.length > 0;
             const hasAttended  = attendedCalls && attendedCalls.length > 0;
 
-            const prefix = `<span class="inline-flex items-center gap-1 text-xs text-emerald-400 font-bold shrink-0 mr-1"><i class="fas fa-check-double"></i> SON ${limit ? limit : ''}:</span>`;
-
             if (!hasCompleted && !hasAttended) {
-                grid.innerHTML = prefix + `<span class="text-gray-500 text-xs">Henüz tamamlanan yok.</span>`;
+                if (_lastCompletedKey !== 'empty') {
+                    _lastCompletedKey = 'empty';
+                    ticker.innerHTML = `<div class="strip-group"><span class="text-gray-500 text-xs">Henüz tamamlanan yok.</span></div>`;
+                    ticker.style.animation = 'none';
+                }
                 return;
             }
 
@@ -716,35 +735,48 @@
                 catch(e) { items = []; }
                 const summary = items.map(i => {
                     const nm = i.name || (i.id ? getProductName(i.id) : '');
-                    return `${nm} x${i.quantity || 1}`;
+                    return `${escapeHtml(nm)} x${i.quantity || 1}`;
                 }).join(', ');
                 const isSymphony = order.source === 'symphony';
                 const srcBadge = isSymphony
-                    ? `<span class="bg-blue-800 text-blue-200 text-[9px] px-1 rounded font-bold">SYM</span>`
-                    : `<span class="bg-orange-800 text-orange-200 text-[9px] px-1 rounded font-bold">QR</span>`;
+                    ? `<span class="bg-blue-800 text-blue-200 text-[9px] px-1 rounded font-bold shrink-0">SYM</span>`
+                    : `<span class="bg-orange-800 text-orange-200 text-[9px] px-1 rounded font-bold shrink-0">QR</span>`;
                 const tableLabel = order.table_no ? 'TBL ' + escapeHtml(order.table_no) : (order.room_no ? 'RM ' + escapeHtml(order.room_no) : 'Pkt');
                 const isCancelled = order.status === 'cancelled' || order.bar_status === 'cancelled';
                 if (isCancelled) {
-                    return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-red-900 rounded px-1 py-0.5 text-xs text-red-400 max-w-[210px]">
+                    return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-red-900 rounded px-1 py-0.5 text-xs text-red-400 max-w-[210px] shrink-0">
                         <i class="fas fa-ban text-red-600 shrink-0"></i>
-                        <span class="font-bold shrink-0">${tableLabel}</span>${srcBadge}<span class="text-gray-400 truncate line-through">${summary || '—'}</span>
+                        <span class="font-bold shrink-0">${tableLabel}</span>${srcBadge}<span class="text-gray-400 truncate line-through">${escapeHtml(summary) || '—'}</span>
                     </span>`;
                 }
-                return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-emerald-900 rounded px-1 py-0.5 text-xs text-emerald-300 max-w-[210px]">
+                return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-emerald-900 rounded px-1 py-0.5 text-xs text-emerald-300 max-w-[210px] shrink-0">
                     <i class="fas fa-check text-emerald-600 shrink-0"></i>
-                    <span class="font-bold shrink-0">${tableLabel}</span>${srcBadge}<span class="text-gray-400 truncate">${summary || '—'}</span>
+                    <span class="font-bold shrink-0">${tableLabel}</span>${srcBadge}<span class="text-gray-400 truncate">${escapeHtml(summary) || '—'}</span>
                 </span>`;
             });
 
             const callChips = (attendedCalls || []).map(call => {
                 const tableLabel = [call.table_no ? 'M' + call.table_no : '', call.room_no ? 'ROOM' + call.room_no : ''].filter(Boolean).join(' ') || 'Gen';
-                return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-green-900 rounded px-1 py-0.5 text-xs text-green-300 max-w-[170px]">
+                return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-green-900 rounded px-1 py-0.5 text-xs text-green-300 max-w-[170px] shrink-0">
                     <i class="fas fa-bell-slash text-green-600 shrink-0"></i>
-                    <span class="font-bold shrink-0">${tableLabel}</span><span class="text-gray-400 truncate">${call.note || 'Çağrı'}</span>
+                    <span class="font-bold shrink-0">${escapeHtml(tableLabel)}</span><span class="text-gray-400 truncate">${escapeHtml(call.note) || 'Çağrı'}</span>
                 </span>`;
             });
 
-            grid.innerHTML = prefix + [...orderChips, ...callChips].join('');
+            const chips = [...orderChips, ...callChips].join('');
+            if (chips === _lastCompletedKey) return; // içerik aynıysa DOM'a dokunma — marquee baştan başlamasın
+            _lastCompletedKey = chips;
+
+            ticker.innerHTML = `<div class="strip-group">${chips}</div><div class="strip-group">${chips}</div>`;
+
+            const mask = ticker.parentElement;
+            const groupWidth = ticker.scrollWidth / 2;
+            if (groupWidth <= mask.clientWidth) {
+                ticker.style.animation = 'none'; // sığıyor — kaydırmaya gerek yok
+            } else {
+                ticker.style.animation = '';
+                ticker.style.animationDuration = Math.max(30, Math.round(groupWidth / 60)) + 's';
+            }
         }
 
         function renderWaiterCalls(calls) {
