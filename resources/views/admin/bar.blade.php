@@ -566,10 +566,8 @@
                 </div>` : '';
 
             const chkLabel = isSymphony && order.check_number ? `Chk #${order.check_number}` : (isSymphony ? '' : `Chk #${order.id}`);
-            const metaLeft = [
-                isSymphony && order.waiter_name ? `<i class="fas fa-user mr-0.5 text-gray-500"></i>${escapeHtml(order.waiter_name)}` : '',
-                chkLabel,
-            ].filter(Boolean).join(' · ');
+            // Mutfak karti duzeni: Chk meta satirinda tek basina, garson adi altinda kendi satirinda
+            const waiterLine = isSymphony && order.waiter_name ? `<div class="text-[9px] text-gray-400 truncate mt-0.5"><i class="fas fa-user mr-0.5 text-gray-500"></i>${escapeHtml(order.waiter_name)}</div>` : '';
 
             let footer;
             if (isSymphony) {
@@ -613,9 +611,10 @@
                         ${sourceBadge}
                     </div>
                     <div class="flex items-center justify-between gap-1 mt-0.5">
-                        <span class="text-[9px] text-gray-400 truncate">${metaLeft}</span>
+                        <span class="text-[9px] text-gray-400 truncate">${chkLabel}</span>
                         <span class="bar-elapsed px-1 py-0.5 rounded text-[10px] font-bold ${timeBg} shrink-0" data-order-time="${startTime.replace(/['"<>&]/g, '')}" data-is-symphony="${isSymphony ? '1' : '0'}">${timeStr}</span>
                     </div>
+                    ${waiterLine}
                 </div>
                 <div class="px-1 py-0.5">
                     ${itemsHtml || '<div class="text-gray-400 text-center py-0.5">Urun yok</div>'}
