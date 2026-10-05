@@ -149,6 +149,12 @@
             return order.check_number ? String(order.check_number) : ('T' + (order.table_no || ''));
         }
 
+        function locLabel(order) {
+            const t = order.table_no ? 'TABLE ' + order.table_no : '';
+            const r = order.room_no ? 'ROOM' + order.room_no : '';
+            return [t, r].filter(Boolean).join(' ') || 'Paket';
+        }
+
         function refreshTopBar() {
             const topBar = document.getElementById('top-bar');
             const grid   = document.getElementById('combined-grid');
@@ -449,7 +455,10 @@
                     return `${nm} x${i.quantity || i.qty || 1}`;
                 }).join(', ');
 
-                const readySecs = order.ready_seconds !== null ? order.ready_seconds : order.seconds_ago;
+                // Sayaç "hazir olali" suresini saymali; order_time siparis verilme ani oldugundan
+                // hazir olma anini ready_since_seconds'tan turetiyoruz.
+                const readySecs = Math.max(0, (order.ready_since_seconds ?? order.seconds_ago) || 0);
+                const readyStartIso = new Date(Date.now() - readySecs * 1000).toISOString();
                 const timeStr = String(Math.floor(readySecs / 3600)).padStart(2,'0') + ':'
                               + String(Math.floor((readySecs % 3600) / 60)).padStart(2,'0') + ':'
                               + String(readySecs % 60).padStart(2,'0');
@@ -464,8 +473,8 @@
                     : `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-orange-700 text-orange-100"><i class="fas fa-mobile-screen"></i></span>`;
                 return `<div class="bg-emerald-950 rounded-lg p-2 text-xs">
                     <div class="flex items-center justify-between mb-1">
-                        <span class="font-bold text-emerald-300">${order.room_no ? 'Oda ' + order.room_no : (order.table_no ? 'Masa ' + order.table_no : 'Paket')} ${srcBadge}</span>
-                        <span class="ready-elapsed text-[10px] ${readyTimeBg} px-1.5 py-0.5 rounded text-white font-bold" data-order-time="${(order.order_time || '').replace(/['"<>&]/g, '')}">${timeStr}</span>
+                        <span class="font-bold text-emerald-300">${locLabel(order)} ${srcBadge}</span>
+                        <span class="ready-elapsed text-[10px] ${readyTimeBg} px-1.5 py-0.5 rounded text-white font-bold" data-order-time="${readyStartIso}">${timeStr}</span>
                     </div>
                     <p class="text-gray-300 text-[10px] truncate">${itemSummary || '—'}</p>
                     ${hasNote ? `<p class="text-yellow-400 text-[10px] truncate"><i class="fas fa-exclamation-triangle mr-0.5"></i>${order.order_note}</p>` : ''}
@@ -590,7 +599,7 @@
                 <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden" data-order-id="${order.id}">
                     <div class="px-2 py-1 bg-gray-750 border-b border-gray-700">
                         <div class="flex items-center justify-between">
-                            <span class="text-xl font-bold text-gold">${order.room_no ? 'Oda ' + order.room_no : (order.table_no ? 'Masa ' + order.table_no : 'Paket')}</span>
+                            <span class="text-xl font-bold text-gold">${locLabel(order)}</span>
                             <div class="flex items-center gap-1">
                                 ${sourceBadge}
                                 ${(!isSymphony && statusText === 'YENI') ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${statusBg}">${statusText}</span>` : ''}
@@ -609,29 +618,6 @@
                     ${footer}
                 </div>`;
             }).join('');
-        }
-
-        function renderPagination(totalPages) {
-            const pager = document.getElementById('pagination-controls');
-            if (totalPages <= 1) { pager.classList.add('hidden'); return; }
-            pager.classList.remove('hidden');
-            let html = `<span class="text-gray-400 text-xs mr-1">Sayfa</span>`;
-            if (currentPage > 1) {
-                html += `<button onclick="goPage(${currentPage - 1})" class="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-white text-sm"><i class="fas fa-chevron-left"></i></button>`;
-            }
-            for (let i = 1; i <= totalPages; i++) {
-                const active = i === currentPage ? 'bg-gold text-gray-900 font-bold' : 'bg-gray-700 text-white hover:bg-gray-600';
-                html += `<button onclick="goPage(${i})" class="px-3 py-1 rounded ${active} text-sm">${i}</button>`;
-            }
-            if (currentPage < totalPages) {
-                html += `<button onclick="goPage(${currentPage + 1})" class="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-white text-sm"><i class="fas fa-chevron-right"></i></button>`;
-            }
-            pager.innerHTML = html;
-        }
-
-        function goPage(p) {
-            currentPage = p;
-            fetchData();
         }
 
         function renderCompletedOrders(completedOrders, limit, attendedCalls) {
@@ -660,7 +646,7 @@
                 const srcBadge = isSymphony
                     ? `<span class="bg-blue-800 text-blue-200 text-[9px] px-1 rounded font-bold">SYM</span>`
                     : `<span class="bg-orange-800 text-orange-200 text-[9px] px-1 rounded font-bold">QR</span>`;
-                const tableLabel = order.table_no ? 'M' + order.table_no : 'Pkt';
+                const tableLabel = order.table_no ? 'T' + order.table_no : (order.room_no ? 'ROOM' + order.room_no : 'Pkt');
                 const isCancelled = order.status === 'cancelled' || order.bar_status === 'cancelled';
                 if (isCancelled) {
                     return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-red-900 rounded px-2 py-1 text-xs text-red-400" style="min-width:160px;max-width:240px">
@@ -675,7 +661,7 @@
             });
 
             const callChips = (attendedCalls || []).map(call => {
-                const tableLabel = call.table_no ? 'M' + call.table_no : 'Gen';
+                const tableLabel = [call.table_no ? 'M' + call.table_no : '', call.room_no ? 'ROOM' + call.room_no : ''].filter(Boolean).join(' ') || 'Gen';
                 return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-green-900 rounded px-2 py-1 text-xs text-green-300" style="min-width:120px;max-width:200px">
                     <i class="fas fa-bell-slash text-green-600 shrink-0"></i>
                     <span class="font-bold shrink-0">${tableLabel}</span><span class="text-gray-400 truncate">${call.note || 'Çağrı'}</span>
@@ -695,9 +681,10 @@
                 const minTotal = Math.floor(call.seconds_ago / 60);
                 const timeBg = timerBg(minTotal, TIMER.waiter);
                 const timeStr = String(Math.floor(call.seconds_ago / 3600)).padStart(2,'0') + ':' + String(Math.floor((call.seconds_ago % 3600) / 60)).padStart(2,'0') + ':' + String(call.seconds_ago % 60).padStart(2,'0');
+                const callLabel = [call.table_no ? 'Masa ' + call.table_no : '', call.room_no ? 'ROOM' + call.room_no : ''].filter(Boolean).join(' ') || 'Genel';
                 return `<div class="bg-red-950 rounded-lg p-2 text-xs">
                     <div class="flex items-center justify-between mb-1">
-                        <span class="font-bold text-red-200 flex items-center gap-1"><i class="fas fa-bell text-red-400 waiter-alert text-[10px]"></i>${call.table_no ? 'Masa ' + call.table_no : 'Genel'}</span>
+                        <span class="font-bold text-red-200 flex items-center gap-1"><i class="fas fa-bell text-red-400 waiter-alert text-[10px]"></i>${callLabel}</span>
                         <span class="waiter-elapsed px-1.5 py-0.5 rounded text-[10px] ${timeBg}" data-order-time="${(call.order_time || '').replace(/['"<>&]/g, '')}">${timeStr}</span>
                     </div>
                     ${call.note ? `<p class="text-red-300 text-[10px] mb-1 truncate">${call.note}</p>` : ''}
