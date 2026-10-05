@@ -47,19 +47,28 @@
             pointer-events: none; user-select: none; overflow: hidden;
         }
         .watermark span {
-            font-weight: 800; letter-spacing: 0.18em; white-space: nowrap;
+            font-weight: 800; letter-spacing: 0.15em; white-space: nowrap;
             color: rgba(255,255,255,0.05);
-            font-size: min(3vw, 58px);
+            font-size: min(3.5vw, 64px);
+            transform: rotate(-45deg);
         }
     </style>
 </head>
 <body class="bg-gray-900 font-poppins text-white h-screen flex flex-col" style="overflow:hidden">
-    <header class="bg-primary px-3 py-1 flex items-center gap-2 min-w-0 shrink-0">
+    <header class="bg-primary px-2 py-1 flex items-center gap-2 min-w-0 shrink-0">
         <div class="flex items-center gap-1 bg-yellow-900/60 border border-yellow-700 rounded px-2 py-0.5 shrink-0">
             <i class="fas fa-wine-glass text-gold text-[10px]"></i>
             <span class="text-gold font-bold text-sm">{{ \App\Models\Setting::get('bar_screen_title', 'KDS - Bar') }}</span>
         </div>
+        <span class="font-extrabold text-base xl:text-lg text-orange-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-inbox mr-1.5"></i>GELEN SİPARİŞLER</span>
+        <span id="incoming-count" class="text-xs font-bold bg-orange-900/60 border border-orange-700 text-orange-200 rounded px-1.5 shrink-0">0</span>
+        <span class="text-gray-600 shrink-0">|</span>
+        <span class="font-extrabold text-base xl:text-lg text-blue-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-utensils mr-1.5"></i>HAZIRLANAN SİPARİŞLER</span>
+        <span id="preparing-count" class="text-xs font-bold bg-blue-900/60 border border-blue-700 text-blue-200 rounded px-1.5 shrink-0">0</span>
         <div class="flex-1"></div>
+        <span id="clock" class="text-gold font-extrabold text-xl xl:text-2xl tabular-nums leading-none whitespace-nowrap"></span>
+        <span id="clock-date" class="text-gray-300 text-xs font-medium whitespace-nowrap hidden xl:inline"></span>
+        <div class="w-px self-stretch bg-gray-400/40 shrink-0"></div>
         <div class="flex items-center gap-1.5 shrink-0">
             <div class="flex items-center gap-1 bg-blue-900/60 border border-blue-700 rounded px-2 py-0.5">
                 <i class="fas fa-server text-blue-400 text-[10px]"></i>
@@ -91,32 +100,16 @@
         </a>
     </header>
 
-    <!-- Bölüm başlıkları: GELEN en solda büyük + saat/tarih sol alanın ortasında; HAZIRLANAN sağ bölümün üstünde -->
-    <div class="px-2 pt-2 pb-1 grid grid-cols-2 gap-3 items-center shrink-0">
-        <div class="flex items-center gap-3 min-w-0">
-            <span class="font-extrabold text-lg md:text-xl 2xl:text-2xl text-orange-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-inbox mr-2"></i>GELEN SİPARİŞLER</span>
-            <span id="incoming-count" class="text-sm font-bold bg-orange-900/60 border border-orange-700 text-orange-200 rounded px-1.5 shrink-0">0</span>
-            <div class="flex-1 flex items-center justify-center gap-2 min-w-0">
-                <span id="clock" class="text-gold font-extrabold text-xl lg:text-2xl 2xl:text-3xl tabular-nums leading-none"></span>
-                <span class="text-gray-500 text-lg leading-none hidden lg:inline">|</span>
-                <span id="clock-date" class="text-gray-300 text-sm 2xl:text-base font-medium leading-none whitespace-nowrap hidden lg:inline"></span>
-            </div>
-        </div>
-        <div class="flex items-center gap-2 min-w-0">
-            <span class="font-extrabold text-lg md:text-xl 2xl:text-2xl text-blue-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-utensils mr-2"></i>HAZIRLANAN SİPARİŞLER</span>
-            <span id="preparing-count" class="text-sm font-bold bg-blue-900/60 border border-blue-700 text-blue-200 rounded px-1.5">0</span>
-        </div>
-    </div>
-
-    <main class="p-2 pt-0 flex-1 min-h-0 flex flex-col" style="padding-bottom:50px">
-        <div id="boards" class="grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1 min-h-0">
-            <section class="relative min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden">
+    <main class="p-1 flex-1 min-h-0 flex flex-col" style="padding-bottom:42px">
+        <div id="boards" class="grid grid-cols-1 lg:grid-cols-2 gap-2 flex-1 min-h-0">
+            <section class="relative min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden flex">
                 <div class="watermark"><span>ROCKS SERVICES BDS</span></div>
-                <div id="incoming-grid" class="relative h-full overflow-y-auto p-1.5 grid gap-1.5 items-start content-start" style="grid-template-columns: repeat(3, 1fr)"></div>
+                <div id="waiter-strip" class="hidden relative w-[106px] shrink-0 h-full overflow-y-auto p-1 space-y-1"></div>
+                <div id="incoming-grid" class="relative flex-1 min-w-0 h-full overflow-y-auto p-1 grid gap-1 items-start content-start" style="grid-template-columns: repeat(6, minmax(0, 1fr))"></div>
             </section>
             <section class="relative min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden">
                 <div class="watermark"><span>ROCKS SERVICES BDS</span></div>
-                <div id="preparing-grid" class="relative h-full overflow-y-auto p-1.5 grid gap-1.5 items-start content-start" style="grid-template-columns: repeat(6, 1fr)"></div>
+                <div id="preparing-grid" class="relative h-full overflow-y-auto p-1 grid gap-1 items-start content-start" style="grid-template-columns: repeat(6, minmax(0, 1fr))"></div>
             </section>
         </div>
         <div id="no-orders" class="hidden text-center py-20">
@@ -143,7 +136,7 @@
     </div>
 
     <!-- Son Tamamlananlar: sabit alt şerit -->
-    <div id="completed-bar" class="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 px-3 py-1.5" style="z-index:50;min-height:38px">
+    <div id="completed-bar" class="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 px-2 py-1" style="z-index:50;min-height:38px">
         <div class="flex items-center gap-2 flex-wrap" id="completed-grid"></div>
     </div>
 
@@ -229,8 +222,8 @@
         }
 
         function locLabel(order) {
-            const t = order.table_no ? 'TABLE ' + order.table_no : '';
-            const r = order.room_no ? 'ROOM' + order.room_no : '';
+            const t = order.table_no ? 'T' + order.table_no : '';
+            const r = order.room_no ? 'R' + order.room_no : '';
             const base = [t, r].filter(Boolean).join(' ') || 'Paket';
             // Ayni odadan/masadan gelen birden fazla aktif siparis varsa sira rozeti
             return order._seqTotal > 1 ? base + ' #' + order._seq + '/' + order._seqTotal : base;
@@ -487,11 +480,14 @@
             const msgItems = allItems.filter(i => i.mg === 99);
             const items = allItems.filter(i => i.mg !== 99);
 
-            const itemSummary = items.map(i => {
+            const itemRows = items.map(i => {
                 const nm = i.name || (i.id ? getProductName(i.id) : '');
-                return `${nm} x${i.quantity || i.qty || 1}`;
-            }).join(', ');
-            const msgSummary = msgItems.map(m => m.note || m.name).join(' • ');
+                return `<div class="flex justify-between py-[2px] border-b border-emerald-800/60">
+                    <span class="truncate pr-1">${escapeHtml(nm)}</span>
+                    <span class="font-bold text-gold shrink-0">x${i.quantity || i.qty || 1}</span>
+                </div>`;
+            }).join('');
+            const msgSummary = msgItems.map(m => escapeHtml(m.note || m.name)).join(' • ');
 
             // Sayaç "hazir olali" suresini saymali; hazir olma anini ready_since_seconds'tan turetiyoruz.
             const readySecs = Math.max(0, (order.ready_since_seconds ?? order.seconds_ago) || 0);
@@ -503,20 +499,24 @@
             const readyTimeBg = timerBg(readyMinTotal, TIMER.ready);
             const hasNote = order.order_note && order.order_note.trim() !== '';
             const deliveredHtml = isSymphony
-                ? `<button onclick="markSymphonyDelivered('${order.group_key}')" class="mt-1.5 w-full py-0.5 bg-emerald-600 hover:bg-emerald-700 rounded text-white font-bold text-[11px]"><i class="fas fa-check mr-1"></i>Tamam</button>`
-                : `<button onclick="markQrDelivered(${order.id})" class="mt-1.5 w-full py-0.5 bg-emerald-600 hover:bg-emerald-700 rounded text-white font-bold text-[11px]"><i class="fas fa-check mr-1"></i>Tamam</button>`;
+                ? `<button onclick="markSymphonyDelivered('${order.group_key}')" class="mt-1 w-full py-0.5 bg-emerald-600 hover:bg-emerald-700 rounded text-white font-bold text-[10px]"><i class="fas fa-check mr-1"></i>Tamam</button>`
+                : `<button onclick="markQrDelivered(${order.id})" class="mt-1 w-full py-0.5 bg-emerald-600 hover:bg-emerald-700 rounded text-white font-bold text-[10px]"><i class="fas fa-check mr-1"></i>Tamam</button>`;
             const srcBadge = isSymphony
-                ? `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server"></i></span>`
-                : `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-orange-700 text-orange-100"><i class="fas fa-mobile-screen"></i></span>`;
-            const orderAt = (!isSymphony && order.created_at) ? `<span class="text-[9px] text-gray-500 ml-1">Sip: ${order.created_at}</span>` : '';
-            return `<div class="ready-blink border-2 border-emerald-500 rounded-lg p-2 text-xs">
-                <div class="flex items-center justify-between mb-1">
-                    <span class="font-bold text-emerald-300">${locLabel(order)} ${srcBadge}</span>
-                    <span class="ready-elapsed text-[10px] ${readyTimeBg} px-1.5 py-0.5 rounded text-white font-bold" data-order-time="${readyStartIso}">${timeStr}</span>
+                ? `<span class="px-1 rounded text-[8px] font-bold bg-blue-700 text-blue-100 shrink-0">SYM</span>`
+                : `<span class="px-1 rounded text-[8px] font-bold bg-orange-700 text-orange-100 shrink-0">QR</span>`;
+            const chkLabel = isSymphony ? (order.check_number ? `Chk #${order.check_number}` : '') : `Chk #${order.id}`;
+            return `<div class="ready-blink border-2 border-emerald-500 rounded-lg p-1.5 text-[11px]">
+                <div class="flex items-center justify-between gap-1">
+                    <span class="flex items-center gap-1 min-w-0">
+                        <span class="truncate leading-tight font-bold text-emerald-300">${locLabel(order)}</span>
+                        ${srcBadge}
+                    </span>
+                    <span class="ready-elapsed text-[10px] ${readyTimeBg} px-1 py-0.5 rounded text-white font-bold shrink-0" data-order-time="${readyStartIso}">${timeStr}</span>
                 </div>
-                <p class="text-gray-300 text-[10px] truncate">${itemSummary || '—'}${orderAt}</p>
-                ${msgSummary ? `<p class="text-yellow-300 text-[10px] leading-snug"><i class="fas fa-bullhorn mr-0.5"></i>${escapeHtml(msgSummary)}</p>` : ''}
-                ${hasNote ? `<p class="text-yellow-400 text-[10px] truncate"><i class="fas fa-exclamation-triangle mr-0.5"></i>${order.order_note}</p>` : ''}
+                <div class="text-[9px] text-emerald-200/60 truncate mt-0.5 mb-1">${chkLabel}</div>
+                <div>${itemRows || '<div class="text-gray-400 text-center py-0.5">—</div>'}</div>
+                ${msgSummary ? `<p class="text-yellow-300 text-[10px] leading-snug mt-0.5"><i class="fas fa-bullhorn mr-0.5"></i>${msgSummary}</p>` : ''}
+                ${hasNote ? `<p class="text-yellow-400 text-[10px] truncate mt-0.5"><i class="fas fa-exclamation-triangle mr-0.5"></i>${escapeHtml(order.order_note)}</p>` : ''}
                 ${deliveredHtml}
             </div>`;
         }
@@ -526,19 +526,15 @@
             const isNew = !isSymphony && order.bar_status === 'new';
             const inSym = !isSymphony && order.in_symphony === true;
 
-            let borderClass, statusBg, statusText, sourceBadge;
+            let borderClass, sourceBadge;
             if (isSymphony) {
                 borderClass = 'border-blue-500';
-                statusBg = 'bg-blue-600';
-                statusText = 'POS';
-                sourceBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYM</span>`;
+                sourceBadge = `<span class="px-1 rounded text-[8px] font-bold bg-blue-700 text-blue-100 shrink-0">SYM</span>`;
             } else {
                 borderClass = isNew
                     ? (inSym ? 'new-order border-gold' : 'border-orange-500')
                     : 'border-green-500';
-                statusBg = isNew ? (inSym ? 'bg-yellow-500' : 'bg-orange-500') : 'bg-blue-500';
-                statusText = isNew ? (inSym ? 'YENI' : 'POS BEKLENIYOR') : 'MUTFAKTA';
-                sourceBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-700 text-orange-100"><i class="fas fa-mobile-screen mr-0.5"></i>QR</span>`;
+                sourceBadge = `<span class="px-1 rounded text-[8px] font-bold bg-orange-700 text-orange-100 shrink-0">QR</span>`;
             }
 
             const totalSecs = order.seconds_ago || 0;
@@ -563,73 +559,73 @@
                 const name = item.name || (item.id ? getProductName(item.id) : '');
                 const qty  = item.quantity || item.qty || 1;
                 const note = item.note || '';
-                return `<div class="flex justify-between py-0.5 border-b border-gray-700">
-                    <span class="truncate pr-2">${name}${note ? ` <span class="text-yellow-400 text-xs">(${note})</span>` : ''}</span>
+                return `<div class="flex justify-between py-[2px] border-b border-gray-700">
+                    <span class="truncate pr-1">${escapeHtml(name)}${note ? ` <span class="text-yellow-400 text-[9px]">(${escapeHtml(note)})</span>` : ''}</span>
                     <span class="font-bold text-gold shrink-0">x${qty}</span>
                 </div>`;
             }).join('');
 
             const msgHtml = msgItems.length > 0 ? `
-                <div class="mx-1 mb-1 p-1.5 bg-yellow-900/40 border border-yellow-500/60 rounded-lg">
-                    <div class="text-[10px] text-yellow-400 font-bold uppercase mb-0.5"><i class="fas fa-bullhorn mr-1"></i>Mesajlar</div>
-                    ${msgItems.map(m => `<div class="text-yellow-100 text-sm leading-snug py-0.5">${escapeHtml(m.note || m.name)}</div>`).join('')}
+                <div class="mx-1 mb-1 p-1 bg-yellow-900/40 border border-yellow-500/60 rounded-lg">
+                    <div class="text-[9px] text-yellow-400 font-bold uppercase mb-0.5"><i class="fas fa-bullhorn mr-1"></i>Mesajlar</div>
+                    ${msgItems.map(m => `<div class="text-yellow-100 text-[11px] leading-snug py-0.5">${escapeHtml(m.note || m.name)}</div>`).join('')}
                 </div>` : '';
 
             const chkLabel = isSymphony && order.check_number ? `Chk #${order.check_number}` : (isSymphony ? '' : `Chk #${order.id}`);
+            const metaLeft = [
+                isSymphony && order.waiter_name ? `<i class="fas fa-user mr-0.5 text-gray-500"></i>${escapeHtml(order.waiter_name)}` : '',
+                chkLabel,
+            ].filter(Boolean).join(' · ');
 
             let footer;
             if (isSymphony) {
-                footer = `<div class="px-2 py-1 border-t border-gray-700">
-                    <div class="w-full py-1 bg-blue-600/30 border border-blue-500 rounded text-xs font-bold text-center text-blue-200 flex items-center justify-center gap-1">
+                footer = `<div class="px-1 py-0.5 border-t border-gray-700">
+                    <div class="w-full py-0.5 bg-blue-600/30 border border-blue-500 rounded text-[9px] font-bold text-center text-blue-200 flex items-center justify-center gap-1">
                         <i class="fas fa-server"></i> POS'ta
                     </div>
                 </div>`;
             } else {
-                const priceLine = order.total_price ? `<div class="px-2 py-1 border-t border-gray-700 flex justify-between items-center">
-                    <span class="font-bold text-gold text-sm">${parseFloat(order.total_price).toFixed(2)} TL</span>
+                const priceLine = order.total_price ? `<div class="px-1 py-0.5 border-t border-gray-700 flex justify-between items-center">
+                    <span class="font-bold text-gold text-[11px]">${parseFloat(order.total_price).toFixed(2)} TL</span>
                 </div>` : '';
                 let btn;
                 if (isNew && inSym) {
                     // Onay butonu kalkti: Symphony'ye giren siparis otomatik sag kolona duser
-                    btn = `<div class="w-full py-1 bg-blue-600/30 border border-blue-500 rounded text-xs font-bold text-center text-blue-200 flex items-center justify-center gap-1">
+                    btn = `<div class="w-full py-0.5 bg-blue-600/30 border border-blue-500 rounded text-[9px] font-bold text-center text-blue-200 flex items-center justify-center gap-1">
                             <i class="fas fa-server"></i> POS'a alındı
                         </div>`;
                 } else if (isNew && !inSym) {
                     btn = `<div class="flex gap-1">
-                            <div class="flex-1 py-1 bg-gray-700 text-gray-400 rounded text-xs font-bold flex items-center justify-center gap-1">
-                                <i class="fas fa-hourglass-half animate-pulse"></i> POS bekleniyor...
+                            <div class="flex-1 py-0.5 bg-gray-700 text-gray-400 rounded text-[9px] font-bold flex items-center justify-center gap-1">
+                                <i class="fas fa-hourglass-half animate-pulse"></i> POS bekleniyor
                             </div>
-                            <button onclick="cancelOrder(${order.id})" class="px-2 py-1 bg-red-700 hover:bg-red-600 text-white rounded text-[11px] font-bold transition flex items-center justify-center gap-1" title="Siparişi iptal et">
-                                <i class="fas fa-times"></i> İptal
+                            <button onclick="cancelOrder(${order.id})" class="px-1 py-0.5 bg-red-700 hover:bg-red-600 text-white rounded text-[9px] font-bold transition" title="Siparişi iptal et">
+                                <i class="fas fa-times"></i>
                             </button>
                         </div>`;
                 } else {
-                    btn = `<div class="w-full py-1 bg-blue-600/40 border border-blue-500 rounded text-xs font-bold text-center flex items-center justify-center gap-1 text-blue-100">
+                    btn = `<div class="w-full py-0.5 bg-blue-600/40 border border-blue-500 rounded text-[9px] font-bold text-center flex items-center justify-center gap-1 text-blue-100">
                             <i class="fas fa-utensils"></i> Mutfakta hazirlaniyor
                         </div>`;
                 }
-                footer = `${priceLine}<div class="px-2 py-1 border-t border-gray-700">${btn}</div>`;
+                footer = `${priceLine}<div class="px-1 py-0.5 border-t border-gray-700">${btn}</div>`;
             }
 
             return `
-            <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden" data-order-id="${order.id}">
-                <div class="px-2 py-1 bg-gray-750 border-b border-gray-700">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xl font-bold text-gold">${locLabel(order)}</span>
-                        <div class="flex items-center gap-1">
+            <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden text-[11px]" data-order-id="${order.id}">
+                <div class="px-1 py-0.5 bg-gray-750 border-b border-gray-700">
+                    <div class="flex items-center justify-between gap-1">
+                        <span class="flex items-center gap-1 min-w-0">
+                            <span class="font-bold text-gold truncate leading-tight">${locLabel(order)}</span>
                             ${sourceBadge}
-                            ${(!isSymphony && statusText === 'YENI') ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${statusBg}">${statusText}</span>` : ''}
-                        </div>
+                        </span>
+                        <span class="bar-elapsed px-1 py-0.5 rounded text-[10px] font-bold ${timeBg} shrink-0" data-order-time="${startTime.replace(/['"<>&]/g, '')}" data-is-symphony="${isSymphony ? '1' : '0'}">${timeStr}</span>
                     </div>
-                    <div class="flex items-center justify-between mt-0.5">
-                        <span class="text-[11px] text-gray-400">${chkLabel}</span>
-                        <span class="bar-elapsed px-2 py-0.5 rounded text-sm font-bold ${timeBg}" data-order-time="${startTime.replace(/['"<>&]/g, '')}" data-is-symphony="${isSymphony ? '1' : '0'}">${timeStr}</span>
-                    </div>
-                    ${isSymphony && order.waiter_name ? `<div class="text-[11px] text-gray-300 mt-0.5"><i class="fas fa-user mr-1 text-gray-500"></i>${order.waiter_name}</div>` : ''}
+                    <div class="text-[9px] text-gray-400 mt-0.5 truncate">${metaLeft}</div>
                 </div>
-                <div class="px-2 py-1 text-sm">
-                    ${itemsHtml || '<div class="text-gray-500 text-center py-1">Urun yok</div>'}
-                    ${order.order_note ? `<div class="mt-1 p-1.5 bg-yellow-900/30 rounded text-yellow-300 text-xs"><i class="fas fa-sticky-note mr-1"></i>${order.order_note}</div>` : ''}
+                <div class="px-1 py-0.5">
+                    ${itemsHtml || '<div class="text-gray-400 text-center py-0.5">Urun yok</div>'}
+                    ${order.order_note ? `<div class="mt-0.5 p-1 bg-yellow-900/30 rounded text-yellow-300 text-[10px]"><i class="fas fa-sticky-note mr-1"></i>${escapeHtml(order.order_note)}</div>` : ''}
                 </div>
                 ${msgHtml}
                 ${footer}
@@ -660,13 +656,17 @@
             const preparingHtml = preparingShown.map(o => renderOrderCard(o, true));
             const incomingHtml  = incoming.map(o => renderOrderCard(o));
 
-            // Sol kolon — garson cagrilari en ustte; cagri listesi VEYA siparis icerigi
-            // degistiginde yeniden ciz. _lastWaiterIds anahtara dahil: incoming bosken
-            // ('' == '') cagri kartlarinin hic yazilmamasi hatasi boylece cozulur.
+            // Sol kolon — cagri listesi VEYA siparis icerigi degistiginde yeniden ciz.
+            // _lastWaiterIds anahtara dahil: incoming bosken ('' == '') cagri kartlarinin
+            // hic yazilmamasi hatasi boylece cozulur.
             const inKey = _lastWaiterIds + '|' + incoming.map(orderSig).join(',');
             if (inKey !== lastIncomingKeys) {
                 lastIncomingKeys = inKey;
-                document.getElementById('incoming-grid').innerHTML = _waiterCards.join('') + incomingHtml.join('');
+                document.getElementById('incoming-grid').innerHTML = incomingHtml.join('');
+                // Cagri kartlari siparis gridinden ayri dikey seritte; cagri yokken serit gizlenir
+                const strip = document.getElementById('waiter-strip');
+                strip.innerHTML = _waiterCards.join('');
+                strip.classList.toggle('hidden', _waiterCards.length === 0);
             }
             document.getElementById('incoming-count').textContent = incomingHtml.length;
 
@@ -751,14 +751,12 @@
                 const minTotal = Math.floor(call.seconds_ago / 60);
                 const timeBg = timerBg(minTotal, TIMER.waiter);
                 const timeStr = String(Math.floor(call.seconds_ago / 3600)).padStart(2,'0') + ':' + String(Math.floor((call.seconds_ago % 3600) / 60)).padStart(2,'0') + ':' + String(call.seconds_ago % 60).padStart(2,'0');
-                const callLabel = [call.table_no ? 'Masa ' + call.table_no : '', call.room_no ? 'ROOM' + call.room_no : ''].filter(Boolean).join(' ') || 'Genel';
-                return `<div class="bg-red-950 rounded-lg p-2 text-xs">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="font-bold text-red-200 flex items-center gap-1"><i class="fas fa-bell text-red-400 waiter-alert text-[10px]"></i>${callLabel}</span>
-                        <span class="waiter-elapsed px-1.5 py-0.5 rounded text-[10px] ${timeBg}" data-order-time="${(call.order_time || '').replace(/['"<>&]/g, '')}">${timeStr}</span>
-                    </div>
-                    ${call.note ? `<p class="text-red-300 text-[10px] mb-1 truncate">${call.note}</p>` : ''}
-                    <button onclick="attendWaiterCall(${call.id})" class="w-full py-0.5 bg-green-700 hover:bg-green-600 rounded text-[10px] font-bold transition"><i class="fas fa-check mr-0.5"></i>İlgilendi</button>
+                const callLabel = [call.table_no ? 'Masa ' + call.table_no : '', call.room_no ? 'ROOM ' + call.room_no : ''].filter(Boolean).join(' ') || 'Genel';
+                return `<div class="bg-red-950 rounded-lg p-1">
+                    <div class="font-bold text-red-200 text-[11px] flex items-center gap-1"><i class="fas fa-bell text-red-400 waiter-alert text-[9px] shrink-0"></i><span class="truncate">${escapeHtml(callLabel)}</span></div>
+                    <div class="mt-0.5"><span class="waiter-elapsed px-1 py-0.5 rounded text-[9px] ${timeBg} text-white font-bold" data-order-time="${(call.order_time || '').replace(/['"<>&]/g, '')}">${timeStr}</span></div>
+                    ${call.note ? `<p class="text-red-300 text-[10px] mt-0.5 truncate">${escapeHtml(call.note)}</p>` : ''}
+                    <button onclick="attendWaiterCall(${call.id})" class="mt-1 w-full py-0.5 bg-green-700 hover:bg-green-600 rounded text-[9px] font-bold transition"><i class="fas fa-check mr-0.5"></i>İlgilendi</button>
                 </div>`;
             });
             refreshTopBar();
