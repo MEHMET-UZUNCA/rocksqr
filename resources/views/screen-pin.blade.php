@@ -97,7 +97,7 @@
             <button type="button" class="key util" id="clear-btn">C</button>
             <button type="button" class="key" data-key="0">0</button>
             <button type="button" class="key util" id="back-btn">&times;</button>
-            <button type="button" class="key enter" id="enter-btn" disabled>AÇ</button>
+            <button type="button" class="key enter" id="enter-btn" disabled>GİRİŞ</button>
         </div>
     </div>
 
