@@ -274,12 +274,26 @@ class BarController extends Controller
             $pdo  = $this->mssql->connect($host, $port, $database, $username, $password);
             $rows = $this->mssql->runQuery($pdo, $this->mssql->cleanSql($query));
 
+            // v1.4 sorgu ödeme/indirim/diğer satırları da döndürür (ODEME, INDIRIM, DIGER);
+            // bunlar barda ürün gibi görünmesin diye yazılım tarafında elenir.
+            // Eski sorguda LineKind kolonu yoktur → boş döner, tüm satırlar korunur.
+            $mssql = $this->mssql;
+            $rows  = array_values(array_filter($rows, function ($r) use ($mssql) {
+                $lk = strtoupper((string) $mssql->getField($r, ['LineKind', 'line_kind', 'LineType', 'line_type'], ''));
+                if ($lk === '') return true;
+                return in_array($lk, ['URUN', 'MODIFIER', 'MESAJ', 'MARS', 'IADE', 'COMBO', 'PRODUCT', 'KITCHEN_MESSAGE', 'BAR_MESSAGE'], true);
+            }));
+
+            // RVC / Gelir Merkezi yazılım filtresi (sorgunun RVC kapsamı FULL kalır)
+            $rvcFilterIds = SymphonyKdsController::parseRvcFilter((string) Setting::get('mssql_bds_rvc_filter', ''));
+
             $groups = [];
+            $msgGuids = [];
+            $closedCheckNums = [];
             foreach ($rows as $row) {
                 $tableNo    = (string) $this->mssql->getField($row, ['TableNo', 'TableNumber', 'MASA', 'table_no'], '');
                 $checkNum   = $this->mssql->getField($row, ['CheckNumber', 'CheckNum', 'ADISYON', 'check_number'], null);
                 $itemName   = (string) $this->mssql->getField($row, ['ItemName', 'ProductName', 'Name', 'item_name'], '');
-                $qty        = (int) $this->mssql->getField($row, ['Qty', 'Quantity', 'ADET', 'qty'], 1);
                 $orderTime  = $this->mssql->getField($row, ['OrderTime', 'ItemTime', 'Time', 'order_time'], null);
                 $note       = (string) $this->mssql->getField($row, ['Note', 'RefInfo', 'MessageNote', 'note'], '');
                 $waiterName = trim(
@@ -287,13 +301,31 @@ class BarController extends Controller
                     (string) $this->mssql->getField($row, ['WaiterSurname', 'waiter_surname'], '')
                 );
 
+                // v1.4: POS'ta kapanan checkler bar ekranda gösterilmez; aşağıda
+                // bar onay kayıtları "servis edildi" işaretlenir (SON şeridine düşer).
+                $status = strtoupper((string) $this->mssql->getField($row, ['Status', 'CheckStatus', 'check_status'], ''));
+                if ($status === 'C') {
+                    if ($checkNum !== null && (string) $checkNum !== '') $closedCheckNums[(string) $checkNum] = true;
+                    continue;
+                }
+
+                // RVC yazılım filtresi (boş = tüm RVC'ler; RVC'siz satır filtrelenmez)
+                $rvcId = (int) $this->mssql->getField($row, ['RevenueCenterID', 'revenue_center_id'], 0);
+                if ($rvcFilterIds !== [] && $rvcId > 0 && !isset($rvcFilterIds[$rvcId])) {
+                    continue;
+                }
+
                 $key = $checkNum !== null && $checkNum !== '' ? 'C' . $checkNum : 'T' . $tableNo;
                 // MajorGroupID: 1=Yiyecek, 2=İçecek, 3=Alkollü İçecek, 99=Mesaj/Mars
                 $mg = (int) $this->mssql->getField($row, ['MajorGroupID', 'major_group_id', 'MajGrp', 'maj_grp'], 0);
-                // Filtre kodu: Bar Mesaj satırları (LineType BAR_MESSAGE, MajGrp 99) 98'e,
-                // diğerleri MajorGroupID ile aynı olur — mutfak tick yapısıyla paralel.
+                // Filtre kodu: Bar Mesaj satırları (LineType BAR_MESSAGE / ProductObjectNumber
+                // 9001020, MajGrp 99) 98'e, diğerleri MajorGroupID ile aynı olur — mutfak tick yapısıyla paralel.
                 $lineType = strtoupper((string) $this->mssql->getField($row, ['LineType', 'line_type', 'LineKind', 'line_kind'], ''));
-                $fc = $lineType === 'BAR_MESSAGE' ? 98 : $mg;
+                $objNo    = (int) $this->mssql->getField($row, ['ProductObjectNumber', 'product_object_number'], 0);
+                $rowQty   = (int) $this->mssql->getField($row, ['Qty', 'Quantity', 'ADET', 'qty', 'SalesCount'], 1);
+                $checkGid = (string) $this->mssql->getField($row, ['CheckGID', 'check_gid'], '');
+                $fc = ($lineType === 'BAR_MESSAGE' || ($lineType === 'MESAJ' && $objNo === 9001020)) ? 98 : $mg;
+
                 if (!isset($groups[$key])) {
                     $groups[$key] = [
                         'group_key'    => $key,
@@ -302,13 +334,106 @@ class BarController extends Controller
                         'order_time'   => $orderTime,
                         'waiter_name'  => $waiterName,
                         'items'        => [],
+                        'merge'        => [],
                     ];
                 }
                 if ($orderTime && (!$groups[$key]['order_time'] || strcmp((string) $orderTime, (string) $groups[$key]['order_time']) < 0)) {
                     $groups[$key]['order_time'] = $orderTime;
                 }
-                $groups[$key]['items'][] = ['name' => $itemName, 'qty' => max(1, $qty), 'note' => $note, 'mg' => $mg, 'fc' => $fc];
+
+                if ($lineType === 'MESAJ' || $lineType === 'MARS') {
+                    // Mesaj satırları birleştirilmez; metin fiş çözümünden gelir
+                    $entry = ['name' => $itemName, 'qty' => max(1, $rowQty), 'note' => $note, 'mg' => $mg, 'fc' => $fc, 'is_returned' => false];
+                    if ($lineType === 'MESAJ' && $checkGid !== '') {
+                        $entry['_gid'] = $checkGid;
+                        $msgGuids[$checkGid] = true;
+                    }
+                    $groups[$key]['items'][] = $entry;
+                } elseif ($objNo > 0 && ($mIdx = $groups[$key]['merge'][$objNo] ?? null) !== null) {
+                    // v1.4: aynı checkte aynı ürün (ProductObjectNumber) → tek satırda birleştir.
+                    // Net adet sıfırın altına inerse satır komple iade sayılır.
+                    $it = &$groups[$key]['items'][$mIdx];
+                    $it['qty_net']   += $rowQty;
+                    $it['row_count'] += 1;
+                    if ($rowQty < 0) {
+                        $it['qty_returned'] += abs($rowQty);
+                    }
+                    unset($it);
+                } else {
+                    $groups[$key]['items'][] = [
+                        'name'         => $itemName,
+                        'qty'          => max(1, $rowQty),
+                        'note'         => $note,
+                        'mg'           => $mg,
+                        'fc'           => $fc,
+                        'qty_net'      => $rowQty,
+                        'qty_returned' => $rowQty < 0 ? abs($rowQty) : 0,
+                        'row_count'    => 1,
+                        'is_returned'  => (bool) (int) $this->mssql->getField($row, ['IsReturned', 'is_returned'], 0) || $rowQty < 0,
+                    ];
+                    if ($objNo > 0) {
+                        $groups[$key]['merge'][$objNo] = count($groups[$key]['items']) - 1;
+                    }
+                }
             }
+
+            // Kapanan checklerin bar onay kayıtları otomatik "servis edildi" olur
+            if ($closedCheckNums !== []) {
+                try {
+                    DB::table('kitchen_pos_completions')
+                        ->whereIn('check_number', array_keys($closedCheckNums))
+                        ->whereNull('delivered_at')
+                        ->update(['delivered_at' => now()]);
+                } catch (\Throwable) {
+                }
+                try {
+                    DB::table('kitchen_item_logs')
+                        ->whereIn('check_number', array_keys($closedCheckNums))
+                        ->whereNull('delivered_at')
+                        ->update(['delivered_at' => now()]);
+                } catch (\Throwable) {
+                }
+            }
+
+            // Birleştirilmiş v1.4 satırları: net adet ve iade durumu nihai değerlere düşer.
+            // Kısmi iade (net>0) net adedi gösterir, iade işareti almaz.
+            foreach ($groups as &$g) {
+                foreach ($g['items'] as &$it) {
+                    if (($it['row_count'] ?? 0) >= 1) {
+                        if ($it['row_count'] > 1) {
+                            $it['is_returned'] = $it['qty_net'] <= 0;
+                        }
+                        $it['qty'] = $it['is_returned']
+                            ? max(1, abs($it['qty_net']) ?: $it['qty_returned'])
+                            : max(1, $it['qty_net']);
+                    }
+                    unset($it['qty_net'], $it['qty_returned'], $it['row_count']);
+                }
+                unset($it);
+                unset($g['merge']);
+            }
+            unset($g);
+
+            // MESAJ satırlarının gerçek metni POS_JOURNAL_LOG fiş metninden çözülür
+            $journalTexts = $msgGuids !== [] ? SymphonyKdsController::resolveJournalMessages($pdo, array_keys($msgGuids)) : [];
+            $cursor = [];
+            $nextText = function (array &$item) use (&$cursor, $journalTexts) {
+                $gid = (string) ($item['_gid'] ?? '');
+                unset($item['_gid']);
+                if ($gid === '' || !isset($journalTexts[$gid])) return;
+                $i = $cursor[$gid] ?? 0;
+                if (isset($journalTexts[$gid][$i])) {
+                    $item['note'] = $journalTexts[$gid][$i];
+                }
+                $cursor[$gid] = $i + 1;
+            };
+            foreach ($groups as &$g) {
+                foreach ($g['items'] as &$it) {
+                    if (($it['fc'] ?? 0) === 98 || ($it['fc'] ?? 0) === 99) $nextText($it);
+                }
+                unset($it);
+            }
+            unset($g);
 
             uasort($groups, fn($a, $b) => strcmp((string) $a['order_time'], (string) $b['order_time']));
 

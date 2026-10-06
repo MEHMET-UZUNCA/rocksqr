@@ -7,6 +7,8 @@
         $icon      string  - fontawesome ikon class
         $color     string  - renk adı (sadece bilgilendirme amaçlı)
         $showRvc   bool    - ürün için RVC filtresi gösterilsin mi
+        $rvcHint   string  - RVC alanı altındaki açıklama (HTML, opsiyonel)
+        $rvcIpucu  string  - İpucu kutusundaki metin (HTML, opsiyonel; rvcHint'ten üstün gelir)
         $queryHint string  - sorgu altında gösterilecek ipucu
         $aliasList bool    - ürün alias açıklamasını göster
         $settings  array   - tüm settings dizisi
@@ -64,6 +66,7 @@
         $rvcLabelText = $rvcLabel ?? 'RVC / Gelir Merkezi Filtresi';
         $rvcPlaceholderText = $rvcPlaceholder ?? 'Boş = filtre yok';
         $rvcHintHtml = $rvcHint ?? null;
+        $rvcIpucuHtml = $rvcIpucu ?? null;
     @endphp
     <hr class="my-5 border-gray-200">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -91,7 +94,9 @@
         </div>
         <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
             <p class="text-sm text-emerald-800 font-semibold mb-1"><i class="fas fa-lightbulb mr-1"></i>İpucu</p>
-            @if($rvcHintHtml)
+            @if($rvcIpucuHtml)
+                <p class="text-xs text-emerald-700">{!! $rvcIpucuHtml !!}</p>
+            @elseif($rvcHintHtml)
                 <p class="text-xs text-emerald-700">SQL sorgusunda <code class="bg-white px-1 rounded font-mono">&#123;&#123;RVC&#125;&#125;</code> yazar, RVC alanına sadece sayıyı (örn: <strong>43</strong>) girersiniz. Sistem çalışma anında değeri yerine koyar.</p>
             @else
                 <p class="text-xs text-emerald-700">Tüm ürün/fiyat/grup verisi aşağıdaki <strong>Özel SQL Sorgusu</strong> ile çekilir.</p>

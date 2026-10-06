@@ -41,6 +41,8 @@
             50%      { background-color: #065f46; border-color: #6ee7b7; }
         }
         .ready-blink { animation: ready-blink 0.9s ease-in-out infinite; }
+        @keyframes iade-blink { 0%,100% { background-color: rgba(239,68,68,0.10); } 50% { background-color: rgba(239,68,68,0.35); } }
+        .iade-blink { animation: iade-blink 0.9s ease-in-out infinite; border-radius: 4px; }
         .watermark {
             position: absolute; inset: 0;
             display: flex; align-items: center; justify-content: center;
@@ -48,7 +50,7 @@
         }
         .watermark span {
             font-weight: 800; letter-spacing: 0.15em; white-space: nowrap;
-            color: rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.10);
             font-size: min(3.5vw, 64px);
             transform: rotate(-45deg);
         }
@@ -592,9 +594,14 @@
                 const name = item.name || (item.id ? getProductName(item.id) : '');
                 const qty  = item.quantity || item.qty || 1;
                 const note = item.note || '';
-                return `<div class="flex justify-between py-[2px] border-b border-gray-700">
-                    <span class="truncate pr-1">${escapeHtml(name)}${note ? ` <span class="text-yellow-400 text-[9px]">(${escapeHtml(note)})</span>` : ''}</span>
-                    <span class="font-bold text-gold shrink-0">x${qty}</span>
+                const ret  = !!item.is_returned;
+                const nameClass = ret ? 'line-through text-red-400' : '';
+                const qtyClass  = ret ? 'text-red-400' : 'text-gold';
+                const retBadge  = ret ? `<span class="shrink-0 px-1 py-0.5 rounded text-[9px] font-bold bg-red-700 text-white uppercase">İade</span>` : '';
+                return `<div class="flex justify-between items-center py-[2px] border-b border-gray-700${ret ? ' iade-blink' : ''}">
+                    <span class="truncate pr-1 ${nameClass}">${escapeHtml(name)}${note ? ` <span class="text-yellow-400 text-[9px]">(${escapeHtml(note)})</span>` : ''}</span>
+                    ${retBadge}
+                    <span class="font-bold ${qtyClass} shrink-0">x${qty}</span>
                 </div>`;
             }).join('');
 

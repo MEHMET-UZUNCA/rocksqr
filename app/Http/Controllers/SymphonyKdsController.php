@@ -356,12 +356,26 @@ class SymphonyKdsController extends Controller
             $pdo  = $this->mssql->connect($host, $port, $database, $username, $password);
             $rows = $this->mssql->runQuery($pdo, $this->mssql->cleanSql($query));
 
+            // v1.4 sorgu ödeme/indirim/diğer satırları da döndürür (ODEME, INDIRIM, DIGER);
+            // bunlar mutfakta ürün gibi görünmesin diye yazılım tarafında elenir.
+            // Eski sorguda LineKind kolonu yoktur → boş döner, tüm satırlar korunur.
+            $mssql = $this->mssql;
+            $rows  = array_values(array_filter($rows, function ($r) use ($mssql) {
+                $lk = strtoupper((string) $mssql->getField($r, ['LineKind', 'line_kind', 'LineType', 'line_type'], ''));
+                if ($lk === '') return true;
+                return in_array($lk, ['URUN', 'MODIFIER', 'MESAJ', 'MARS', 'IADE', 'COMBO', 'PRODUCT', 'KITCHEN_MESSAGE', 'BAR_MESSAGE'], true);
+            }));
+
+            // RVC / Gelir Merkezi yazılım filtresi (sorgunun RVC kapsamı FULL kalır).
+            // first_seen kaydı aşağıdaki pre-pass'ta tüm satırlar için tutulur;
+            // filtre kapatılıp açılırsa sayaçlar doğru devam eder.
+            $rvcFilterIds = self::parseRvcFilter((string) Setting::get('mssql_kds_rvc_filter', ''));
+
             // ── Satır bazlı kalıcı unit anahtarı + local first_seen_at ──────────────
             // Symphony, ürün eklenince tüm satırların ItemTime'ını günceller.
             // MSSQL ItemTime'ına güvenemeyiz; ilk gördüğümüz anı local DB'ye kaydederiz.
             // v1.3 sorguda UnitID kolonu yoktur: her satır için kalıcı bir anahtar
             // üretilir, aksi halde order_time her poll'da yeniden doğar (sayaç 00:00 takılması).
-            $mssql = $this->mssql;
             $resolveUnitId = function ($row) use ($mssql): string {
                 $uid = (string) $mssql->getField($row, ['UnitID', 'unit_id', 'UNITID'], '');
                 if ($uid !== '') {
@@ -411,9 +425,11 @@ class SymphonyKdsController extends Controller
             $checkless           = [];
             $comboParentIdxByKey = [];
             $lastUrunIdxByKey    = [];
+            $prodRowIdxByKey     = [];
+            $prodMergeIdxByKey   = [];
+            $msgGuids            = [];
 
             foreach ($rows as $rowIndex => $row) {
-                $mssql = $this->mssql;
                 $checkNum    = $mssql->getField($row, ['CheckNumber', 'check_number', 'ChkNum'], null);
                 $unitId      = $rowUnitIds[$rowIndex];
                 $itemId      = $mssql->getField($row, ['ItemID', 'item_id'], null);
@@ -436,6 +452,23 @@ class SymphonyKdsController extends Controller
                     (string) $mssql->getField($row, ['WaiterSurname', 'waiter_surname'], '')
                 );
 
+                // v1.4 satır alanları: ürün anahtarı (ProductObjectNumber), satır adedi,
+                // üst ürün bağlantısı ve check GUID'i (fiş mesajı çözümü için).
+                // Eski sorguda bu kolonlar yoktur → 0/'' döner, eski kod yolları çalışır.
+                $objNo        = (int) $mssql->getField($row, ['ProductObjectNumber', 'product_object_number'], 0);
+                $rowQty       = (int) $mssql->getField($row, ['Qty', 'qty', 'Quantity', 'SalesCount'], 1);
+                $parentItemId = (int) $mssql->getField($row, ['ParentItemID', 'parent_item_id'], 0);
+                $checkGid     = (string) $mssql->getField($row, ['CheckGID', 'check_gid'], '');
+                $isV14Row     = $objNo > 0;
+
+                // RVC / Gelir Merkezi yazılım filtresi (boş = tüm RVC'ler; RVC'siz satır filtrelenmez)
+                if ($rvcFilterIds !== [] && $rvcId > 0 && !isset($rvcFilterIds[$rvcId])) {
+                    continue;
+                }
+
+                // v1.4: kapanmış checkler mutfak ekranında gösterilmez
+                if ($status === 'C') continue;
+
                 // Eski sorgu uyumluluğu (LineKind/LineType yoksa): MajGrp/MajorGroupID=99 → MESAJ
                 $majGrpId = (int) $mssql->getField($row, ['MajorGroupID', 'major_group_id', 'MajGrp', 'maj_grp'], 0);
                 if ($lineKindRaw === null && $majGrpId === 99) $lineKind = 'MESAJ';
@@ -448,11 +481,14 @@ class SymphonyKdsController extends Controller
                 // RVC + kategori filtresi. first_seen kaydı pre-pass'ta tüm satırlar için
                 // tutulur; filtre kapatılıp açılırsa sayaçlar doğru devam eder.
                 // Bilinmeyen RVC (eski sorgu, RVC alanı yok) filtrelenmez.
-                // Mesajlar: BAR_MESSAGE → İçecek Mesajı (98), diğerleri → Mutfak Mesajı (99).
-                // Symphony'de iki mesaj türü de MajGrp 99'dur; ayrım satır adından gelir.
+                // Mesajlar: Bar Mesajı → İçecek Mesajı (98), Mutfak Mesajı ve MARS → Mutfak Mesajı (99).
+                // v1.4'te üç mesaj nesnesi de LineKind=MESAJ sütununa iner; Bar Mesaj
+                // ayrımı ProductObjectNumber=9001020'den yapılır.
                 $filterMg = $majGrpId;
                 if ($isMessage || $isMars) {
-                    $filterMg = strtoupper((string) $lineKindRaw) === 'BAR_MESSAGE' ? 98 : 99;
+                    $isBarMsg = strtoupper((string) $lineKindRaw) === 'BAR_MESSAGE'
+                        || ($isMessage && $objNo === 9001020);
+                    $filterMg = $isBarMsg ? 98 : 99;
                 }
                 if (isset($kitchenVisible[$rvcId][$filterMg]) && !$kitchenVisible[$rvcId][$filterMg]) {
                     continue;
@@ -468,14 +504,20 @@ class SymphonyKdsController extends Controller
                 $itemTimeIso = $localCarbon->toIso8601String();
 
                 $item = [
-                    'unit_ids'    => [$unitId],
+                    // v1.4 iade satırları (Qty<0) yalnız görüntü içindir: unit listesine girmez,
+                    // hazırlanan/yeni ürün karşılaştırmalarını tetiklemez.
+                    'unit_ids'    => (!$isV14Row || $rowQty > 0) ? [$unitId] : [],
+                    'unit_qtys'   => (!$isV14Row || $rowQty > 0) ? [$unitId => $isV14Row ? $rowQty : 1] : [],
                     'item_id'     => $itemId,
-                    'qty'         => 1,
+                    'qty'         => $isV14Row ? max(1, $rowQty) : 1,
+                    'qty_net'     => $isV14Row ? $rowQty : null,
+                    'qty_returned'=> ($isV14Row && $rowQty < 0) ? abs($rowQty) : 0,
+                    'row_count'   => $isV14Row ? 1 : 0,
                     'name'        => $name,
                     'note'        => $note,
                     'is_combo'    => $isCombo,
                     'is_condiment'=> $isCondiment,
-                    'is_returned' => $isReturned,
+                    'is_returned' => $isReturned || ($isV14Row && $rowQty < 0),
                     'line_kind'   => $lineKind,
                     'item_time'   => $itemTimeIso,
                     'age_seconds' => max(0, (int) $localCarbon->diffInSeconds(now())),
@@ -483,6 +525,12 @@ class SymphonyKdsController extends Controller
 
                 // Mesaj ve Mars → checkless veya check.messages
                 if ($isMessage || $isMars) {
+                    // MESAJ satırlarının gerçek metni POS_JOURNAL_LOG fiş metninden çözülür;
+                    // MARS metni fişte ayrı biçimde olduğundan adıyla kalır.
+                    if ($isMessage && $checkGid !== '') {
+                        $item['_gid'] = $checkGid;
+                        $msgGuids[$checkGid] = true;
+                    }
                     if (!$hasCheck) {
                         $checkless[] = array_merge($item, ['table_no' => $tableNo, 'rvc' => $rvc, 'rvc_id' => $rvcId]);
                         continue;
@@ -503,13 +551,46 @@ class SymphonyKdsController extends Controller
 
                 $items   = &$checks[$key]['items'];
                 $lastIdx = count($items) - 1;
+                $subReturned = $isReturned || ($isV14Row && $rowQty < 0);
 
-                if ($isCombo) {
+                if (($isCondiment || $isComboItem) && $parentItemId > 0
+                    && ($pIdx = $prodRowIdxByKey[$key][$parentItemId] ?? null) !== null
+                    && isset($items[$pIdx])
+                ) {
+                    // v1.4: ParentItemID ile kesin üst ürün → condiment/combo alt satırı.
+                    // İade alt satırı unit listesine girmez (hazırlanan karşılaştırmasını bozmaz).
+                    if (!isset($items[$pIdx]['sub_items'])) $items[$pIdx]['sub_items'] = [];
+                    $items[$pIdx]['sub_items'][] = ['unit_ids' => [$unitId], 'item_id' => $itemId, 'name' => $name, 'note' => $note, 'is_returned' => $subReturned, 'item_time' => $itemTimeIso];
+                    if (!$subReturned) {
+                        $items[$pIdx]['unit_ids'][]  = $unitId;
+                        $items[$pIdx]['unit_qtys'][$unitId] = max(1, $rowQty);
+                    }
+                } elseif ($objNo > 0 && ($mIdx = $prodMergeIdxByKey[$key][$objNo] ?? null) !== null && isset($items[$mIdx])) {
+                    // v1.4: aynı checkte aynı ürün (ProductObjectNumber) → tek satırda birleştir.
+                    // Net adet sıfırın altına inerse satır komple iade sayılır.
+                    $items[$mIdx]['qty_net']   += $rowQty;
+                    $items[$mIdx]['row_count'] += 1;
+                    if ($rowQty < 0) {
+                        $items[$mIdx]['qty_returned'] += abs($rowQty);
+                    } else {
+                        $items[$mIdx]['unit_ids'][]  = $unitId;
+                        $items[$mIdx]['unit_qtys'][$unitId] = $rowQty;
+                    }
+                    if ($itemTimeIso < $items[$mIdx]['item_time']) {
+                        $items[$mIdx]['item_time'] = $itemTimeIso;
+                    }
+                    if ($itemId !== null && (string) $itemId !== '') {
+                        $prodRowIdxByKey[$key][(string) $itemId] = $mIdx;
+                    }
+                } elseif ($isCombo) {
                     $pIdx = $comboParentIdxByKey[$key] ?? null;
                     if ($pIdx !== null && isset($items[$pIdx]) && $items[$pIdx]['name'] !== $name) {
                         if (!isset($items[$pIdx]['sub_items'])) $items[$pIdx]['sub_items'] = [];
-                        $items[$pIdx]['sub_items'][] = ['unit_ids' => [$unitId], 'item_id' => $itemId, 'name' => $name, 'note' => $note, 'is_returned' => $isReturned, 'item_time' => $itemTimeIso];
-                        $items[$pIdx]['unit_ids'][]  = $unitId;
+                        $items[$pIdx]['sub_items'][] = ['unit_ids' => [$unitId], 'item_id' => $itemId, 'name' => $name, 'note' => $note, 'is_returned' => $subReturned, 'item_time' => $itemTimeIso];
+                        if (!$subReturned) {
+                            $items[$pIdx]['unit_ids'][]  = $unitId;
+                            $items[$pIdx]['unit_qtys'][$unitId] = max(1, $rowQty);
+                        }
                     } else {
                         $item['sub_items'] = [];
                         $items[] = $item;
@@ -519,13 +600,17 @@ class SymphonyKdsController extends Controller
                     $pIdx = $lastUrunIdxByKey[$key] ?? null;
                     if ($pIdx !== null && isset($items[$pIdx])) {
                         if (!isset($items[$pIdx]['sub_items'])) $items[$pIdx]['sub_items'] = [];
-                        $items[$pIdx]['sub_items'][] = ['unit_ids' => [$unitId], 'item_id' => $itemId, 'name' => $name, 'note' => $note, 'is_returned' => $isReturned, 'item_time' => $itemTimeIso];
-                        $items[$pIdx]['unit_ids'][]  = $unitId;
+                        $items[$pIdx]['sub_items'][] = ['unit_ids' => [$unitId], 'item_id' => $itemId, 'name' => $name, 'note' => $note, 'is_returned' => $subReturned, 'item_time' => $itemTimeIso];
+                        if (!$subReturned) {
+                            $items[$pIdx]['unit_ids'][]  = $unitId;
+                            $items[$pIdx]['unit_qtys'][$unitId] = max(1, $rowQty);
+                        }
                     } else {
                         $item['sub_items'] = [];
                         $items[] = $item;
                     }
                 } elseif (!$isReturned && $lineKind === 'URUN'
+                    && $objNo <= 0
                     && $lastIdx >= 0
                     && $items[$lastIdx]['item_id'] == $itemId
                     && $items[$lastIdx]['line_kind'] === 'URUN'
@@ -542,8 +627,13 @@ class SymphonyKdsController extends Controller
                 } else {
                     $item['sub_items'] = [];
                     $items[] = $item;
-                    $lastUrunIdxByKey[$key] = count($items) - 1;
+                    $newIdx = count($items) - 1;
+                    $lastUrunIdxByKey[$key] = $newIdx;
                     unset($comboParentIdxByKey[$key]);
+                    if ($objNo > 0) $prodMergeIdxByKey[$key][$objNo] = $newIdx;
+                    if ($itemId !== null && (string) $itemId !== '') {
+                        $prodRowIdxByKey[$key][(string) $itemId] = $newIdx;
+                    }
                 }
                 unset($items);
 
@@ -563,6 +653,48 @@ class SymphonyKdsController extends Controller
                 }
             }
             unset($chk);
+
+            // Birleştirilmiş v1.4 satırları: net adet ve iade durumu nihai değerlere düşer.
+            // row_count>1 → iade bayrağı net adede göre; tek satır → satırın kendi bayrağı.
+            // Kısmi iade (net>0) net adedi gösterir, iade işareti almaz.
+            foreach ($checks as &$chk) {
+                foreach ($chk['items'] as &$it) {
+                    if (($it['row_count'] ?? 0) >= 1) {
+                        if ($it['row_count'] > 1) {
+                            $it['is_returned'] = $it['qty_net'] <= 0;
+                        }
+                        $it['qty'] = $it['is_returned']
+                            ? max(1, abs($it['qty_net']) ?: $it['qty_returned'])
+                            : max(1, $it['qty_net']);
+                    }
+                    unset($it['qty_net'], $it['qty_returned'], $it['row_count']);
+                }
+                unset($it);
+            }
+            unset($chk);
+
+            // MESAJ satırlarının gerçek metni POS_JOURNAL_LOG fiş metninden çözülür:
+            // her check için fişteki mesaj metinleri, sonuç sırasındaki mesaj satırlarıyla
+            // eşleşir; eşleşmeyen satır adıyla kalır.
+            $journalTexts = $msgGuids !== [] ? self::resolveJournalMessages($pdo, array_keys($msgGuids)) : [];
+            $cursor = [];
+            $nextText = function (array &$item) use (&$cursor, $journalTexts) {
+                $gid = (string) ($item['_gid'] ?? '');
+                unset($item['_gid']);
+                if ($gid === '' || !isset($journalTexts[$gid])) return;
+                $i = $cursor[$gid] ?? 0;
+                if (isset($journalTexts[$gid][$i])) {
+                    $item['note'] = $journalTexts[$gid][$i];
+                }
+                $cursor[$gid] = $i + 1;
+            };
+            foreach ($checks as &$chk) {
+                foreach ($chk['messages'] as &$m) $nextText($m);
+                unset($m);
+            }
+            unset($chk);
+            foreach ($checkless as &$m) $nextText($m);
+            unset($m);
 
             // Onaylanan checksiz mesajları filtrele
             $completedMsgKeys = DB::table('kitchen_pos_completions')
@@ -610,7 +742,12 @@ class SymphonyKdsController extends Controller
                             $newUnitIds = array_values(array_filter($item['unit_ids'], fn($uid) => !isset($servedSet[$uid])));
                             if (!empty($newUnitIds)) {
                                 $item['unit_ids'] = $newUnitIds;
-                                $item['qty'] = count($newUnitIds);
+                                // Birleştirilmiş satırda kalan adet: unit başına gerçek adet toplamı
+                                $newQty = 0;
+                                foreach ($newUnitIds as $uid) {
+                                    $newQty += (int) ($item['unit_qtys'][$uid] ?? 1);
+                                }
+                                $item['qty'] = max(1, $newQty);
                                 $newItems[] = $item;
                             }
                         } else {
@@ -713,7 +850,11 @@ class SymphonyKdsController extends Controller
                             ? $item['unit_ids']
                             : ((isset($item['item_id']) && $item['item_id'] !== null && $item['item_id'] !== '') ? [(string) $item['item_id']] : []);
                         $servedQty = 0;
-                        foreach ($units as $uid) { if (isset($servedSet[(string) $uid])) $servedQty++; }
+                        foreach ($units as $uid) {
+                            if (isset($servedSet[(string) $uid])) {
+                                $servedQty += (int) ($item['unit_qtys'][$uid] ?? 1);
+                            }
+                        }
                         if ($servedQty > 0) $names[] = $item['name'] . ' x' . $servedQty;
                     }
                 }
@@ -737,6 +878,13 @@ class SymphonyKdsController extends Controller
                 ->when($clearedAt, fn ($q) => $q->where('completed_at', '>', $clearedAt))
                 ->where('kind', '!=', 'item')
                 ->count();
+
+            // unit_qtys yalnız sunucu içi adet hesabı içindir, payload'a çıkmaz
+            foreach ($checks as &$chk) {
+                foreach ($chk['items'] as &$it) unset($it['unit_qtys']);
+                unset($it);
+            }
+            unset($chk);
 
             return response()->json([
                 'success'         => true,
@@ -765,6 +913,66 @@ class SymphonyKdsController extends Controller
                 'completed_items' => [],
             ]);
         }
+    }
+
+    // "44+81" / "44,81" / "44 81" → [44=>true, 81=>true]; boş → [] (filtre yok)
+    public static function parseRvcFilter(string $raw): array
+    {
+        $ids = [];
+        foreach (preg_split('/[^0-9]+/', trim($raw)) ?: [] as $part) {
+            if ($part !== '') $ids[(int) $part] = true;
+        }
+        return $ids;
+    }
+
+    // Check GUID listesi → POS_JOURNAL_LOG fiş metinlerinden mesaj metinleri.
+    // Son posJournalLogId satırı fişin güncel anlık görüntüsüdür.
+    public static function resolveJournalMessages(\PDO $pdo, array $guids): array
+    {
+        $guids = array_values(array_unique(array_filter(array_map('trim', $guids), fn($g) => $g !== '')));
+        if ($guids === []) return [];
+
+        $latest = [];
+        foreach (array_chunk($guids, 50) as $chunk) {
+            $quoted = implode(',', array_map(fn($g) => "'" . str_replace("'", "''", (string) $g) . "'", $chunk));
+            $sql = 'SELECT posJournalLogId, guid, journalText FROM CheckPostingDB.dbo.POS_JOURNAL_LOG '
+                 . "WHERE type = 1 AND guid IN ({$quoted}) ORDER BY posJournalLogId ASC";
+            try {
+                foreach ($pdo->query($sql)->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                    $g = (string) ($r['guid'] ?? $r['Guid'] ?? '');
+                    if ($g !== '') $latest[$g] = (string) ($r['journalText'] ?? $r['JournalText'] ?? '');
+                }
+            } catch (\Throwable) {
+                return [];
+            }
+        }
+
+        $out = [];
+        foreach ($latest as $guid => $text) {
+            $texts = self::parseJournalMessageTexts($text);
+            if ($texts !== []) $out[$guid] = $texts;
+        }
+        return $out;
+    }
+
+    // Fiş metni: " 1 Mutfak Mesaj  0.00" (1 boşluk girinti) başlık satırı,
+    // hemen altındaki "   HERSEY MARS" (3 boşluk girinti) satırı gerçek mesaj metnidir.
+    private static function parseJournalMessageTexts(string $journalText): array
+    {
+        $texts = [];
+        $expectText = false;
+        foreach (explode("\n", str_replace("\r\n", "\n", $journalText)) as $line) {
+            $indent = strlen($line) - strlen(ltrim($line));
+            if ($indent === 1) {
+                $expectText = (bool) preg_match('/^ \d+ +(?:mutfak mesaj|bar mesaj|mesaj)\b/iu', $line);
+            } elseif ($expectText && $indent === 3) {
+                $texts[] = trim($line);
+                $expectText = false;
+            } elseif ($indent !== 3) {
+                $expectText = false;
+            }
+        }
+        return $texts;
     }
 
     // ──────────────────────────────────────────────

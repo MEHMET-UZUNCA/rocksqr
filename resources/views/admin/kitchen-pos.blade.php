@@ -34,6 +34,10 @@
         #kpos-ticker-inner { display: flex; align-items: stretch; gap: 4px; flex-wrap: nowrap; }
         .kpos-chip-text { display: inline-block; white-space: nowrap; will-change: transform; line-height: 1.2; }
         #kpos-completed-bar ::-webkit-scrollbar { display: none; }
+        @keyframes iade-blink { 0%,100% { background-color: rgba(239,68,68,0.10); } 50% { background-color: rgba(239,68,68,0.35); } }
+        .iade-blink { animation: iade-blink 0.9s ease-in-out infinite; border-radius: 4px; }
+        .watermark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; user-select: none; overflow: hidden; }
+        .watermark span { font-weight: 800; letter-spacing: 0.15em; white-space: nowrap; color: rgba(255,255,255,0.10); font-size: min(3.5vw, 64px); transform: rotate(-45deg); }
     </style>
 </head>
 <body class="bg-gray-900 font-poppins text-white min-h-screen">
@@ -70,9 +74,10 @@
         </div>
     </header>
 
-    <main class="p-2" style="padding-bottom:60px">
+    <main class="p-2 relative" style="padding-bottom:60px">
+        <div class="watermark"><span>ROCKS SERVICES KDS</span></div>
         <!-- Checksiz Mutfak Mesajları -->
-        <div id="checkless-section" class="hidden mb-6">
+        <div id="checkless-section" class="hidden mb-6 relative">
             <h2 class="text-lg font-semibold text-yellow-400 mb-3 flex items-center gap-2">
                 <i class="fas fa-comment-dots animate-pulse"></i>
                 Checksiz Mutfak Mesajlari
@@ -83,7 +88,7 @@
             <div id="checkless-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"></div>
         </div>
 
-        <div id="orders-grid" class="grid gap-2 items-start" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))"></div>
+        <div id="orders-grid" class="grid gap-2 items-start relative" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))"></div>
 
         <div id="no-orders" class="hidden text-center py-20">
             <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
@@ -310,7 +315,7 @@
                     const subRet   = !!sub.is_returned;
                     const subText  = subRet ? 'line-through text-red-400' : (isServed ? 'line-through text-gray-500' : 'text-gray-300');
                     const subBadge = subRet ? `<span class="ml-1 px-1 py-0.5 rounded text-[9px] font-bold bg-red-700 text-white">İade</span>` : '';
-                    return `<div class="flex items-center pl-4 py-0 text-sm">
+                    return `<div class="flex items-center pl-4 py-0 text-sm${subRet ? ' iade-blink' : ''}">
                         <span class="text-amber-600 mr-1.5 select-none">└</span>
                         <span class="${subText} font-medium">${escapeHtml(sub.name)}${subBadge}</span>
                         ${sub.note ? `<span class="text-yellow-300 ml-2 text-xs">— ${escapeHtml(sub.note)}</span>` : ''}
@@ -321,7 +326,7 @@
                 <div class="py-0.5 border-b border-gray-700">
                     <div class="flex justify-between items-start">
                         <div class="flex-1 min-w-0">
-                            <div class="text-lg leading-tight ${textClass}">
+                            <div class="text-lg leading-tight ${textClass}${isReturned ? ' iade-blink' : ''}">
                                 <span class="${qtyColor} font-bold text-xl">x${it.qty}</span> <span class="font-semibold">${escapeHtml(it.name)}</span>${badge}
                             </div>
                             ${it.note ? `<div class="text-sm text-yellow-300"><i class="fas fa-comment-dots mr-1"></i>${escapeHtml(it.note)}</div>` : ''}
