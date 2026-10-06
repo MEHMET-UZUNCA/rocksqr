@@ -81,6 +81,14 @@ function locLabel($tableNo, $roomNo): string {
         @endforeach
     </div>
 
+    {{-- Tamamlanmadan kapananlar --}}
+    @if(($autoClosedQr ?? 0) + ($autoClosedSym ?? 0) > 0)
+    <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 text-xs text-amber-800">
+        <i class="fas fa-broom mr-1"></i>
+        Tamamlanmadan kapanan: <strong>{{ $autoClosedQr }}</strong> QR sipariş, <strong>{{ $autoClosedSym }}</strong> Symphony hesap — otomatik ekran temizlemesinde kapatıldı, toplam/ortalama sürelere dahil edilmez.
+    </div>
+    @endif
+
     {{-- Aşama ortalamaları --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">

@@ -87,9 +87,11 @@ class AdminReportController extends Controller
 
         // ---- QR siparişleri: created_at → (bar_approved_at) → kitchen_started_at → kitchen_ready_at → completed_at ----
         // bar_approved_at QR akışında dolmayabilir (Onayla butonu kaldırıldı) — opsiyonel aşama.
+        // Otomatik ekran temizlemesinde kapatılanlar (auto_closed_at) istatistik dışıdır.
         $qrOrders = $applyRange(
             Order::where('kitchen_status', 'completed')
-                ->whereNotNull('completed_at'),
+                ->whereNotNull('completed_at')
+                ->whereNull('auto_closed_at'),
             'completed_at'
         )->orderByDesc('completed_at')->limit(100)->get();
 
@@ -125,9 +127,11 @@ class AdminReportController extends Controller
         }
 
         // ---- Symphony: first_seen_at → completed_at (hazırlık) → delivered_at (bar bekleme) ----
+        // Otomatik ekran temizlemesinde teslim işaretlenenler istatistik dışıdır.
         $symQuery = DB::table('kitchen_pos_completions')
             ->whereNotNull('delivered_at')
-            ->whereNotNull('prep_seconds');
+            ->whereNotNull('prep_seconds')
+            ->whereNull('auto_closed_at');
         $applyRange($symQuery, 'completed_at');
 
         $symOrders = (clone $symQuery)->orderByDesc('delivered_at')->limit(100)->get();
@@ -155,7 +159,8 @@ class AdminReportController extends Controller
         // ---- Günlük ortalama teslim süresi (QR, son 30 gün) ----
         $daily = $applyRange(
             Order::where('kitchen_status', 'completed')
-                ->whereNotNull('completed_at'),
+                ->whereNotNull('completed_at')
+                ->whereNull('auto_closed_at'),
             'completed_at'
         )->selectRaw('DATE(completed_at) AS day, COUNT(*) AS total, ROUND(AVG(TIMESTAMPDIFF(SECOND, created_at, completed_at))) AS avg_seconds')
             ->groupBy('day')
@@ -184,7 +189,8 @@ class AdminReportController extends Controller
 
         $qrByLoc = $applyRange(
             Order::where('kitchen_status', 'completed')
-                ->whereNotNull('completed_at'),
+                ->whereNotNull('completed_at')
+                ->whereNull('auto_closed_at'),
             'completed_at'
         )->selectRaw("CONCAT('M:', IFNULL(table_no, CONCAT('O:', room_no))) AS loc_key, COUNT(*) AS total, ROUND(AVG(TIMESTAMPDIFF(SECOND, created_at, completed_at))) AS avg_total")
             ->groupBy('loc_key')
@@ -221,6 +227,10 @@ class AdminReportController extends Controller
         }
         usort($byLoc, fn ($a, $b) => ($b['sym_n'] + $b['qr_n']) <=> ($a['sym_n'] + $a['qr_n']));
 
+        // "Tamamlanmadan kapananlar" — otomatik ekran temizlemesinde kapatılanlar (istatistik dışı)
+        $autoClosedQr  = (int) $applyRange(Order::whereNotNull('auto_closed_at'), 'completed_at')->count();
+        $autoClosedSym = (int) $applyRange(DB::table('kitchen_pos_completions')->whereNotNull('auto_closed_at'), 'completed_at')->count();
+
         return view('admin.reports.durations', [
             'range'         => $range,
             'qrRows'        => $qrRows,
@@ -235,6 +245,8 @@ class AdminReportController extends Controller
             'daily'         => $daily,
             'itemByProduct' => $itemByProduct,
             'byLoc'         => $byLoc,
+            'autoClosedQr'  => $autoClosedQr,
+            'autoClosedSym' => $autoClosedSym,
         ]);
     }
 }

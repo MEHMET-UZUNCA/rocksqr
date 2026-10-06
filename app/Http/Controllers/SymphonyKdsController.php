@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Setting;
 use App\Services\MssqlService;
 use App\Support\KitchenFilter;
+use App\Support\ScreenCleaner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -332,6 +333,9 @@ class SymphonyKdsController extends Controller
 
     public function kitchenPosApi()
     {
+        // Ekran temizleme saati dolduysa bu anket tetikler (gunde bir kez)
+        ScreenCleaner::clearIfDue();
+
         $host     = (string) Setting::get('mssql_kds_host', '');
         $port     = (string) Setting::get('mssql_kds_port', '1433');
         $database = (string) Setting::get('mssql_kds_database', '');
@@ -649,9 +653,12 @@ class SymphonyKdsController extends Controller
             uasort($checks, fn($a, $b) => strcmp((string) $b['order_time'], (string) $a['order_time']));
 
             $completedLimit = (int) Setting::get('kitchen_completed_display', 6);
+            // SON seritleri sadece son ekran temizlemesinden sonrakileri gosterir
+            $clearedAt = ScreenCleaner::clearedAt();
 
             $completedMsgs = DB::table('kitchen_pos_completions')
                 ->where('kind', 'checkless_msg')
+                ->when($clearedAt, fn ($q) => $q->where('completed_at', '>', $clearedAt))
                 ->orderByDesc('completed_at')
                 ->limit($completedLimit)
                 ->get()
@@ -669,6 +676,7 @@ class SymphonyKdsController extends Controller
 
             $completedChecks = DB::table('kitchen_pos_completions')
                 ->where('kind', 'check')
+                ->when($clearedAt, fn ($q) => $q->where('completed_at', '>', $clearedAt))
                 ->orderByDesc('completed_at')
                 ->limit($completedLimit)
                 ->get()
@@ -684,6 +692,7 @@ class SymphonyKdsController extends Controller
             // Tek ürün onayları (kind=item) → alt şeritte "ÜRÜN" çipleri
             $completedItems = DB::table('kitchen_pos_completions')
                 ->where('kind', 'item')
+                ->when($clearedAt, fn ($q) => $q->where('completed_at', '>', $clearedAt))
                 ->orderByDesc('completed_at')
                 ->limit($completedLimit)
                 ->get();
@@ -717,8 +726,10 @@ class SymphonyKdsController extends Controller
                 ];
             }
 
+            // Bugun sayaci: son temizlemeden sonraki tamamlamalar
             $completedTodayCount = DB::table('kitchen_pos_completions')
                 ->whereDate('completed_at', today())
+                ->when($clearedAt, fn ($q) => $q->where('completed_at', '>', $clearedAt))
                 ->where('kind', '!=', 'item')
                 ->count();
 

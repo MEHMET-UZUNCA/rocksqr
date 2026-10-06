@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Setting;
 use App\Models\WaiterCall;
 use App\Services\MssqlService;
+use App\Support\ScreenCleaner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -82,6 +83,10 @@ class BarController extends Controller
 
     public function barApiOrders()
     {
+        // Ekran temizleme saati dolduysa bu anket tetikler (gunde bir kez)
+        ScreenCleaner::clearIfDue();
+        $clearedAt = ScreenCleaner::clearedAt();
+
         $completedLimit    = (int) Setting::get('bar_completed_display', 12);
         $readyLimit        = (int) Setting::get('bar_ready_display', 12);
         $undoWindowSeconds = (int) Setting::get('ready_undo_seconds', 30);
@@ -157,7 +162,9 @@ class BarController extends Controller
         usort($readyOrders, fn($a, $b) => ($a['ready_since_seconds'] ?? 99999) <=> ($b['ready_since_seconds'] ?? 99999));
         $readyOrders = array_slice($readyOrders, 0, $readyLimit);
 
+        // SON seridi sadece son temizlemeden sonrakileri gosterir
         $completedOrders = Order::whereIn('kitchen_status', ['completed', 'cancelled'])
+            ->when($clearedAt, fn ($q) => $q->where('completed_at', '>', $clearedAt))
             ->orderBy('completed_at', 'desc')
             ->limit($completedLimit)
             ->get()
@@ -168,6 +175,7 @@ class BarController extends Controller
         // Symphony servis edilenleri tamamlananlara ekle
         $symphonyDelivered = DB::table('kitchen_pos_completions')
             ->whereNotNull('delivered_at')
+            ->when($clearedAt, fn ($q) => $q->where('delivered_at', '>', $clearedAt))
             ->orderByDesc('delivered_at')
             ->limit($completedLimit)
             ->get();

@@ -306,7 +306,7 @@
                     <div class="flex-1">
                         <input type="time" name="screen_clear_time" value="{{ old('screen_clear_time', $settings['screen_clear_time'] ?? '14:00') }}"
                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-400" required>
-                        <p class="text-xs text-gray-400 mt-1">Her gün bu saatte mutfak ve bar ekranlari otomatik temizlenir.</p>
+                        <p class="text-xs text-gray-400 mt-1">Her gün bu saatte mutfak ve bar ekranlari otomatik temizlenir. Sadece ekranlardaki bekleyenler kapatilir; kayitlar ve rapor verileri korunur.</p>
                     </div>
                     <button type="submit" class="py-2.5 px-5 bg-sky-500 text-white font-bold rounded-lg hover:bg-sky-600 transition text-sm whitespace-nowrap">
                         <i class="fas fa-save mr-2"></i>Kaydet
