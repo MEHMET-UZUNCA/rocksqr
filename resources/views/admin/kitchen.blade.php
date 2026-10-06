@@ -90,13 +90,16 @@
         let eventSource = null;
         let sseRetryTimeout = null;
 
+        // Ekran saati kaynağı: sunucu / veritabanı / tarayıcı (admin panelinden seçilir)
+        const CLOCK_SOURCE = @json(\App\Support\Clock::source());
+        let serverClockOffsetMs = null;
+
         function updateClock() {
-            const now = new Date();
+            const now = new Date(Date.now() + (CLOCK_SOURCE !== 'browser' && serverClockOffsetMs != null ? serverClockOffsetMs : 0));
             document.getElementById('clock').textContent = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             document.getElementById('clock-date').textContent = now.toLocaleDateString('tr-TR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
         }
-        setInterval(updateClock, 1000);
-        updateClock();
+        setInterval(updateClock, 1000); updateClock();
 
         function toggleFullscreen() {
             const icon = document.getElementById('fs-icon');
@@ -213,7 +216,7 @@
                     return `
                     <div class="bg-red-950/40 rounded-lg border-2 border-red-800/60 p-3 text-xs opacity-70">
                         <div class="flex items-center justify-between mb-1">
-                            <span class="font-bold text-red-400"><i class="fas fa-ban mr-1"></i>${order.room_no ? 'Oda ' + order.room_no : 'Masa ' + order.table_no} #${order.id}</span>
+                            <span class="font-bold text-red-400"><i class="fas fa-ban mr-1"></i>${order.room_no ? 'RM ' + order.room_no : 'TBL ' + order.table_no} #${order.id}</span>
                             <span class="text-gray-500">${order.created_at}</span>
                         </div>
                         <p class="line-through text-gray-500 truncate">${itemSummary || 'Urun yok'}</p>
@@ -269,7 +272,7 @@
                     <div class="flex items-center gap-3">
                         <span class="text-2xl font-bold text-gold">
                             Siparis #${order.id}
-                            <span class="text-base text-gray-300 ml-2 inline-block">${order.room_no ? 'Oda ' + order.room_no : (order.table_no ? 'Masa ' + order.table_no : 'QR')}</span>
+                            <span class="text-base text-gray-300 ml-2 inline-block">${order.room_no ? 'RM ' + order.room_no : (order.table_no ? 'TBL ' + order.table_no : 'QR')}</span>
                             ${hasNote ? ' <span class="text-yellow-400 text-base animate-pulse" title="Not var!"><i class="fas fa-sticky-note"></i></span>' : ''}
                         </span>
                         <span class="px-2 py-1 rounded text-xs font-bold ${statusBg}">${statusText}</span>
@@ -327,7 +330,7 @@
                     try { items = Array.isArray(o.items) ? o.items : JSON.parse(o.items); } catch(e) {}
                     const summary = items.map(i => `${getProductName(i.id)} x${i.quantity}`).join(', ');
                     return `<div class="bg-red-950/60 border border-red-700 rounded px-3 py-1.5 text-xs flex items-center gap-2">
-                        <span class="font-bold text-red-400"><i class="fas fa-ban mr-1"></i>${o.room_no ? 'Oda ' + o.room_no : 'Masa ' + o.table_no} #${o.id}</span>
+                        <span class="font-bold text-red-400"><i class="fas fa-ban mr-1"></i>${o.room_no ? 'RM ' + o.room_no : 'TBL ' + o.table_no} #${o.id}</span>
                         <span class="line-through text-gray-400">${summary || 'Urun yok'}</span>
                         <button onclick="ackCancel(${o.id})" class="ml-auto shrink-0 px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded text-[10px] font-bold">
                             <i class="fas fa-check mr-0.5"></i>Tamam
@@ -340,6 +343,11 @@
         }
 
         function handleData(data) {
+            if (data.server_now) {
+                const parsed = Date.parse(data.server_now);
+                if (!isNaN(parsed)) serverClockOffsetMs = parsed - Date.now();
+            }
+
             const orders    = data.orders    || [];
             const cancelled = data.cancelled || [];
             const completed = data.completed || [];

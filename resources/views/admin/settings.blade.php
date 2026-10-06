@@ -217,8 +217,69 @@
                             <p class="text-xs text-gray-400 mt-1">Geri Al butonu bu süre çalisir</p>
                         </div>
                     </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <label class="flex items-start gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                            <input type="checkbox" name="kitchen_show_drinks" value="1" class="rounded mt-0.5"
+                                   @checked(old('kitchen_show_drinks', $settings['kitchen_show_drinks']))>
+                            <span><i class="fas fa-wine-bottle mr-1"></i>İçecekler görünsün
+                                <span class="block text-xs font-normal text-gray-400">Kapalıyken içecek satırları mutfak ekranına gelmez</span>
+                            </span>
+                        </label>
+                        <label class="flex items-start gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                            <input type="checkbox" name="kitchen_show_others" value="1" class="rounded mt-0.5"
+                                   @checked(old('kitchen_show_others', $settings['kitchen_show_others']))>
+                            <span><i class="fas fa-comment-dots mr-1"></i>Diğerleri görünsün
+                                <span class="block text-xs font-normal text-gray-400">Mesaj/mars gibi yiyecek-içecek dışı satırlar</span>
+                            </span>
+                        </label>
+                    </div>
                     <button type="submit" class="py-2.5 px-5 bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-600 transition text-sm">
                         <i class="fas fa-save mr-2"></i>Kitchen Ayarlarini Kaydet
+                    </button>
+                </form>
+
+                <hr class="border-gray-100 mb-6">
+
+                <div class="mb-2 flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                        <i class="fas fa-clock text-emerald-600"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-gray-800">Sunucu Saati</h3>
+                </div>
+                <form action="{{ route('admin.settings.update') }}?tab=ekran" method="POST" class="mb-8">
+                    <input type="hidden" name="_clock_only" value="1">
+                    @csrf
+                    @method('PUT')
+                    @php
+                        $dbNowIso    = \App\Support\Clock::dbNowIso();
+                        $clockSource = old('screen_clock_source', $settings['screen_clock_source'] ?? 'server');
+                    @endphp
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-center">
+                            <p class="text-xs text-emerald-700 font-semibold mb-1">Sunucu Saati</p>
+                            <p id="admin-server-clock" data-server-now="{{ now()->setTimezone('Europe/Istanbul')->toIso8601String() }}" class="text-2xl font-extrabold text-emerald-800 tabular-nums">--:--:--</p>
+                            @if($dbNowIso)
+                            <p class="text-xs text-emerald-600 mt-1">Veritabanı: <span id="admin-db-clock" data-db-now="{{ $dbNowIso }}" class="font-semibold tabular-nums">--:--:--</span></p>
+                            @endif
+                            <p class="text-xs text-emerald-600 mt-0.5">Dilim: Europe/Istanbul</p>
+                        </div>
+                        <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+                            <p class="text-xs text-gray-600 font-semibold mb-1">Tarayıcı Saati</p>
+                            <p id="admin-browser-clock" class="text-2xl font-extrabold text-gray-800 tabular-nums">--:--:--</p>
+                            <p id="admin-clock-diff" class="text-xs text-gray-500 mt-1">Fark: hesaplanıyor…</p>
+                        </div>
+                        <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <label class="block text-xs font-bold text-blue-700 mb-1"><i class="fas fa-satellite-dish mr-1"></i>Ekran Saatleri Kaynağı</label>
+                            <select name="screen_clock_source" class="w-full border border-blue-300 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 bg-white focus:ring-2 focus:ring-blue-400">
+                                <option value="server" {{ $clockSource === 'server' ? 'selected' : '' }}>Sunucu (sistem saati)</option>
+                                <option value="database" {{ $clockSource === 'database' ? 'selected' : '' }}>Veritabanı saati</option>
+                                <option value="browser" {{ $clockSource === 'browser' ? 'selected' : '' }}>Tarayıcı saati</option>
+                            </select>
+                            <p class="text-xs text-gray-400 mt-1">Mutfak/bar ekranlarındaki saat seçilen kaynaktan okunur. Sipariş sayaçları her durumda sunucu zamanını esas alır.</p>
+                        </div>
+                    </div>
+                    <button type="submit" class="py-2.5 px-5 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-600 transition text-sm">
+                        <i class="fas fa-save mr-2"></i>Saat Ayarini Kaydet
                     </button>
                 </form>
 
@@ -447,4 +508,35 @@
         </div>
     </div>
 </div>
+
+<script>
+    (function () {
+        const serverEl = document.getElementById('admin-server-clock');
+        if (!serverEl) return;
+        const browserEl = document.getElementById('admin-browser-clock');
+        const diffEl    = document.getElementById('admin-clock-diff');
+        const dbEl       = document.getElementById('admin-db-clock');
+        const dbEpoch    = (dbEl && dbEl.dataset.dbNow) ? (Date.parse(dbEl.dataset.dbNow) || null) : null;
+        const serverEpoch = Date.parse(serverEl.dataset.serverNow) || Date.now();
+        const pageLoad    = Date.now();
+        const fmt = d => d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const tick = () => {
+            const now = Date.now();
+            const serverNow = new Date(serverEpoch + (now - pageLoad));
+            serverEl.textContent = fmt(serverNow);
+            if (dbEl && dbEpoch) dbEl.textContent = fmt(new Date(dbEpoch + (now - pageLoad)));
+            if (browserEl) browserEl.textContent = fmt(new Date(now));
+            if (diffEl) {
+                const s = Math.round((serverNow.getTime() - now) / 1000);
+                const a = Math.abs(s);
+                const txt = a >= 60 ? Math.floor(a / 60) + ' dk ' + (a % 60) + ' sn' : a + ' sn';
+                diffEl.textContent = 'Fark: ' + (s >= 0 ? '+' : '−') + txt;
+                diffEl.classList.toggle('text-red-600', a >= 30);
+                diffEl.classList.toggle('text-emerald-600', a < 30);
+            }
+        };
+        tick();
+        setInterval(tick, 1000);
+    })();
+</script>
 @endsection

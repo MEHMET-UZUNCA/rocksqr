@@ -249,8 +249,12 @@
             document.getElementById('header-waiter-count').textContent = _waiterCards.length;
         }
 
+        // Ekran saati kaynağı: sunucu / veritabanı / tarayıcı (admin panelinden seçilir)
+        const CLOCK_SOURCE = @json(\App\Support\Clock::source());
+        let serverClockOffsetMs = null;
+
         function updateClock() {
-            const now = new Date();
+            const now = new Date(Date.now() + (CLOCK_SOURCE !== 'browser' && serverClockOffsetMs != null ? serverClockOffsetMs : 0));
             document.getElementById('clock').textContent = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             document.getElementById('clock-date').textContent = now.toLocaleDateString('tr-TR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
         }
@@ -812,6 +816,12 @@
                 fetch('/bar/api/symphony').then(r => r.json()).catch(() => null),
             ]).then(([data, sym]) => {
                 if (!data) return;
+
+                const sn = data.server_now || (sym && sym.server_now);
+                if (sn) {
+                    const parsed = Date.parse(sn);
+                    if (!isNaN(parsed)) serverClockOffsetMs = parsed - Date.now();
+                }
 
                 // Symphony API basarisiz olursa son bilinen siparisleri kullan
                 if (sym && sym.orders) {

@@ -72,8 +72,12 @@
     </main>
 
     <script>
+        // Ekran saati kaynağı: sunucu / veritabanı / tarayıcı (admin panelinden seçilir)
+        const CLOCK_SOURCE = @json(\App\Support\Clock::source());
+        let serverClockOffsetMs = null;
+
         function updateClock() {
-            const now = new Date();
+            const now = new Date(Date.now() + (CLOCK_SOURCE !== 'browser' && serverClockOffsetMs != null ? serverClockOffsetMs : 0));
             document.getElementById('clock').textContent = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             document.getElementById('clock-date').textContent = now.toLocaleDateString('tr-TR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
         }
@@ -176,6 +180,11 @@
         let isFirstLoad = true;
 
         function render(data) {
+            if (data.server_now) {
+                const parsed = Date.parse(data.server_now);
+                if (!isNaN(parsed)) serverClockOffsetMs = parsed - Date.now();
+            }
+
             const orders = data.orders || [];
 
             document.getElementById('order-count').textContent = orders.length;

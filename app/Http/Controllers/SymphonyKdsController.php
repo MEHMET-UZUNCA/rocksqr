@@ -37,6 +37,34 @@ class SymphonyKdsController extends Controller
             return response()->json(['success' => false, 'message' => 'Bu sipariş onaylanamaz.'], 422);
         }
 
+        $firstSeen = $order->kitchen_started_at ?? $order->created_at;
+        $prepSeconds = $firstSeen ? max(0, (int) now()->diffInSeconds($firstSeen)) : null;
+
+        try {
+            $now = now();
+            $rows = [];
+            foreach ($order->items() as $it) {
+                $rows[] = [
+                    'name'          => (string) ($it['name'] ?? 'Ürün'),
+                    'qty'           => max(1, (int) ($it['quantity'] ?? 1)),
+                    'source'        => 'qr',
+                    'table_no'      => $order->table_no !== null ? (string) $order->table_no : null,
+                    'room_no'       => $order->room_no,
+                    'check_number'  => null,
+                    'group_key'     => 'Q' . $order->id,
+                    'first_seen_at' => $firstSeen,
+                    'completed_at'  => $now,
+                    'prep_seconds'  => $prepSeconds,
+                    'created_at'    => $now,
+                    'updated_at'    => $now,
+                ];
+            }
+            if ($rows !== []) {
+                DB::table('kitchen_item_logs')->insert($rows);
+            }
+        } catch (\Throwable) {
+        }
+
         $order->update([
             'kitchen_status'     => 'ready',
             'status'             => 'ready',
@@ -56,6 +84,13 @@ class SymphonyKdsController extends Controller
         }
         if ($order->kitchen_ready_at && $order->kitchen_ready_at->diffInSeconds(now()) > $undoWindowSeconds) {
             return response()->json(['success' => false, 'message' => 'Geri alma süresi doldu.'], 422);
+        }
+        try {
+            DB::table('kitchen_item_logs')
+                ->where('group_key', 'Q' . $order->id)
+                ->where('completed_at', '>=', now()->subSeconds($undoWindowSeconds))
+                ->delete();
+        } catch (\Throwable) {
         }
         $order->update([
             'kitchen_status'   => 'preparing',
@@ -134,7 +169,64 @@ class SymphonyKdsController extends Controller
             ]
         );
 
+        // Ürün bazlı rapor geçmişi (append-only) — log hatası mutfak operasyonunu bozmasın
+        try {
+            $now = now();
+            $logRow = fn (string $name, int $qty) => [
+                'name'          => $name,
+                'qty'           => $qty,
+                'source'        => 'sym',
+                'table_no'      => $validated['table_no'] ?? null,
+                'room_no'       => null,
+                'check_number'  => $validated['check_number'] ?? null,
+                'group_key'     => $validated['group_key'],
+                'first_seen_at' => $firstSeenAt,
+                'completed_at'  => $completedAt,
+                'prep_seconds'  => $prepSeconds,
+                'created_at'    => $now,
+                'updated_at'    => $now,
+            ];
+
+            if ($validated['kind'] === 'item') {
+                DB::table('kitchen_item_logs')->insert($logRow(
+                    trim((string) ($validated['name'] ?? '')) !== '' ? $validated['name'] : 'Ürün',
+                    max(1, (int) ($validated['qty'] ?? 1))
+                ));
+            } elseif ($validated['kind'] === 'check' && trim((string) ($validated['name'] ?? '')) !== '') {
+                $logged = DB::table('kitchen_item_logs')
+                    ->where('group_key', $validated['group_key'])
+                    ->whereIn('name', collect(self::parseItemNames($validated['name']))->pluck(0))
+                    ->pluck('name')
+                    ->all();
+                foreach (self::parseItemNames($validated['name']) as [$n, $q]) {
+                    if (in_array($n, $logged, true)) {
+                        continue;
+                    }
+                    DB::table('kitchen_item_logs')->insert($logRow($n, $q));
+                }
+            }
+        } catch (\Throwable) {
+        }
+
         return response()->json(['success' => true]);
+    }
+
+    // "Ad x2 · Y x1" listesini [isim, adet] çiftlerine ayır
+    public static function parseItemNames(string $list): array
+    {
+        $out = [];
+        foreach (explode(' · ', $list) as $part) {
+            $part = trim($part);
+            if ($part === '') {
+                continue;
+            }
+            if (preg_match('/^(.*?)\s+x(\d+)$/u', $part, $m) && trim($m[1]) !== '') {
+                $out[] = [trim($m[1]), max(1, (int) $m[2])];
+            } else {
+                $out[] = [$part, 1];
+            }
+        }
+        return $out;
     }
 
     public function kitchenPosUnserveItem(Request $request)
@@ -181,6 +273,13 @@ class SymphonyKdsController extends Controller
         }
 
         DB::table('kitchen_pos_completions')->where('group_key', $validated['group_key'])->delete();
+        try {
+            DB::table('kitchen_item_logs')
+                ->where('group_key', $validated['group_key'])
+                ->where('completed_at', '>=', now()->subSeconds($undoWindowSeconds))
+                ->delete();
+        } catch (\Throwable) {
+        }
         return response()->json(['success' => true]);
     }
 
@@ -252,20 +351,30 @@ class SymphonyKdsController extends Controller
             $pdo  = $this->mssql->connect($host, $port, $database, $username, $password);
             $rows = $this->mssql->runQuery($pdo, $this->mssql->cleanSql($query));
 
-            // ── UnitID local first_seen_at ──────────────────────────────────────────
+            // ── Satır bazlı kalıcı unit anahtarı + local first_seen_at ──────────────
             // Symphony, ürün eklenince tüm satırların ItemTime'ını günceller.
             // MSSQL ItemTime'ına güvenemeyiz; ilk gördüğümüz anı local DB'ye kaydederiz.
+            // v1.3 sorguda UnitID kolonu yoktur: her satır için kalıcı bir anahtar
+            // üretilir, aksi halde order_time her poll'da yeniden doğar (sayaç 00:00 takılması).
+            $mssql = $this->mssql;
+            $resolveUnitId = function ($row) use ($mssql): string {
+                $uid = (string) $mssql->getField($row, ['UnitID', 'unit_id', 'UNITID'], '');
+                if ($uid !== '') {
+                    return $uid;
+                }
+                $itemId = $mssql->getField($row, ['ItemID', 'item_id'], null);
+                $dtlSeq = (int) $mssql->getField($row, ['DtlSeq', 'dtl_seq'], 0);
+                $name   = (string) $mssql->getField($row, ['ProductName', 'product_name', 'Name'], '');
+                $note   = (string) $mssql->getField($row, ['MessageNote', 'message_note', 'RefInfo'], '');
+                return ($itemId ? $itemId : 'u') . '-' . ($dtlSeq ?: substr(md5($name . $note), 0, 8));
+            };
+
+            $rowUnitIds = [];
             $unitIdCheckMap = [];
-            foreach ($rows as $r) {
-                $uid = null;
-                foreach (['UnitID', 'unit_id', 'UNITID'] as $k) {
-                    if (!empty($r[$k])) { $uid = (string) $r[$k]; break; }
-                }
-                if (!$uid) continue;
-                $cn = null;
-                foreach (['CheckNumber', 'check_number', 'ChkNum'] as $k) {
-                    if (!empty($r[$k])) { $cn = (string) $r[$k]; break; }
-                }
+            foreach ($rows as $i => $r) {
+                $uid = $resolveUnitId($r);
+                $rowUnitIds[$i] = $uid;
+                $cn = $mssql->getField($r, ['CheckNumber', 'check_number', 'ChkNum'], null);
                 $unitIdCheckMap[$uid] = $cn;
             }
 
@@ -286,15 +395,19 @@ class SymphonyKdsController extends Controller
                 $existingLocalTimes = DB::table('kitchen_item_times')->whereIn('unit_id', $allUnitIds)->pluck('first_seen_at', 'unit_id');
             }
 
+            // Mutfak filtresi (MajorGroupID: 1=Yiyecek, 2=İçecek, 3=Alkollü, 99=Mesaj/Mars)
+            $kitchenShowDrinks = (int) Setting::get('kitchen_show_drinks', 0) === 1;
+            $kitchenShowOthers = (int) Setting::get('kitchen_show_others', 1) === 1;
+
             $checks              = [];
             $checkless           = [];
             $comboParentIdxByKey = [];
             $lastUrunIdxByKey    = [];
 
-            foreach ($rows as $row) {
+            foreach ($rows as $rowIndex => $row) {
                 $mssql = $this->mssql;
                 $checkNum    = $mssql->getField($row, ['CheckNumber', 'check_number', 'ChkNum'], null);
-                $unitId      = (string) $mssql->getField($row, ['UnitID', 'unit_id'], '');
+                $unitId      = $rowUnitIds[$rowIndex];
                 $itemId      = $mssql->getField($row, ['ItemID', 'item_id'], null);
                 $tableNo     = (string) $mssql->getField($row, ['TableNumber', 'table_number'], '');
                 $rvc         = $mssql->getField($row, ['RevenueCenter', 'revenue_center'], '');
@@ -316,20 +429,22 @@ class SymphonyKdsController extends Controller
                 );
 
                 // Eski sorgu uyumluluğu (LineKind/LineType yoksa): MajGrp/MajorGroupID=99 → MESAJ
-                if ($lineKindRaw === null) {
-                    $majGrp = (int) $mssql->getField($row, ['MajorGroupID', 'major_group_id', 'MajGrp', 'maj_grp'], 0);
-                    if ($majGrp === 99) $lineKind = 'MESAJ';
-                }
+                $majGrpId = (int) $mssql->getField($row, ['MajorGroupID', 'major_group_id', 'MajGrp', 'maj_grp'], 0);
+                if ($lineKindRaw === null && $majGrpId === 99) $lineKind = 'MESAJ';
 
                 $isMessage = ($lineKind === 'MESAJ');
                 $isMars    = ($lineKind === 'MARS');
                 $isCombo   = ($lineKind === 'COMBO') || $isComboItem;
                 $hasCheck  = $checkNum !== null && (int) $checkNum > 0;
 
-                // UnitID yoksa (eski sorgu) → ItemID + hash ile üret
-                if ($unitId === '') {
-                    $dtlSeq = (int) $mssql->getField($row, ['DtlSeq', 'dtl_seq'], 0);
-                    $unitId = ($itemId ? $itemId : 'u') . '-' . ($dtlSeq ?: substr(md5($name . $note), 0, 8));
+                // İçecek / diğer grup filtresi — mesaj ve mars satırları asla filtrelenmez.
+                // first_seen kaydı pre-pass'ta tüm satırlar için tutulur; filtre kapalıyken
+                // yeniden açılırsa sayaçlar doğru devam eder.
+                if (!$kitchenShowDrinks && in_array($majGrpId, [2, 3], true) && !$isMessage && !$isMars) {
+                    continue;
+                }
+                if (!$kitchenShowOthers && $majGrpId !== 0 && !in_array($majGrpId, [1, 2, 3, 99], true) && !$isMessage && !$isMars) {
+                    continue;
                 }
 
                 // Mesajlar için ItemID yoksa hash üret
@@ -338,7 +453,8 @@ class SymphonyKdsController extends Controller
                 }
 
                 $localTime   = $existingLocalTimes->get($unitId, $nowTs);
-                $itemTimeIso = \Carbon\Carbon::parse($localTime, config('app.timezone'))->toIso8601String();
+                $localCarbon = \Carbon\Carbon::parse($localTime, config('app.timezone'));
+                $itemTimeIso = $localCarbon->toIso8601String();
 
                 $item = [
                     'unit_ids'    => [$unitId],
@@ -351,6 +467,7 @@ class SymphonyKdsController extends Controller
                     'is_returned' => $isReturned,
                     'line_kind'   => $lineKind,
                     'item_time'   => $itemTimeIso,
+                    'age_seconds' => max(0, (int) $localCarbon->diffInSeconds(now())),
                 ];
 
                 // Mesaj ve Mars → checkless veya check.messages
@@ -424,11 +541,13 @@ class SymphonyKdsController extends Controller
                 }
             }
 
-            // order_time → ISO8601
+            // order_time → ISO8601 + sunucu hesaplı yaş (sayaçlar için)
             foreach ($checks as &$chk) {
                 if ($chk['order_time']) {
                     try {
-                        $chk['order_time'] = \Carbon\Carbon::parse($chk['order_time'], config('app.timezone'))->toIso8601String();
+                        $ot = \Carbon\Carbon::parse($chk['order_time'], config('app.timezone'));
+                        $chk['order_time'] = $ot->toIso8601String();
+                        $chk['age_seconds'] = max(0, (int) $ot->diffInSeconds(now()));
                     } catch (\Exception) {}
                 }
             }
@@ -607,6 +726,7 @@ class SymphonyKdsController extends Controller
                 'completed_limit' => $completedLimit,
                 'completed_today' => $completedTodayCount,
                 'fetched_at'      => now()->format('H:i:s'),
+                'server_now' => \App\Support\Clock::nowIso(),
                 'count'           => count($checks),
             ]);
         } catch (\Exception $e) {
@@ -766,6 +886,7 @@ class SymphonyKdsController extends Controller
                 'success'    => true,
                 'orders'     => array_values($checks),
                 'fetched_at' => now()->format('H:i:s'),
+                'server_now' => \App\Support\Clock::nowIso(),
                 'count'      => count($checks),
             ]);
         } catch (\Exception $e) {

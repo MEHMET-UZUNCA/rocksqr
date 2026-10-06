@@ -121,8 +121,15 @@
         // API her 5sn'de DOM'u yeniden kursa da start time localStorage'da saklanır.
         const LS_PREFIX = 'kpos_start_';
 
-        function getStartTime(groupKey, apiOrderTime) {
+        function getStartTime(groupKey, apiOrderTime, ageSeconds) {
             const lsKey = LS_PREFIX + groupKey;
+            // Sunucunun hesapladığı yaş önceliklidir: tarayıcı/sunucu saat kaymalarına
+            // bağışıkdır, F5 sonrası da doğru kalır.
+            if (ageSeconds != null && isFinite(ageSeconds) && ageSeconds >= 0) {
+                const ts = new Date(Date.now() - (ageSeconds * 1000)).toISOString();
+                localStorage.setItem(lsKey, ts);
+                return ts;
+            }
             const stored = localStorage.getItem(lsKey);
             if (stored) return stored;
             // İlk kez görüldü: API zamanı geçerliyse kullan, değilse şimdiki zaman
@@ -136,8 +143,12 @@
             localStorage.removeItem(LS_PREFIX + groupKey);
         }
 
+        // Ekran saati kaynağı: sunucu / veritabanı / tarayıcı (admin panelinden seçilir)
+        const CLOCK_SOURCE = @json(\App\Support\Clock::source());
+        let serverClockOffsetMs = null;
+
         function updateClock() {
-            const now = new Date();
+            const now = new Date(Date.now() + (CLOCK_SOURCE !== 'browser' && serverClockOffsetMs != null ? serverClockOffsetMs : 0));
             document.getElementById('clock').textContent = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             document.getElementById('clock-date').textContent = now.toLocaleDateString('tr-TR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
         }
@@ -231,7 +242,7 @@
                 return buildQrOrderCard(order);
             }
             const groupKey = order.check_number ? String(order.check_number) : ('T' + (order.table_no || ''));
-            const startTime = getStartTime(groupKey, order.order_time);
+            const startTime = getStartTime(groupKey, order.order_time, order.age_seconds);
             const elapsed = elapsedSince(startTime);
             const minTotal = elapsed ? Math.floor(elapsed / 60) : 0;
             const timeBg = minTotal > 15 ? 'bg-red-600' : minTotal > 10 ? 'bg-yellow-600' : 'bg-green-600';
@@ -356,7 +367,7 @@
             <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden">
                 <div class="px-2 py-1 bg-gray-750 border-b border-gray-700">
                     <div class="flex items-center justify-between">
-                        <span class="text-xl font-bold text-gold">Masa ${escapeHtml(order.table_no || '-')}${order._seqTotal > 1 ? ` <span class="text-orange-300">#${order._seq}/${order._seqTotal}</span>` : ''}</span>
+                        <span class="text-xl font-bold text-gold">TBL ${escapeHtml(order.table_no || '-')}${order._seqTotal > 1 ? ` <span class="text-orange-300">#${order._seq}/${order._seqTotal}</span>` : ''}</span>
                         <div class="flex items-center gap-1">
                             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYM</span>
                             ${isAddition ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-600 text-white animate-pulse"><i class="fas fa-plus-circle mr-0.5"></i>EK</span>` : ''}
@@ -406,8 +417,10 @@
             <div class="bg-purple-950/40 rounded-lg border-2 border-purple-500 qr-card overflow-hidden">
                 <div class="flex items-center justify-between px-4 py-2 bg-purple-900/40">
                     <div class="flex items-center gap-3">
-                        <span class="text-xl font-bold text-purple-200">
-                            <i class="fas fa-qrcode mr-1"></i>Masa ${escapeHtml(order.table_no || '-')}
+                        <span class="text-xl font-bold text-purple-200 leading-tight">
+                            ${(order.table_no || order.room_no)
+                                ? `${order.table_no ? `<div>TBL ${escapeHtml(order.table_no)}</div>` : ''}${order.room_no ? `<div class="font-bold text-amber-300">RM ${escapeHtml(order.room_no)}</div>` : ''}`
+                                : 'Paket'}
                         </span>
                         <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-700 text-purple-100" title="QR Menu siparisi">
                             <i class="fas fa-mobile-screen mr-0.5"></i>QR MENU
@@ -443,7 +456,7 @@
                         <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100">
                             <i class="fas fa-server mr-0.5"></i>SYM
                         </span>
-                        <span class="text-gray-500 ml-auto">Masa ${escapeHtml(order.table_no || '-')}</span>
+                        <span class="text-gray-500 ml-auto">TBL ${escapeHtml(order.table_no || '-')}</span>
                     </div>
                     <p class="text-gray-300 italic">Hesap servise teslim edildi</p>
                     <button data-uncomplete-key="${gkAttr}"
@@ -465,7 +478,7 @@
                         <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100" title="Symphony POS hesabindan">
                             <i class="fas fa-server mr-0.5"></i>SYM
                         </span>
-                        <span class="text-gray-500 ml-auto">Masa ${escapeHtml(order.table_no || '-')}</span>
+                        <span class="text-gray-500 ml-auto">TBL ${escapeHtml(order.table_no || '-')}</span>
                     </div>
                     <p class="text-yellow-100 truncate">
                         ${order.qty > 1 ? `<span class="text-yellow-400">x${order.qty}</span> ` : ''}${escapeHtml(order.name || '—')}
@@ -489,7 +502,7 @@
                     <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-700 text-purple-100" title="QR Menu siparisi">
                         <i class="fas fa-mobile-screen mr-0.5"></i>QR MENU
                     </span>
-                    <span class="text-gray-500 ml-auto">Masa ${escapeHtml(order.table_no || '-')}</span>
+                    <span class="text-gray-500 ml-auto">TBL ${escapeHtml(order.table_no || '-')}</span>
                 </div>
                 <p class="text-gray-300 truncate">${escapeHtml(items) || '—'}</p>
                 <button onclick="undoQr(${order.qr_order_id})"
@@ -501,7 +514,7 @@
 
         function buildChecklessCard(msg) {
             const groupKey = 'M' + (msg.item_id || '');
-            const startTime = getStartTime(groupKey, msg.item_time);
+            const startTime = getStartTime(groupKey, msg.item_time, msg.age_seconds);
             const elapsed = elapsedSince(startTime);
             const isMars = msg.line_kind === 'MARS';
             const borderColor = isMars ? 'border-orange-500/70' : 'border-yellow-500/70';
@@ -510,7 +523,7 @@
             const icon        = isMars ? 'fa-fire' : 'fa-comment-dots';
             const title       = isMars
                 ? escapeHtml(msg.name.replace(/^[\s\-]+|[\s\-]+$/g,''))
-                : escapeHtml(msg.table_no ? 'Masa ' + msg.table_no : 'Mesaj');
+                : escapeHtml(msg.table_no ? 'TBL ' + msg.table_no : 'Mesaj');
             const body = isMars
                 ? `<span class="${textColor} font-semibold">${escapeHtml(msg.name.replace(/^[\s\-]+|[\s\-]+$/g,''))}</span>${msg.note ? `: <b class="text-white">${escapeHtml(msg.note)}</b>` : ''}`
                 : `${escapeHtml(msg.name)}${msg.note ? `<div class="text-xs text-yellow-200 mt-1">${escapeHtml(msg.note)}</div>` : ''}`;
@@ -611,6 +624,11 @@
             const completedChecks = data.completed_checks || [];
             const completedItems = data.completed_items || [];
             const completedLimit = data.completed_limit || 6;
+
+            if (data.server_now) {
+                const parsed = Date.parse(data.server_now);
+                if (!isNaN(parsed)) serverClockOffsetMs = parsed - Date.now();
+            }
 
             document.getElementById('order-count').textContent = orders.length;
             document.getElementById('msg-count').textContent = messages.length;
@@ -713,7 +731,7 @@
             }
 
             inner.innerHTML = allCompleted.map(order => {
-                const tableLabel = order.table_no ? 'M' + escapeHtml(String(order.table_no)) : '—';
+                const tableLabel = order.table_no ? 'TBL ' + escapeHtml(String(order.table_no)) : '—';
                 let borderCls, accentCls, badgeHtml, titleHtml, contentText, undoFn;
 
                 if (order.is_check) {

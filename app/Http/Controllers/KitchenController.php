@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\MapsOrders;
 use App\Models\Order;
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class KitchenController extends Controller
 {
@@ -52,6 +53,17 @@ class KitchenController extends Controller
         }
 
         $order->update($payload);
+
+        if ($validated['status'] === 'completed') {
+            try {
+                DB::table('kitchen_item_logs')
+                    ->where('group_key', 'Q' . $order->id)
+                    ->whereNull('delivered_at')
+                    ->update(['delivered_at' => now()]);
+            } catch (\Throwable) {
+            }
+        }
+
         return response()->json(['success' => true, 'status' => $order->kitchen_status]);
     }
 
@@ -96,6 +108,7 @@ class KitchenController extends Controller
             'cancelled'       => $cancelledOrders->values(),
             'completed'       => $completedOrders->values(),
             'completed_limit' => $completedLimit,
+            'server_now' => \App\Support\Clock::nowIso(),
         ]);
     }
 
@@ -134,6 +147,7 @@ class KitchenController extends Controller
                     'cancelled'       => $cancelledOrders->values(),
                     'completed'       => $completedOrders->values(),
                     'completed_limit' => $completedLimit,
+                    'server_now' => \App\Support\Clock::nowIso(),
                 ]);
 
                 echo "data: {$payload}\n\n";

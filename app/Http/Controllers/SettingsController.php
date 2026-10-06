@@ -22,6 +22,9 @@ class SettingsController extends Controller
             'bar_screen_title' => Setting::get('bar_screen_title', 'KDS - Bar Ekrani'),
             'bar_show_drinks' => (int) Setting::get('bar_show_drinks', 0),
             'bar_show_others' => (int) Setting::get('bar_show_others', 1),
+            'kitchen_show_drinks' => (int) Setting::get('kitchen_show_drinks', 0),
+            'kitchen_show_others' => (int) Setting::get('kitchen_show_others', 1),
+            'screen_clock_source' => \App\Support\Clock::source(),
             'kitchen_screen_title' => Setting::get('kitchen_screen_title', 'POOL Mutfak Ekrani'),
             'waiter_call_display' => (int) Setting::get('waiter_call_display', 10),
             'order_ready_display' => (int) Setting::get('order_ready_display', 10),
@@ -180,7 +183,15 @@ class SettingsController extends Controller
             Setting::set('kitchen_completed_display', $request->kitchen_completed_display);
             Setting::set('waiter_call_display', $request->waiter_call_display);
             Setting::set('ready_undo_seconds', $request->ready_undo_seconds);
+            Setting::set('kitchen_show_drinks', $request->boolean('kitchen_show_drinks') ? '1' : '0');
+            Setting::set('kitchen_show_others', $request->boolean('kitchen_show_others') ? '1' : '0');
             return back()->with('success', 'Kitchen ekran ayarları güncellendi.');
+        } elseif ($request->has('_clock_only')) {
+            $request->validate([
+                'screen_clock_source' => ['required', 'string', 'in:server,database,browser'],
+            ]);
+            Setting::set('screen_clock_source', $request->screen_clock_source);
+            return back()->with('success', 'Ekran saati kaynağı güncellendi.');
         } else {
             $request->validate([
                 'site_title' => 'required|string|max:255',

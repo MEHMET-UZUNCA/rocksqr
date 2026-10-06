@@ -70,6 +70,13 @@ class BarController extends Controller
         DB::table('kitchen_pos_completions')
             ->where('group_key', $validated['group_key'])
             ->update(['delivered_at' => now()]);
+        try {
+            DB::table('kitchen_item_logs')
+                ->where('group_key', $validated['group_key'])
+                ->whereNull('delivered_at')
+                ->update(['delivered_at' => now()]);
+        } catch (\Throwable) {
+        }
         return response()->json(['success' => true]);
     }
 
@@ -234,6 +241,7 @@ class BarController extends Controller
             'completed_orders_limit'=> $completedLimit,
             'waiter_calls'          => $waiterCalls,
             'attended_calls'        => $attendedCalls,
+            'server_now' => \App\Support\Clock::nowIso(),
         ]);
     }
 
@@ -315,7 +323,7 @@ class BarController extends Controller
                 ];
             }
 
-            return response()->json(['success' => true, 'orders' => $out, 'count' => count($out)]);
+            return response()->json(['success' => true, 'orders' => $out, 'count' => count($out), 'server_now' => \App\Support\Clock::nowIso()]);
         } catch (\Exception $e) {
             Log::error('BDS MSSQL sorgu hatası', ['error' => $e->getMessage()]);
             return response()->json(['success' => false, 'message' => 'BDS bağlantı hatası oluştu.', 'orders' => []]);
