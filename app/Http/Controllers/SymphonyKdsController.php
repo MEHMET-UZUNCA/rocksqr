@@ -595,6 +595,11 @@ class SymphonyKdsController extends Controller
                     if (!$completedCheckRows->has($k)) continue;
                     $servedKeys = json_decode($completedCheckRows[$k]->served_item_keys ?? '[]', true) ?: [];
                     if (empty($servedKeys)) {
+                        // Yalnız mesaj satırlı (ürünsüz) hesap: "Komple Hazır" sonrası kart ekranda kalmasın
+                        if (empty($chk['items'])) {
+                            unset($checks[$k]);
+                            continue;
+                        }
                         $checks[$k]['is_reopened'] = true;
                         continue;
                     }

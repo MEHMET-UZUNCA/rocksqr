@@ -251,10 +251,17 @@
             const isReopened = !!order.is_reopened;
             const borderClass = isAddition ? 'border-orange-500' : (isReopened ? 'border-yellow-600' : (isNew ? 'new-order border-gold' : 'border-blue-500'));
 
-            // Tüm unit_ids'leri düzleştir → served_item_keys fingerprint
-            const allUnitIds = (order.items || []).flatMap(it =>
-                (it.unit_ids && it.unit_ids.length) ? it.unit_ids : (it.item_id ? [String(it.item_id)] : [])
-            );
+            // Tüm unit_ids'leri düzleştir → served_item_keys fingerprint.
+            // Mesaj satırları dahil: yalnız mesajlı (ürünsüz) hesapta parmak izi boş kalırsa
+            // kart sunucuda "YENİDEN" olarak ekranda takılı kalır.
+            const allUnitIds = [
+                ...(order.items || []).flatMap(it =>
+                    (it.unit_ids && it.unit_ids.length) ? it.unit_ids : (it.item_id ? [String(it.item_id)] : [])
+                ),
+                ...(order.messages || []).flatMap(m =>
+                    (m.unit_ids && m.unit_ids.length) ? m.unit_ids : (m.item_id ? ['M' + String(m.item_id)] : [])
+                ),
+            ];
             // Ürün isimleri → tamamlama sonrası alt şerit için localStorage'a yazılacak
             const itemNamesList = (order.items || [])
                 .filter(it => !it.is_returned)
