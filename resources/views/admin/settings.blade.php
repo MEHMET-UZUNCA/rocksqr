@@ -217,21 +217,25 @@
                             <p class="text-xs text-gray-400 mt-1">Geri Al butonu bu süre çalisir</p>
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <label class="flex items-start gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
-                            <input type="checkbox" name="kitchen_show_drinks" value="1" class="rounded mt-0.5"
-                                   @checked(old('kitchen_show_drinks', $settings['kitchen_show_drinks']))>
-                            <span><i class="fas fa-wine-bottle mr-1"></i>İçecekler görünsün
-                                <span class="block text-xs font-normal text-gray-400">Kapalıyken içecek satırları mutfak ekranına gelmez</span>
-                            </span>
-                        </label>
-                        <label class="flex items-start gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
-                            <input type="checkbox" name="kitchen_show_others" value="1" class="rounded mt-0.5"
-                                   @checked(old('kitchen_show_others', $settings['kitchen_show_others']))>
-                            <span><i class="fas fa-comment-dots mr-1"></i>Diğerleri görünsün
-                                <span class="block text-xs font-normal text-gray-400">Mesaj/mars gibi yiyecek-içecek dışı satırlar</span>
-                            </span>
-                        </label>
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-filter mr-1"></i>Mutfak Ekrani Kategori Filtreleri</label>
+                        @foreach (\App\Support\KitchenFilter::RVCS as $kitchenRvcId => $kitchenRvcName)
+                        <div class="p-3 bg-orange-50 border border-orange-200 rounded-lg mb-3">
+                            <p class="text-xs font-bold text-orange-700 mb-2">{{ strtoupper($kitchenRvcName) }} <span class="font-normal text-orange-400">(Symphony RVC {{ $kitchenRvcId }})</span></p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                @foreach (\App\Support\KitchenFilter::GROUPS as $kitchenMg => [$kitchenLabel, $kitchenDesc, $kitchenIcon])
+                                <label class="flex items-start gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                                    <input type="checkbox" name="kitchen_show_{{ $kitchenRvcId }}_{{ $kitchenMg }}" value="1" class="rounded mt-0.5"
+                                           @checked(old("kitchen_show_{$kitchenRvcId}_{$kitchenMg}", $settings["kitchen_show_{$kitchenRvcId}_{$kitchenMg}"]))>
+                                    <span><i class="fas {{ $kitchenIcon }} mr-1"></i>{{ $kitchenLabel }}
+                                        <span class="block text-xs font-normal text-gray-400">{{ $kitchenDesc }}</span>
+                                    </span>
+                                </label>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endforeach
+                        <p class="text-xs text-gray-400">İşaretiniz kaldırılan Symphony satırları mutfak ekranına gelmez. Filtre yalnızca Symphony (POS) satırları için geçerlidir; kapatılıp yeniden açıldığında süre sayaçları kaldığı yerden devam eder.</p>
                     </div>
                     <button type="submit" class="py-2.5 px-5 bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-600 transition text-sm">
                         <i class="fas fa-save mr-2"></i>Kitchen Ayarlarini Kaydet

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\Setting;
 use App\Services\MssqlService;
+use App\Support\KitchenFilter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -395,9 +396,12 @@ class SymphonyKdsController extends Controller
                 $existingLocalTimes = DB::table('kitchen_item_times')->whereIn('unit_id', $allUnitIds)->pluck('first_seen_at', 'unit_id');
             }
 
-            // Mutfak filtresi (MajorGroupID: 1=Yiyecek, 2=İçecek, 3=Alkollü, 99=Mesaj/Mars)
-            $kitchenShowDrinks = (int) Setting::get('kitchen_show_drinks', 0) === 1;
-            $kitchenShowOthers = (int) Setting::get('kitchen_show_others', 1) === 1;
+            // Mutfak filtresi — RVC başına (44=Pool Bar, 81=Rocks Patisserie) ayrı,
+            // kategori başına (1/2/3/4, 99+98=mesajlar, 0=etiketsiz) ayrı tick.
+            $kitchenVisible = [];
+            foreach (array_keys(KitchenFilter::RVCS) as $filterRvcId) {
+                $kitchenVisible[$filterRvcId] = KitchenFilter::visibleMap($filterRvcId);
+            }
 
             $checks              = [];
             $checkless           = [];
@@ -437,13 +441,16 @@ class SymphonyKdsController extends Controller
                 $isCombo   = ($lineKind === 'COMBO') || $isComboItem;
                 $hasCheck  = $checkNum !== null && (int) $checkNum > 0;
 
-                // İçecek / diğer grup filtresi — mesaj ve mars satırları asla filtrelenmez.
-                // first_seen kaydı pre-pass'ta tüm satırlar için tutulur; filtre kapalıyken
-                // yeniden açılırsa sayaçlar doğru devam eder.
-                if (!$kitchenShowDrinks && in_array($majGrpId, [2, 3], true) && !$isMessage && !$isMars) {
-                    continue;
+                // RVC + kategori filtresi. first_seen kaydı pre-pass'ta tüm satırlar için
+                // tutulur; filtre kapatılıp açılırsa sayaçlar doğru devam eder.
+                // Bilinmeyen RVC (eski sorgu, RVC alanı yok) filtrelenmez.
+                // Mesajlar: BAR_MESSAGE → İçecek Mesajı (98), diğerleri → Mutfak Mesajı (99).
+                // Symphony'de iki mesaj türü de MajGrp 99'dur; ayrım satır adından gelir.
+                $filterMg = $majGrpId;
+                if ($isMessage || $isMars) {
+                    $filterMg = strtoupper((string) $lineKindRaw) === 'BAR_MESSAGE' ? 98 : 99;
                 }
-                if (!$kitchenShowOthers && $majGrpId !== 0 && !in_array($majGrpId, [1, 2, 3, 99], true) && !$isMessage && !$isMars) {
+                if (isset($kitchenVisible[$rvcId][$filterMg]) && !$kitchenVisible[$rvcId][$filterMg]) {
                     continue;
                 }
 
