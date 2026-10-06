@@ -5,7 +5,6 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\AdminCategoryController;
 use App\Http\Controllers\AdminProductController;
 use App\Http\Controllers\AdminReportController;
-use App\Http\Controllers\KitchenController;
 use App\Http\Controllers\BarController;
 use App\Http\Controllers\SymphonyKdsController;
 use App\Http\Controllers\SettingsController;
@@ -36,13 +35,6 @@ Route::patch('/bar/orders/{order}/status', [BarController::class, 'barUpdateStat
 Route::patch('/bar/orders/{order}/cancel', [BarController::class, 'cancelOrder'])->name('bar.order.cancel');
 Route::post('/bar/symphony/delivered', [BarController::class, 'barSymphonyDelivered'])->name('bar.symphony.delivered');
 Route::patch('/bar/waiter-calls/{waiterCall}/attend', [BarController::class, 'attendWaiterCall'])->name('bar.waiter.attend');
-
-// ── QR Kitchen Display Screen ───────────────────────────────────────────────
-Route::get('/kitchen', [KitchenController::class, 'kitchen'])->name('kitchen')->middleware('screen-pin:kitchen');
-Route::get('/kitchen/api/orders', [KitchenController::class, 'kitchenApiOrders'])->name('kitchen.api');
-Route::get('/kitchen/sse', [KitchenController::class, 'kitchenSse'])->name('kitchen.sse');
-Route::patch('/kitchen/orders/{order}/status', [KitchenController::class, 'kitchenUpdateStatus'])->name('kitchen.order.status');
-Route::patch('/kitchen/orders/{order}/ack-cancel', [KitchenController::class, 'kitchenAckCancel'])->name('kitchen.order.ack-cancel');
 
 // ── Symphony POS KDS ────────────────────────────────────────────────────────
 Route::get('/kitchen-pos', [SymphonyKdsController::class, 'kitchenPos'])->name('kitchen.pos')->middleware('screen-pin:kpos');

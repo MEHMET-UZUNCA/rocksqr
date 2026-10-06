@@ -66,14 +66,14 @@
                 </span>
                 @endif
             </div>
-            <div class="flex items-center gap-2">
-                <div class="relative">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <div class="relative flex-1 sm:flex-none">
                     <input type="text" id="search-input" placeholder="Ürün ara…" oninput="filterTable()"
-                        class="pl-8 pr-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 w-48">
+                        class="w-full sm:w-48 pl-8 pr-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
                     <i class="fas fa-search absolute left-2.5 top-2 text-gray-400 text-xs"></i>
                 </div>
                 <select id="filter-code" onchange="filterTable()"
-                    class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
+                    class="flex-1 sm:flex-none px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
                     <option value="all">Tümü</option>
                     <option value="has">Kodu Var</option>
                     <option value="missing">Kodu Yok</option>
@@ -300,16 +300,16 @@
 <div id="preview-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[80vh] overflow-hidden">
         <div class="px-6 py-4 bg-primary text-white flex justify-between items-center">
-            <h3 class="text-lg font-bold"><i class="fas fa-eye mr-2"></i>Degisiklik Onizleme</h3>
+            <h3 class="text-lg font-bold"><i class="fas fa-eye mr-2"></i>Değişiklik Önizleme</h3>
             <button onclick="closePreview()" class="text-gray-300 hover:text-white"><i class="fas fa-times text-xl"></i></button>
         </div>
         <div class="p-6 overflow-y-auto max-h-[55vh]" id="preview-content"></div>
         <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center bg-gray-50">
             <p class="text-sm text-gray-500" id="preview-count"></p>
             <div class="flex gap-3">
-                <button onclick="closePreview()" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100 transition">Iptal</button>
+                <button onclick="closePreview()" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100 transition">İptal</button>
                 <button onclick="applyChanges()" class="px-6 py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700 transition">
-                    <i class="fas fa-check mr-1"></i> Onayla ve Guncelle
+                    <i class="fas fa-check mr-1"></i> Onayla ve Güncelle
                 </button>
             </div>
         </div>

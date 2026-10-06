@@ -422,7 +422,7 @@
                 @if($activeTab === 'pin')
                 <div class="mb-4">
                     <p class="text-sm text-gray-500">
-                        Ekran uygulamaları (BDS, KDS, Kitchen POS, AKDS) ilk açılışta PIN sorar.
+                        Ekran uygulamaları (BDS, Kitchen POS, AKDS) ilk açılışta PIN sorar.
                         Doğru PIN girilince tarayıcıda 30 gün hatırlanır. Admin paneli girişi etkilenmez.
                     </p>
                 </div>
@@ -432,8 +432,7 @@
                     <input type="hidden" name="_pin_only" value="1">
                     @php
                     $pinScreens = [
-                        ['key' => 'bar',     'label' => 'Bar Ekranı (BDS)',        'icon' => 'fa-wine-glass',  'dot' => 'bg-amber-500'],
-                        ['key' => 'kitchen', 'label' => 'Mutfak Ekranı (KDS)',     'icon' => 'fa-utensils',    'dot' => 'bg-orange-500'],
+                        ['key' => 'bar',  'label' => 'Bar Ekranı (BDS)',       'icon' => 'fa-wine-glass',  'dot' => 'bg-amber-500'],
                         ['key' => 'kpos',    'label' => 'Kitchen POS (Symphony)',  'icon' => 'fa-server',      'dot' => 'bg-blue-500'],
                         ['key' => 'ana',     'label' => 'Ana Mutfak (AKDS)',       'icon' => 'fa-fire-burner', 'dot' => 'bg-teal-500'],
                     ];

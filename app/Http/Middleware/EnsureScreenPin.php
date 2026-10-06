@@ -14,10 +14,9 @@ class EnsureScreenPin
      * slug => [label, route]
      */
     public const SCREENS = [
-        'bar'     => ['label' => 'Bar Ekranı (BDS)',        'route' => 'bar'],
-        'kitchen' => ['label' => 'Mutfak Ekranı (KDS)',      'route' => 'kitchen'],
-        'kpos'    => ['label' => 'Kitchen POS (Symphony)',   'route' => 'kitchen.pos'],
-        'ana'     => ['label' => 'Ana Mutfak (AKDS)',        'route' => 'kitchen.ana'],
+        'bar'  => ['label' => 'Bar Ekranı (BDS)',      'route' => 'bar'],
+        'kpos' => ['label' => 'Kitchen POS (Symphony)', 'route' => 'kitchen.pos'],
+        'ana'  => ['label' => 'Ana Mutfak (AKDS)',      'route' => 'kitchen.ana'],
     ];
 
     public function handle(Request $request, Closure $next, string $screen): Response

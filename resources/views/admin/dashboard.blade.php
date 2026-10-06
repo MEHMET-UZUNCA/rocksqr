@@ -9,71 +9,105 @@
                     <i class="fas fa-tachometer-alt mr-2 text-gold"></i>Admin Dashboard
                 </h2>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <p class="text-blue-600 text-sm font-semibold">Toplam Sipariş</p>
-                        <p class="text-3xl font-bold text-blue-900">{{ \App\Models\Order::count() }}</p>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-center gap-4">
+                        <div class="shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100">
+                            <i class="fas fa-receipt text-blue-600"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xl lg:text-2xl font-bold text-gray-900">{{ \App\Models\Order::count() }}</p>
+                            <p class="text-xs lg:text-sm text-gray-500">Toplam Sipariş</p>
+                        </div>
                     </div>
-                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <p class="text-yellow-600 text-sm font-semibold">Yeni Siparişler</p>
-                        <p class="text-3xl font-bold text-yellow-900">{{ \App\Models\Order::where('status', 'new')->count() }}</p>
+                    <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-center gap-4">
+                        <div class="shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-amber-100">
+                            <i class="fas fa-clock text-amber-600"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xl lg:text-2xl font-bold text-gray-900">{{ \App\Models\Order::where('status', 'new')->count() }}</p>
+                            <p class="text-xs lg:text-sm text-gray-500">Yeni Siparişler</p>
+                        </div>
                     </div>
-                    <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-                        <p class="text-emerald-600 text-sm font-semibold">Toplam Sipariş Tutarı</p>
-                        <p class="text-3xl font-bold text-emerald-900">{{ number_format(\App\Models\Order::sum('total_price'), 2) }} ₺</p>
+                    <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-center gap-4">
+                        <div class="shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-green-100">
+                            <i class="fas fa-calendar-day text-green-600"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xl lg:text-2xl font-bold text-gray-900">
+                                {{ number_format(\App\Models\Order::whereDate('created_at', now()->toDateString())->sum('total_price'), 2) }} ₺
+                            </p>
+                            <p class="text-xs lg:text-sm text-gray-500">Günlük Satış</p>
+                        </div>
                     </div>
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <p class="text-green-600 text-sm font-semibold">Günlük Satış Tutarı</p>
-                        <p class="text-3xl font-bold text-green-900">
-                            {{ number_format(\App\Models\Order::whereDate('created_at', now()->toDateString())->sum('total_price'), 2) }} ₺
-                        </p>
+                    <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-center gap-4">
+                        <div class="shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-100">
+                            <i class="fas fa-calendar-alt text-indigo-600"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xl lg:text-2xl font-bold text-gray-900">
+                                {{ number_format(\App\Models\Order::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->sum('total_price'), 2) }} ₺
+                            </p>
+                            <p class="text-xs lg:text-sm text-gray-500">Aylık Satış</p>
+                        </div>
                     </div>
-                    <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-                        <p class="text-indigo-600 text-sm font-semibold">Aylık Satış Tutarı</p>
-                        <p class="text-3xl font-bold text-indigo-900">
-                            {{ number_format(\App\Models\Order::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->sum('total_price'), 2) }} ₺
-                        </p>
+                    <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-center gap-4">
+                        <div class="shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-100">
+                            <i class="fas fa-wallet text-emerald-600"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xl lg:text-2xl font-bold text-gray-900">
+                                {{ number_format(\App\Models\Order::sum('total_price'), 2) }} ₺
+                            </p>
+                            <p class="text-xs lg:text-sm text-gray-500">Toplam Sipariş Tutarı</p>
+                        </div>
                     </div>
-                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                        <p class="text-purple-600 text-sm font-semibold">Toplam Ürün</p>
-                        <p class="text-3xl font-bold text-purple-900">{{ \App\Models\Product::count() }}</p>
+                    <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-center gap-4">
+                        <div class="shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-purple-100">
+                            <i class="fas fa-box text-purple-600"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xl lg:text-2xl font-bold text-gray-900">{{ \App\Models\Product::count() }}</p>
+                            <p class="text-xs lg:text-sm text-gray-500">Toplam Ürün</p>
+                        </div>
                     </div>
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <p class="text-green-600 text-sm font-semibold">Bekleyen Çağrılar</p>
-                        <p class="text-3xl font-bold text-green-900">{{ \App\Models\WaiterCall::where('status', 'pending')->count() }}</p>
+                    <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-center gap-4">
+                        <div class="shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-red-100">
+                            <i class="fas fa-bell-concierge text-red-600"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xl lg:text-2xl font-bold text-gray-900">{{ \App\Models\WaiterCall::where('status', 'pending')->count() }}</p>
+                            <p class="text-xs lg:text-sm text-gray-500">Bekleyen Çağrılar</p>
+                        </div>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Hızlı Erişim</h3>
-                        <div class="space-y-2">
-                            <a href="{{ route('bar') }}" class="block px-4 py-3 bg-red-700 text-white rounded hover:bg-red-800 transition">
-                                <i class="fas fa-wine-glass mr-2"></i> Bar Ekrani (KDS)
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <a href="{{ route('bar') }}" class="flex items-center px-4 py-3 bg-red-700 text-white rounded-lg hover:bg-red-800 transition text-sm font-semibold">
+                                <i class="fas fa-wine-glass mr-2 w-4 text-center"></i> Bar Ekranı (BDS)
                             </a>
-                            <a href="{{ route('kitchen') }}" class="block px-4 py-3 bg-primary text-white rounded hover:bg-light-primary transition">
-                                <i class="fas fa-tv mr-2 text-gold"></i> Kitchen Ekrani (KDS)
+                            <a href="{{ route('kitchen.pos') }}" class="flex items-center px-4 py-3 bg-indigo-800 text-white rounded-lg hover:bg-indigo-900 transition text-sm font-semibold">
+                                <i class="fas fa-server mr-2 w-4 text-center"></i> Symphony Mutfak (KDS)
                             </a>
-                            <a href="{{ route('kitchen.pos') }}" class="block px-4 py-3 bg-indigo-800 text-white rounded hover:bg-indigo-900 transition">
-                                <i class="fas fa-fire mr-2"></i> Symphony Mutfak (KDS)
+                            <a href="{{ route('kitchen.ana') }}" class="flex items-center px-4 py-3 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition text-sm font-semibold">
+                                <i class="fas fa-fire-burner mr-2 w-4 text-center"></i> Ana Mutfak (AKDS)
                             </a>
-                            <a href="{{ route('kitchen.ana') }}" class="block px-4 py-3 bg-teal-700 text-white rounded hover:bg-teal-800 transition">
-                                <i class="fas fa-tv mr-2"></i> Ana Mutfak (AKDS)
+                            <a href="{{ route('admin.categories.index') }}" class="flex items-center px-4 py-3 bg-primary text-white rounded-lg hover:bg-light-primary transition text-sm font-semibold">
+                                <i class="fas fa-folder mr-2 w-4 text-center text-gold"></i> Kategorileri Yönet
                             </a>
-                            <a href="{{ route('admin.categories.index') }}" class="block px-4 py-3 bg-primary text-white rounded hover:bg-light-primary transition">
-                                <i class="fas fa-folder mr-2 text-gold"></i> Kategorileri Yönet
+                            <a href="{{ route('admin.products.index') }}" class="flex items-center px-4 py-3 bg-primary text-white rounded-lg hover:bg-light-primary transition text-sm font-semibold">
+                                <i class="fas fa-box mr-2 w-4 text-center text-gold"></i> Ürünleri Yönet
                             </a>
-                            <a href="{{ route('admin.products.index') }}" class="block px-4 py-3 bg-primary text-white rounded hover:bg-light-primary transition">
-                                <i class="fas fa-box mr-2 text-gold"></i> Ürünleri Yönet
+                            <a href="{{ route('admin.categories.create') }}" class="flex items-center px-4 py-3 bg-primary text-white rounded-lg hover:bg-light-primary transition text-sm font-semibold">
+                                <i class="fas fa-plus mr-2 w-4 text-center text-gold"></i> Yeni Kategori Ekle
                             </a>
-                            <a href="{{ route('admin.categories.create') }}" class="block px-4 py-3 bg-primary text-white rounded hover:bg-light-primary transition">
-                                <i class="fas fa-plus mr-2 text-gold"></i> Yeni Kategori Ekle
+                            <a href="{{ route('admin.products.create') }}" class="flex items-center px-4 py-3 bg-primary text-white rounded-lg hover:bg-light-primary transition text-sm font-semibold">
+                                <i class="fas fa-plus mr-2 w-4 text-center text-gold"></i> Yeni Ürün Ekle
                             </a>
-                            <a href="{{ route('admin.products.create') }}" class="block px-4 py-3 bg-primary text-white rounded hover:bg-light-primary transition">
-                                <i class="fas fa-plus mr-2 text-gold"></i> Yeni Ürün Ekle
-                            </a>
-                            <a href="{{ route('admin.qr-codes.index') }}" class="block px-4 py-3 bg-primary text-white rounded hover:bg-light-primary transition">
-                                <i class="fas fa-qrcode mr-2 text-gold"></i> Masa QR Oluştur
+                            <a href="{{ route('admin.qr-codes.index') }}" class="flex items-center px-4 py-3 bg-primary text-white rounded-lg hover:bg-light-primary transition text-sm font-semibold">
+                                <i class="fas fa-qrcode mr-2 w-4 text-center text-gold"></i> Masa QR Oluştur
                             </a>
                         </div>
                     </div>
@@ -83,11 +117,10 @@
                             <i class="fas fa-trophy mr-2 text-gold"></i>En Çok Satılan Ürünler
                         </h3>
                         @php
-                            $topProducts = collect();
-                            $orders = \App\Models\Order::all();
                             $productCounts = [];
-                            foreach ($orders as $order) {
-                                $items = is_string($order->items) ? json_decode($order->items, true) : $order->items;
+                            $itemsColumns = \App\Models\Order::query()->pluck('items_json');
+                            foreach ($itemsColumns as $itemsJson) {
+                                $items = is_string($itemsJson) ? json_decode($itemsJson, true) : $itemsJson;
                                 if (is_array($items)) {
                                     foreach ($items as $item) {
                                         $id = $item['id'] ?? null;
@@ -109,11 +142,11 @@
                                     @php $product = \App\Models\Product::find($productId); @endphp
                                     @if($product)
                                     <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
-                                        <div class="flex items-center gap-3">
+                                        <div class="flex items-center gap-3 min-w-0">
                                             <span class="text-lg font-bold text-gold">{{ $loop->iteration }}.</span>
-                                            <span class="font-medium text-gray-800">{{ $product->name }}</span>
+                                            <span class="font-medium text-gray-800 truncate">{{ $product->name }}</span>
                                         </div>
-                                        <span class="bg-gold/20 text-yellow-800 px-3 py-1 rounded-full text-sm font-bold">{{ $qty }} adet</span>
+                                        <span class="shrink-0 bg-gold/20 text-yellow-800 px-3 py-1 rounded-full text-sm font-bold">{{ $qty }} adet</span>
                                     </div>
                                     @endif
                                 @endforeach
@@ -139,7 +172,7 @@
                 @if($topTables->isEmpty())
                     <p class="text-gray-400 text-sm">Henüz garson çağrısı yok.</p>
                 @else
-                    <div class="space-y-2">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         @foreach($topTables as $table)
                         <div class="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg px-4 py-3">
                             <div class="flex items-center gap-3">

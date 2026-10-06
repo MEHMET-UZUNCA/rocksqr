@@ -25,67 +25,148 @@
     </script>
 </head>
 <body class="bg-gray-50 font-poppins">
-    <nav class="bg-primary text-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-            <a href="{{ route('admin.dashboard') }}" class="text-xl font-bold text-gold flex items-center gap-2">
-                @if(\App\Models\Setting::get('logo_svg'))
-                    <div class="h-8 w-auto [&>svg]:max-h-full [&>svg]:w-auto">{!! \App\Models\Setting::get('logo_svg') !!}</div>
-                @else
-                    <i class="fas fa-utensils mr-2"></i>Rocks QR Menü
-                @endif
-            </a>
-            
-            <div class="flex items-center gap-6">
-                <a href="{{ route('admin.dashboard') }}" class="hover:text-gold transition">
-                    <i class="fas fa-tachometer-alt mr-1"></i> Dashboard
+    <nav class="bg-primary text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+            <div class="flex justify-between items-center h-16">
+                <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2 text-lg font-bold text-gold shrink-0">
+                    @if(\App\Models\Setting::get('logo_svg'))
+                        <div class="h-9 w-auto [&>svg]:max-h-full [&>svg]:w-auto">{!! \App\Models\Setting::get('logo_svg') !!}</div>
+                    @else
+                        <i class="fas fa-utensils"></i><span class="hidden sm:inline">Rocks QR Menü</span><span class="sm:hidden">Rocks</span>
+                    @endif
                 </a>
-                <a href="{{ route('admin.categories.index') }}" class="hover:text-gold transition">
-                    <i class="fas fa-folder mr-1"></i> Kategoriler
-                </a>
-                <a href="{{ route('admin.products.index') }}" class="hover:text-gold transition">
-                    <i class="fas fa-box mr-1"></i> Ürünler
-                </a>
-                <div class="relative group">
-                    <button type="button" class="hover:text-gold transition flex items-center gap-1 focus:outline-none">
-                        <i class="fas fa-desktop mr-1"></i> Ekran Menüsü <i class="fas fa-chevron-down text-xs ml-1"></i>
-                    </button>
-                    <div class="absolute right-0 top-full mt-1 w-56 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                        <a href="{{ route('bar') }}" class="block px-4 py-2 hover:bg-gold/10 hover:text-primary border-b border-gray-100">
-                            <i class="fas fa-wine-glass mr-2 text-purple-600 w-4"></i> Bar
+
+                <div class="hidden xl:flex items-stretch h-full">
+                    <a href="{{ route('admin.dashboard') }}"
+                       class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition {{ request()->routeIs('admin.dashboard') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
+                        <i class="fas fa-tachometer-alt text-xs text-gold/80"></i>Dashboard
+                    </a>
+                    <a href="{{ route('admin.categories.index') }}"
+                       class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition {{ request()->routeIs('admin.categories.*') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
+                        <i class="fas fa-folder text-xs text-gold/80"></i>Kategoriler
+                    </a>
+                    <a href="{{ route('admin.products.index') }}"
+                       class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition {{ request()->routeIs('admin.products.*') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
+                        <i class="fas fa-box text-xs text-gold/80"></i>Ürünler
+                    </a>
+
+                    <div class="relative flex items-stretch" id="screen-menu-wrap">
+                        <button type="button" id="screen-menu-btn" aria-haspopup="true" aria-expanded="false"
+                                class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition cursor-pointer {{ request()->routeIs('bar', 'kitchen.pos', 'kitchen.ana', 'screen.pin') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
+                            <i class="fas fa-desktop text-xs text-gold/80"></i>Ekran Menüsü
+                            <i id="screen-menu-chevron" class="fas fa-chevron-down text-[10px] transition-transform duration-200"></i>
+                        </button>
+                        <div id="screen-menu" class="hidden absolute right-0 top-full w-60 bg-white text-gray-800 rounded-xl shadow-xl border border-gray-100 py-2 z-50">
+                            <a href="{{ route('bar') }}" class="flex items-center gap-2.5 px-4 py-2.5 hover:bg-gold/10 hover:text-primary transition">
+                                <i class="fas fa-wine-glass w-4 text-center text-purple-600"></i>Bar Ekranı
+                            </a>
+                            <a href="{{ route('kitchen.pos') }}" class="flex items-center gap-2.5 px-4 py-2.5 hover:bg-gold/10 hover:text-primary transition">
+                                <i class="fas fa-server w-4 text-center text-sky-600"></i>Kitchen - Symphony
+                            </a>
+                            <a href="{{ route('kitchen.ana') }}" class="flex items-center gap-2.5 px-4 py-2.5 hover:bg-gold/10 hover:text-primary transition">
+                                <i class="fas fa-fire-burner w-4 text-center text-teal-600"></i>Ana Mutfak (AKDS)
+                            </a>
+                        </div>
+                    </div>
+
+                    <a href="{{ route('admin.sync') }}"
+                       class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition {{ request()->routeIs('admin.sync') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
+                        <i class="fas fa-sync text-xs text-gold/80"></i>Sync
+                    </a>
+                    <a href="{{ route('admin.qr-codes.index') }}"
+                       class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition {{ request()->routeIs('admin.qr-codes.*') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
+                        <i class="fas fa-qrcode text-xs text-gold/80"></i>QR
+                    </a>
+                    <a href="{{ route('admin.mssql-settings') }}"
+                       class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition {{ request()->routeIs('admin.mssql-settings') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
+                        <i class="fas fa-server text-xs text-gold/80"></i>MSSQL
+                    </a>
+                    <a href="{{ route('admin.reports.kitchen') }}"
+                       class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition {{ request()->routeIs('admin.reports.*') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
+                        <i class="fas fa-chart-line text-xs text-gold/80"></i>Raporlar
+                    </a>
+                    <a href="{{ route('admin.settings') }}"
+                       class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition {{ request()->routeIs('admin.settings') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
+                        <i class="fas fa-cog text-xs text-gold/80"></i>Ayarlar
+                    </a>
+
+                    <form method="POST" action="{{ route('logout') }}" class="flex items-stretch">
+                        @csrf
+                        <button type="submit"
+                                class="flex items-center gap-1.5 px-3 text-sm border-b-2 border-transparent text-gray-300 hover:text-red-300 hover:border-red-400/60 transition">
+                            <i class="fas fa-sign-out-alt text-xs text-gold/80"></i>Çıkış
+                        </button>
+                    </form>
+                </div>
+
+                <button type="button" id="nav-toggle" aria-label="Menü" aria-expanded="false"
+                        class="xl:hidden flex items-center justify-center w-11 h-11 rounded-lg text-gray-200 hover:text-gold hover:bg-white/5 transition">
+                    <i id="nav-toggle-icon" class="fas fa-bars text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="mobile-nav" class="hidden xl:hidden border-t border-white/10 bg-light-primary max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <div class="px-4 py-4 space-y-5">
+                <div>
+                    <p class="text-[11px] uppercase tracking-[0.2em] text-gold/70 font-semibold mb-2 px-3">Menü</p>
+                    <div class="space-y-0.5">
+                        <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
+                            <i class="fas fa-tachometer-alt w-5 text-center text-gold/80"></i>Dashboard
                         </a>
-                        <a href="{{ route('kitchen') }}" class="block px-4 py-2 hover:bg-gold/10 hover:text-primary border-b border-gray-100">
-                            <i class="fas fa-tv mr-2 text-amber-600 w-4"></i> Kitchen (KDS)
+                        <a href="{{ route('admin.categories.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
+                            <i class="fas fa-folder w-5 text-center text-gold/80"></i>Kategoriler
                         </a>
-                        <a href="{{ route('kitchen.pos') }}" class="block px-4 py-2 hover:bg-gold/10 hover:text-primary border-b border-gray-100">
-                            <i class="fas fa-server mr-2 text-sky-600 w-4"></i> Kitchen - Symphony
-                        </a>
-                        <a href="{{ route('kitchen.ana') }}" class="block px-4 py-2 hover:bg-gold/10 hover:text-primary">
-                            <i class="fas fa-tv mr-2 text-teal-600 w-4"></i> Ana Mutfak (AKDS)
+                        <a href="{{ route('admin.products.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
+                            <i class="fas fa-box w-5 text-center text-gold/80"></i>Ürünler
                         </a>
                     </div>
                 </div>
-                <a href="{{ route('admin.sync') }}" class="hover:text-gold transition">
-                    <i class="fas fa-sync mr-1"></i> Sync
-                </a>
-                <a href="{{ route('admin.qr-codes.index') }}" class="hover:text-gold transition">
-                    <i class="fas fa-qrcode mr-1"></i> QR
-                </a>
-                <a href="{{ route('admin.mssql-settings') }}" class="hover:text-gold transition">
-                    <i class="fas fa-server mr-1"></i> MSSQL
-                </a>
-                <a href="{{ route('admin.reports.kitchen') }}" class="hover:text-gold transition">
-                    <i class="fas fa-chart-line mr-1"></i> Raporlar
-                </a>
-                <a href="{{ route('admin.settings') }}" class="hover:text-gold transition">
-                    <i class="fas fa-cog mr-1"></i> Ayarlar
-                </a>
-                
-                <form method="POST" action="{{ route('logout') }}" class="inline">
-                    @csrf
-                    <button type="submit" class="hover:text-gold transition">
-                        <i class="fas fa-sign-out-alt mr-1"></i> Çıkış
-                    </button>
-                </form>
+
+                <div>
+                    <p class="text-[11px] uppercase tracking-[0.2em] text-gold/70 font-semibold mb-2 px-3">Ekranlar</p>
+                    <div class="space-y-0.5">
+                        <a href="{{ route('bar') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
+                            <i class="fas fa-wine-glass w-5 text-center text-purple-400"></i>Bar Ekranı
+                        </a>
+                        <a href="{{ route('kitchen.pos') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
+                            <i class="fas fa-server w-5 text-center text-sky-400"></i>Kitchen - Symphony
+                        </a>
+                        <a href="{{ route('kitchen.ana') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
+                            <i class="fas fa-fire-burner w-5 text-center text-teal-400"></i>Ana Mutfak (AKDS)
+                        </a>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="text-[11px] uppercase tracking-[0.2em] text-gold/70 font-semibold mb-2 px-3">Yönetim</p>
+                    <div class="space-y-0.5">
+                        <a href="{{ route('admin.sync') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
+                            <i class="fas fa-sync w-5 text-center text-gold/80"></i>Sync
+                        </a>
+                        <a href="{{ route('admin.qr-codes.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
+                            <i class="fas fa-qrcode w-5 text-center text-gold/80"></i>Masa QR
+                        </a>
+                        <a href="{{ route('admin.mssql-settings') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
+                            <i class="fas fa-server w-5 text-center text-gold/80"></i>MSSQL
+                        </a>
+                        <a href="{{ route('admin.reports.kitchen') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
+                            <i class="fas fa-chart-line w-5 text-center text-gold/80"></i>Raporlar
+                        </a>
+                        <a href="{{ route('admin.settings') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
+                            <i class="fas fa-cog w-5 text-center text-gold/80"></i>Ayarlar
+                        </a>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-white/10">
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-300 hover:bg-red-500/10 hover:text-red-200 transition">
+                            <i class="fas fa-sign-out-alt w-5 text-center"></i>Çıkış Yap
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </nav>
@@ -119,5 +200,54 @@
             <p>&copy; {{ date('Y') }} Rocks Hotel QR Menü Sistemi</p>
         </div>
     </footer>
+
+    <script>
+        (function () {
+            var wrap = document.getElementById('screen-menu-wrap');
+            var btn = document.getElementById('screen-menu-btn');
+            var menu = document.getElementById('screen-menu');
+            var chevron = document.getElementById('screen-menu-chevron');
+
+            function closeScreenMenu() {
+                if (!menu) return;
+                menu.classList.add('hidden');
+                chevron.classList.remove('rotate-180');
+                btn.setAttribute('aria-expanded', 'false');
+            }
+
+            if (wrap && btn && menu && chevron) {
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    if (menu.classList.contains('hidden')) {
+                        menu.classList.remove('hidden');
+                        chevron.classList.add('rotate-180');
+                        btn.setAttribute('aria-expanded', 'true');
+                    } else {
+                        closeScreenMenu();
+                    }
+                });
+                document.addEventListener('click', function (e) {
+                    if (!wrap.contains(e.target)) closeScreenMenu();
+                });
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') closeScreenMenu();
+                });
+            }
+
+            var toggle = document.getElementById('nav-toggle');
+            var panel = document.getElementById('mobile-nav');
+            var icon = document.getElementById('nav-toggle-icon');
+
+            if (toggle && panel && icon) {
+                toggle.addEventListener('click', function () {
+                    var open = !panel.classList.contains('hidden');
+                    panel.classList.toggle('hidden', open);
+                    icon.classList.toggle('fa-bars', open);
+                    icon.classList.toggle('fa-xmark', !open);
+                    toggle.setAttribute('aria-expanded', String(!open));
+                });
+            }
+        })();
+    </script>
 </body>
 </html>
