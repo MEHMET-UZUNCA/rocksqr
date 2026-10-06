@@ -107,6 +107,78 @@ function locLabel($tableNo, $roomNo): string {
         </div>
     </div>
 
+    {{-- Ürüne göre + Masaya göre --}}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+            <h3 class="font-bold text-gray-800 mb-2"><i class="fas fa-burger mr-2 text-orange-500"></i>Ürüne Göre Hazırlık</h3>
+            <p class="text-xs text-gray-400 mb-3">Hangi ürün mutfakta ne kadar sürüyor — en çok onaylanan 30 ürün</p>
+            @if($itemByProduct->isEmpty())
+                <p class="text-gray-400 text-sm text-center py-8">Bu dönemde ürün onayı yok. Veriler mutfak ekranındaki ürün onaylarıyla birikir.</p>
+            @else
+                <div class="overflow-y-auto max-h-80 border border-gray-100 rounded-lg">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 border-b sticky top-0">
+                            <tr class="text-xs text-gray-500 uppercase">
+                                <th class="px-3 py-2 text-left">Ürün</th>
+                                <th class="px-3 py-2 text-right">Adet</th>
+                                <th class="px-3 py-2 text-right">Ort. Hazırlık</th>
+                                <th class="px-3 py-2 text-right">En Uzun</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                        @foreach($itemByProduct as $p)
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-3 py-1.5 text-gray-700 text-xs font-medium">{{ $p->name }}</td>
+                                <td class="px-3 py-1.5 text-right text-xs text-gray-500 whitespace-nowrap">{{ (int) $p->pieces }} adet<span class="text-gray-300"> ({{ (int) $p->confirmations }}x)</span></td>
+                                <td class="px-3 py-1.5 text-right">{!! durBadge($p->avg_seconds !== null ? (int) $p->avg_seconds : null) !!}</td>
+                                <td class="px-3 py-1.5 text-right text-xs text-gray-500 whitespace-nowrap">{{ fmtSecs($p->max_seconds !== null ? (int) $p->max_seconds : null) }}</td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3 pt-2 border-t border-gray-100 text-xs text-gray-400">
+                    <i class="fas fa-circle-info mr-1"></i>Symphony'de ürün bazlı "Hazır" onayları ölçülür; QR ürünleri sipariş onay ortalamasını alır.
+                </div>
+            @endif
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+            <h3 class="font-bold text-gray-800 mb-2"><i class="fas fa-chair mr-2 text-sky-500"></i>Masaya Göre</h3>
+            <p class="text-xs text-gray-400 mb-3">Konum bazında mutfak hazırlıkları ve QR teslimleri</p>
+            @if(count($byLoc) === 0)
+                <p class="text-gray-400 text-sm text-center py-8">Bu dönemde konum verisi yok.</p>
+            @else
+                <div class="overflow-x-auto max-h-80 overflow-y-auto border border-gray-100 rounded-lg">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 border-b sticky top-0">
+                            <tr class="text-xs text-gray-500 uppercase">
+                                <th class="px-3 py-2 text-left">Konum</th>
+                                <th class="px-3 py-2 text-right" title="Symphony ürün onayı">SYM</th>
+                                <th class="px-3 py-2 text-right">Ort. Hazırlık</th>
+                                <th class="px-3 py-2 text-right">Ort. Bar Bekleme</th>
+                                <th class="px-3 py-2 text-right" title="QR siparişi">QR</th>
+                                <th class="px-3 py-2 text-right">Ort. Toplam</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                        @foreach($byLoc as $loc)
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-3 py-1.5 text-gray-700 text-xs font-medium">{{ $loc['label'] }}</td>
+                                <td class="px-3 py-1.5 text-right text-xs text-gray-500">{{ $loc['sym_n'] > 0 ? $loc['sym_n'].'x' : '—' }}</td>
+                                <td class="px-3 py-1.5 text-right">{!! durBadge($loc['sym_prep']) !!}</td>
+                                <td class="px-3 py-1.5 text-right text-xs text-gray-500 whitespace-nowrap">{{ fmtSecs($loc['sym_bar_wait']) }}</td>
+                                <td class="px-3 py-1.5 text-right text-xs text-gray-500">{{ $loc['qr_n'] > 0 ? $loc['qr_n'].'x' : '—' }}</td>
+                                <td class="px-3 py-1.5 text-right text-xs text-gray-500 whitespace-nowrap">{{ fmtSecs($loc['qr_total']) }}</td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+    </div>
+
     {{-- Günlük ortalama QR teslim süresi --}}
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
         <h3 class="font-bold text-gray-800 mb-4"><i class="fas fa-bar-chart mr-2 text-amber-500"></i>QR — Günlük Ortalama Teslim Süresi</h3>

@@ -162,18 +162,79 @@ class AdminReportController extends Controller
             ->orderBy('day')
             ->get();
 
+        // ---- Ürüne göre hazırlık (kitchen_item_logs — mutfak onay geçmişi) ----
+        $itemQuery = DB::table('kitchen_item_logs');
+        $applyRange($itemQuery, 'completed_at');
+
+        $itemByProduct = (clone $itemQuery)
+            ->selectRaw('name, COUNT(*) AS confirmations, SUM(qty) AS pieces, ROUND(AVG(prep_seconds)) AS avg_seconds, MAX(prep_seconds) AS max_seconds')
+            ->groupBy('name')
+            ->orderByDesc('confirmations')
+            ->limit(30)
+            ->get();
+
+        // ---- Masaya göre kırılım ----
+        $symByTable = (clone $itemQuery)
+            ->whereNotNull('table_no')
+            ->selectRaw("table_no, COUNT(*) AS total, ROUND(AVG(prep_seconds)) AS avg_prep,
+                ROUND(AVG(CASE WHEN delivered_at IS NOT NULL THEN TIMESTAMPDIFF(SECOND, completed_at, delivered_at) END)) AS avg_bar_wait")
+            ->groupBy('table_no')
+            ->orderByDesc('total')
+            ->get();
+
+        $qrByLoc = $applyRange(
+            Order::where('kitchen_status', 'completed')
+                ->whereNotNull('completed_at'),
+            'completed_at'
+        )->selectRaw("CONCAT('M:', IFNULL(table_no, CONCAT('O:', room_no))) AS loc_key, COUNT(*) AS total, ROUND(AVG(TIMESTAMPDIFF(SECOND, created_at, completed_at))) AS avg_total")
+            ->groupBy('loc_key')
+            ->get();
+
+        $byLoc = [];
+        foreach ($symByTable as $r) {
+            $byLoc['M:' . $r->table_no] = [
+                'label'        => 'Masa ' . $r->table_no,
+                'sym_n'        => (int) $r->total,
+                'sym_prep'     => $r->avg_prep !== null ? (int) $r->avg_prep : null,
+                'sym_bar_wait' => $r->avg_bar_wait !== null ? (int) $r->avg_bar_wait : null,
+                'qr_n'         => 0,
+                'qr_total'     => null,
+            ];
+        }
+        foreach ($qrByLoc as $r) {
+            $key = $r->loc_key;
+            if ($key === null || $key === '') {
+                continue;
+            }
+            if (!isset($byLoc[$key])) {
+                $byLoc[$key] = [
+                    'label'        => str_starts_with($key, 'O:') ? 'Oda ' . substr($key, 2) : 'Masa ' . substr($key, 2),
+                    'sym_n'        => 0,
+                    'sym_prep'     => null,
+                    'sym_bar_wait' => null,
+                    'qr_n'         => 0,
+                    'qr_total'     => null,
+                ];
+            }
+            $byLoc[$key]['qr_n']     = (int) $r->total;
+            $byLoc[$key]['qr_total'] = $r->avg_total !== null ? (int) $r->avg_total : null;
+        }
+        usort($byLoc, fn ($a, $b) => ($b['sym_n'] + $b['qr_n']) <=> ($a['sym_n'] + $a['qr_n']));
+
         return view('admin.reports.durations', [
-            'range'       => $range,
-            'qrRows'      => $qrRows,
-            'qrBarWait'   => $agg($qrBarWait),
-            'qrStartWait' => $agg($qrStartWait),
-            'qrPrep'      => $agg($qrPrep),
-            'qrReadyWait' => $agg($qrReadyWait),
-            'qrTotal'     => $agg($qrTotal),
-            'symRows'     => $symRows,
-            'symPrep'     => (clone $symQuery)->selectRaw('COUNT(*) AS total, ROUND(AVG(prep_seconds)) AS avg_seconds, MAX(prep_seconds) AS max_seconds')->first(),
-            'symBarWait'  => $agg($symBarWait),
-            'daily'       => $daily,
+            'range'         => $range,
+            'qrRows'        => $qrRows,
+            'qrBarWait'     => $agg($qrBarWait),
+            'qrStartWait'   => $agg($qrStartWait),
+            'qrPrep'        => $agg($qrPrep),
+            'qrReadyWait'   => $agg($qrReadyWait),
+            'qrTotal'       => $agg($qrTotal),
+            'symRows'       => $symRows,
+            'symPrep'       => (clone $symQuery)->selectRaw('COUNT(*) AS total, ROUND(AVG(prep_seconds)) AS avg_seconds, MAX(prep_seconds) AS max_seconds')->first(),
+            'symBarWait'    => $agg($symBarWait),
+            'daily'         => $daily,
+            'itemByProduct' => $itemByProduct,
+            'byLoc'         => $byLoc,
         ]);
     }
 }
