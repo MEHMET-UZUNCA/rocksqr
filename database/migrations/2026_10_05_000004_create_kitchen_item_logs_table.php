@@ -18,7 +18,8 @@ return new class extends Migration
             $table->string('check_number', 64)->nullable();
             $table->string('group_key', 64)->index();
             $table->timestamp('first_seen_at')->nullable();
-            $table->timestamp('completed_at')->index();
+            $table->timestamp('completed_at')->useCurrent();
+            $table->index('completed_at');
             $table->unsignedInteger('prep_seconds')->nullable();
             $table->timestamp('delivered_at')->nullable();
             $table->timestamps();
