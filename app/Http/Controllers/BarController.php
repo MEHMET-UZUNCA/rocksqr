@@ -282,6 +282,10 @@ class BarController extends Controller
                 $key = $checkNum !== null && $checkNum !== '' ? 'C' . $checkNum : 'T' . $tableNo;
                 // MajorGroupID: 1=Yiyecek, 2=İçecek, 3=Alkollü İçecek, 99=Mesaj/Mars
                 $mg = (int) $this->mssql->getField($row, ['MajorGroupID', 'major_group_id', 'MajGrp', 'maj_grp'], 0);
+                // Filtre kodu: Bar Mesaj satırları (LineType BAR_MESSAGE, MajGrp 99) 98'e,
+                // diğerleri MajorGroupID ile aynı olur — mutfak tick yapısıyla paralel.
+                $lineType = strtoupper((string) $this->mssql->getField($row, ['LineType', 'line_type', 'LineKind', 'line_kind'], ''));
+                $fc = $lineType === 'BAR_MESSAGE' ? 98 : $mg;
                 if (!isset($groups[$key])) {
                     $groups[$key] = [
                         'group_key'    => $key,
@@ -295,7 +299,7 @@ class BarController extends Controller
                 if ($orderTime && (!$groups[$key]['order_time'] || strcmp((string) $orderTime, (string) $groups[$key]['order_time']) < 0)) {
                     $groups[$key]['order_time'] = $orderTime;
                 }
-                $groups[$key]['items'][] = ['name' => $itemName, 'qty' => max(1, $qty), 'note' => $note, 'mg' => $mg];
+                $groups[$key]['items'][] = ['name' => $itemName, 'qty' => max(1, $qty), 'note' => $note, 'mg' => $mg, 'fc' => $fc];
             }
 
             uasort($groups, fn($a, $b) => strcmp((string) $a['order_time'], (string) $b['order_time']));

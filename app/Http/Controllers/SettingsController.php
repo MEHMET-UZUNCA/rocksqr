@@ -20,8 +20,6 @@ class SettingsController extends Controller
             'bar_completed_display' => (int) Setting::get('bar_completed_display', 6),
             'ready_undo_seconds' => (int) Setting::get('ready_undo_seconds', 30),
             'bar_screen_title' => Setting::get('bar_screen_title', 'KDS - Bar Ekrani'),
-            'bar_show_drinks' => (int) Setting::get('bar_show_drinks', 0),
-            'bar_show_others' => (int) Setting::get('bar_show_others', 1),
             'screen_clock_source' => \App\Support\Clock::source(),
             'kitchen_screen_title' => Setting::get('kitchen_screen_title', 'POOL Mutfak Ekrani'),
             'waiter_call_display' => (int) Setting::get('waiter_call_display', 10),
@@ -63,6 +61,13 @@ class SettingsController extends Controller
         foreach (\App\Support\KitchenFilter::RVCS as $kitchenRvcId => $_rvcName) {
             foreach (\App\Support\KitchenFilter::visibleMap($kitchenRvcId) as $kitchenMg => $on) {
                 $settings["kitchen_show_{$kitchenRvcId}_{$kitchenMg}"] = $on;
+            }
+        }
+
+        // Bar kategori filtreleri — mufaktan bagimsiz ayri tick seti (BDS sorgusu RVC 44)
+        foreach (\App\Support\KitchenFilter::BAR_RVCS as $barRvcId => $_barRvcName) {
+            foreach (\App\Support\KitchenFilter::visibleMap($barRvcId, 'bar_show') as $barMg => $on) {
+                $settings["bar_show_{$barRvcId}_{$barMg}"] = $on;
             }
         }
 
@@ -172,8 +177,15 @@ class SettingsController extends Controller
                 Setting::set('bar_completed_display', $request->bar_completed_display);
                 Setting::set('order_ready_display', $request->order_ready_display);
                 Setting::set('order_profit_display', $request->order_profit_display);
-                Setting::set('bar_show_drinks', $request->boolean('bar_show_drinks') ? '1' : '0');
-                Setting::set('bar_show_others', $request->boolean('bar_show_others') ? '1' : '0');
+                // Bar kategori tick'leri — RVC 44 (Pool Bar) × Symphony grubu, ayri set
+                foreach (\App\Support\KitchenFilter::BAR_RVCS as $barRvcId => $_barRvcName) {
+                    foreach (array_keys(\App\Support\KitchenFilter::GROUPS) as $barMg) {
+                        Setting::set(
+                            "bar_show_{$barRvcId}_{$barMg}",
+                            $request->boolean("bar_show_{$barRvcId}_{$barMg}") ? '1' : '0'
+                        );
+                    }
+                }
                 return back()->with('success', 'Bar ekran ayarları güncellendi.');
             }
 

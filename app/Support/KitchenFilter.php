@@ -9,6 +9,9 @@ class KitchenFilter
     // MSSQL KDS sorgusunun getirdiği gelir merkezleri: RVC kodu → ekrandaki ad
     public const RVCS = [44 => 'Pool Bar', 81 => 'Rocks Patisserie'];
 
+    // BDS (bar) sorgusu yalnız RVC 44 getirir — bar tick'leri bu merkez için
+    public const BAR_RVCS = [44 => 'Pool Bar'];
+
     // Symphony MajorGroup kodu → [etiket, açıklama, ikon]
     // Yalnızca KDS akışında gerçekten görünen kodlar (canlı 7 günlük veri)
     public const GROUPS = [
@@ -24,19 +27,20 @@ class KitchenFilter
     // Varsayılan kapalı kategoriler — eski kitchen_show_drinks=0 davranışının devamı
     public const DEFAULT_HIDDEN = [2, 3];
 
-    // RVC + kategori başına görünür mü (tek sorgu)
-    public static function visibleMap(int $rvcId): array
+    // RVC + kategori başına görünür mü (tek sorgu).
+    // $prefix: mutfak 'kitchen_show', bar 'bar_show' — ayar anahtarları ayrı settir.
+    public static function visibleMap(int $rvcId, string $prefix = 'kitchen_show'): array
     {
         $keys = [];
         foreach (array_keys(self::GROUPS) as $mg) {
-            $keys[] = "kitchen_show_{$rvcId}_{$mg}";
+            $keys[] = "{$prefix}_{$rvcId}_{$mg}";
         }
         $saved = Setting::whereIn('key', $keys)->pluck('value', 'key');
 
         $map = [];
         foreach (array_keys(self::GROUPS) as $mg) {
             $default  = in_array($mg, self::DEFAULT_HIDDEN, true) ? '0' : '1';
-            $map[$mg] = ($saved["kitchen_show_{$rvcId}_{$mg}"] ?? $default) === '1';
+            $map[$mg] = ($saved["{$prefix}_{$rvcId}_{$mg}"] ?? $default) === '1';
         }
         return $map;
     }

@@ -179,15 +179,14 @@
         }
 
         // ── Bar kategori filtreleri (Admin → Ekran → Bar Ayarları) ─────────
-        const BAR_SHOW_DRINKS = @json((bool) \App\Models\Setting::get('bar_show_drinks', '0'));
-        const BAR_SHOW_OTHERS = @json((bool) \App\Models\Setting::get('bar_show_others', '1'));
+        // RVC 44 (Pool Bar) × Symphony grubu tick'leri — mutfaktan bağımsız ayri set.
+        const BAR_TICKS = @json(\App\Support\KitchenFilter::visibleMap(44, 'bar_show'));
 
-        // Symphony: MajorGroupID 1=yiyecek, 2/3=içecek, diğer=mars/mesaj. QR: cat (food/drink).
-        function itemClass(item) {
-            if (item.mg === 1) return 'food';
-            if (item.mg === 2 || item.mg === 3) return 'drink';
-            if (item.mg) return 'other';
-            return item.cat || 'food';
+        // Öğenin tick kodu: Symphony'de sunucu hesaplar (fc: Bar Mesaj→98, diğer→mg),
+        // QR öğelerinde cat food→1 / drink→2.
+        function itemTick(item) {
+            if (item.fc !== undefined && item.fc !== null) return item.fc;
+            return item.cat === 'drink' ? 2 : 1;
         }
 
         function parseItems(order) {
@@ -201,7 +200,7 @@
 
         // Gizli kategoriler elenmiş ürün listesi; Symphony hazır kartındaki
         // 'Adisyon #' yer tutucusu lastSymOrders'tan gerçek ürünlerle çözülür.
-        // Mesaj satırları (mg=99) yalnızca kartta yiyecek varsa gösterilir.
+        // Mesaj satırları (tick 98/99) yalnızca kartta yiyecek varsa gösterilir.
         function visibleItems(order) {
             let items = parseItems(order);
             if (order.source === 'symphony' && items.length === 1 && String(items[0].name || '').startsWith('Adisyon #')) {
@@ -209,12 +208,11 @@
                 if (match && match.items && match.items.length > 0) items = match.items;
                 else if (Array.isArray(order.db_items) && order.db_items.length > 0) items = order.db_items;
             }
-            const hasFood = items.some(i => itemClass(i) === 'food');
+            const hasFood = items.some(i => itemTick(i) === 1);
             return items.filter(i => {
-                const k = itemClass(i);
-                if (k === 'drink') return BAR_SHOW_DRINKS;
-                if (k === 'other') return BAR_SHOW_OTHERS && (i.mg !== 99 || hasFood);
-                return true;
+                const t = itemTick(i);
+                if (t === 98 || t === 99) return !!BAR_TICKS[t] && hasFood;
+                return BAR_TICKS[t] === undefined ? true : !!BAR_TICKS[t];
             });
         }
 
