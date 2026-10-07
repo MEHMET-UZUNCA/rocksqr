@@ -180,6 +180,41 @@
                         <i class="fas fa-save mr-2"></i>Arka Plan Logolarını Kaydet
                     </button>
                 </form>
+
+                <hr class="border-gray-100 my-8">
+
+                <div class="mb-2 flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center shrink-0">
+                        <i class="fas fa-clock text-sky-600"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-gray-800">Ekran Temizleme Saatleri</h3>
+                </div>
+                <form action="{{ route('admin.settings.update') }}?tab=genel" method="POST">
+                    <input type="hidden" name="_clear_times_only" value="1">
+                    @csrf
+                    @method('PUT')
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Bar Ekranı</label>
+                            <input type="time" name="screen_clear_time_bar" value="{{ old('screen_clear_time_bar', $settings['screen_clear_time_bar'] ?? '14:00') }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-400" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Mutfak KDS</label>
+                            <input type="time" name="screen_clear_time_kpos" value="{{ old('screen_clear_time_kpos', $settings['screen_clear_time_kpos'] ?? '14:00') }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-400" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Ana Mutfak (AKDS)</label>
+                            <input type="time" name="screen_clear_time_ana" value="{{ old('screen_clear_time_ana', $settings['screen_clear_time_ana'] ?? '14:00') }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-400" required>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2">Her ekran kendi saatinde otomatik temizlenir; sadece ekrandaki bekleyenler kapatılır, kayıtlar ve rapor verileri korunur.</p>
+                    <button type="submit" class="mt-3 py-2.5 px-5 bg-sky-500 text-white font-bold rounded-lg hover:bg-sky-600 transition text-sm">
+                        <i class="fas fa-save mr-2"></i>Kaydet
+                    </button>
+                </form>
                 @endif
 
                 @if($activeTab === 'ekran')
@@ -439,41 +474,6 @@
                     </div>
                     <button type="submit" class="py-2.5 px-5 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-600 transition text-sm">
                         <i class="fas fa-save mr-2"></i>Saat Ayarini Kaydet
-                    </button>
-                </form>
-
-                <hr class="border-gray-100 mb-6">
-
-                <div class="mb-2 flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center shrink-0">
-                        <i class="fas fa-clock text-sky-600"></i>
-                    </div>
-                    <h3 class="text-base font-bold text-gray-800">Ekran Temizleme Saatleri</h3>
-                </div>
-                <form action="{{ route('admin.settings.update') }}?tab=ekran" method="POST" class="mb-8">
-                    <input type="hidden" name="_clear_times_only" value="1">
-                    @csrf
-                    @method('PUT')
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">Bar Ekranı</label>
-                            <input type="time" name="screen_clear_time_bar" value="{{ old('screen_clear_time_bar', $settings['screen_clear_time_bar'] ?? '14:00') }}"
-                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-400" required>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">Mutfak KDS</label>
-                            <input type="time" name="screen_clear_time_kpos" value="{{ old('screen_clear_time_kpos', $settings['screen_clear_time_kpos'] ?? '14:00') }}"
-                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-400" required>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">Ana Mutfak (AKDS)</label>
-                            <input type="time" name="screen_clear_time_ana" value="{{ old('screen_clear_time_ana', $settings['screen_clear_time_ana'] ?? '14:00') }}"
-                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-400" required>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-400 mt-2">Her ekran kendi saatinde otomatik temizlenir; sadece ekrandaki bekleyenler kapatılır, kayıtlar ve rapor verileri korunur.</p>
-                    <button type="submit" class="mt-3 py-2.5 px-5 bg-sky-500 text-white font-bold rounded-lg hover:bg-sky-600 transition text-sm">
-                        <i class="fas fa-save mr-2"></i>Kaydet
                     </button>
                 </form>
 
