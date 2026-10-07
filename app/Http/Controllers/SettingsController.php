@@ -51,6 +51,19 @@ class SettingsController extends Controller
             'timer_waiter_red'    => (int) Setting::get('timer_waiter_red', 10),
         ];
 
+        // Mutfak kısayolları (Micros MBB-20) — admin'den değiştirilebilir
+        foreach ([
+            'home' => 'a', 'end' => '1',
+            'card_prev' => 'c', 'card_next' => '3',
+            'item_prev' => '2', 'item_next' => 'b',
+            'ok' => '7', 'cancel' => '6',
+            'done1' => 'f', 'done2' => 'g', 'done3' => 'h', 'done4' => 'ı',
+            'select_done' => 'j', 'recall' => '5',
+        ] as $kbdKey => $kbdDef) {
+            $settings['kitchen_sc_' . $kbdKey] = Setting::get('kitchen_sc_' . $kbdKey, $kbdDef);
+        }
+        $settings['kitchen_sc_recall_window'] = (int) Setting::get('kitchen_sc_recall_window', 30);
+
         // Ekran PIN (BDS / KDS / KPOS / AKDS açılış kilidi) — hash görünmez, sadece durum
         foreach (['bar', 'kitchen', 'kpos', 'ana'] as $pinScreen) {
             $settings["screen_pin_{$pinScreen}_enabled"] = Setting::get("screen_pin_{$pinScreen}_enabled", '') === '1';
@@ -215,6 +228,18 @@ class SettingsController extends Controller
             ]);
             Setting::set('screen_clock_source', $request->screen_clock_source);
             return back()->with('success', 'Ekran saati kaynağı güncellendi.');
+        } elseif ($request->has('_kbd_only')) {
+            $kbdKeys = ['home', 'end', 'card_prev', 'card_next', 'item_prev', 'item_next', 'ok', 'cancel', 'done1', 'done2', 'done3', 'done4', 'select_done', 'recall'];
+            $rules = ['sc_recall_window' => 'required|integer|min:5|max:600'];
+            foreach ($kbdKeys as $kbdKey) {
+                $rules['sc_' . $kbdKey] = 'nullable|string|max:10';
+            }
+            $request->validate($rules);
+            foreach ($kbdKeys as $kbdKey) {
+                Setting::set('kitchen_sc_' . $kbdKey, mb_strtolower(trim((string) $request->input('sc_' . $kbdKey, ''))));
+            }
+            Setting::set('kitchen_sc_recall_window', (int) $request->input('sc_recall_window'));
+            return back()->with('success', 'Mutfak kısayolları güncellendi.');
         } else {
             $request->validate([
                 'site_title' => 'required|string|max:255',

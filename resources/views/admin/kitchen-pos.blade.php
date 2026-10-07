@@ -36,8 +36,11 @@
         #kpos-completed-bar ::-webkit-scrollbar { display: none; }
         @keyframes iade-blink { 0%,100% { background-color: rgba(239,68,68,0.10); } 50% { background-color: rgba(239,68,68,0.35); } }
         .iade-blink { animation: iade-blink 0.9s ease-in-out infinite; border-radius: 4px; }
-        .watermark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; user-select: none; overflow: hidden; }
-        .watermark span { font-weight: 800; letter-spacing: 0.15em; white-space: nowrap; color: rgba(255,255,255,0.10); font-size: min(3.5vw, 64px); transform: rotate(-45deg); }
+        .watermark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; line-height: 1.04; pointer-events: none; user-select: none; overflow: hidden; z-index: 0; }
+        .watermark span { font-weight: 800; letter-spacing: 0.05em; white-space: nowrap; color: rgba(255,255,255,0.06); font-size: min(8.5vw, 170px); text-align: center; }
+        /* MBB-20 klavye seçim göstergeleri */
+        .kbd-sel { box-shadow: 0 0 0 3px #ffffff, 0 0 16px rgba(255,255,255,0.35); }
+        .kbd-row-sel { background: rgba(212,175,55,0.18); box-shadow: inset 3px 0 0 #d4af37; }
     </style>
 </head>
 <body class="bg-gray-900 font-poppins text-white min-h-screen">
@@ -47,10 +50,10 @@
             <i class="fas fa-utensils text-gold text-[10px]"></i>
             <span class="text-gold font-bold text-sm">{{ \App\Models\Setting::get('kitchen_screen_title', 'Mutfak Ekrani') }} <span class="text-gray-500 font-normal text-xs">Symphony POS</span></span>
         </div>
-        <div class="flex items-center gap-2">
-            <span id="clock" class="text-gold font-bold text-base tabular-nums"></span>
-            <span class="text-gray-600 text-xs">|</span>
-            <span id="clock-date" class="text-gray-300 text-xs font-medium"></span>
+        <div class="flex items-center gap-3">
+            <span id="clock" class="text-gold font-bold text-[26px] leading-none tabular-nums"></span>
+            <span class="text-gray-600 text-sm">|</span>
+            <span id="clock-date" class="text-gray-300 text-[15px] font-medium"></span>
         </div>
         <div class="flex items-center gap-1.5">
             <div class="flex items-center gap-2 text-[10px]">
@@ -75,7 +78,7 @@
     </header>
 
     <main class="p-2 relative" style="padding-bottom:60px">
-        <div class="watermark"><span>ROCKS SERVICES KDS</span></div>
+        <div class="watermark"><span>ROCKS SERVICES</span><span>KDS MUTFAK</span></div>
         <!-- Checksiz Mutfak Mesajları -->
         <div id="checkless-section" class="hidden mb-6 relative">
             <h2 class="text-lg font-semibold text-yellow-400 mb-3 flex items-center gap-2">
@@ -121,6 +124,165 @@
         let previousMsgKeys = [];
         let isFirstLoad = true;
         let lastCompletedBarKey = '';
+
+        // ── MBB-20 Kısayolları (Admin → Ayarlar → Diğer Ayarlar) ──────────
+        @php
+            $kbdDefaults = [
+                'home' => 'a', 'end' => '1',
+                'card_prev' => 'c', 'card_next' => '3',
+                'item_prev' => '2', 'item_next' => 'b',
+                'ok' => '7', 'cancel' => '6',
+                'done1' => 'f', 'done2' => 'g', 'done3' => 'h', 'done4' => 'ı',
+                'select_done' => 'j', 'recall' => '5',
+            ];
+            $kbdCfg = [];
+            foreach ($kbdDefaults as $kbdKey => $kbdDef) {
+                $kbdVal = mb_strtolower(trim((string) \App\Models\Setting::get('kitchen_sc_' . $kbdKey, $kbdDef)));
+                $kbdCfg[$kbdKey] = $kbdVal !== '' ? $kbdVal : $kbdDef;
+            }
+        @endphp
+        const KBD = @json($kbdCfg);
+        const KBD_RECALL_WINDOW = @json((int) \App\Models\Setting::get('kitchen_sc_recall_window', 30));
+
+        let kbdSel = { gk: null, mode: 'card', idx: -1 };
+        let kbdRecallStack = [];
+
+        function kbdCards() {
+            return Array.from(document.querySelectorAll('#orders-grid [data-kbd-gk]'));
+        }
+        function kbdCardEl(gk) {
+            return kbdCards().find(c => c.dataset.kbdGk === gk) || null;
+        }
+        function kbdRows(card) {
+            return Array.from(card.querySelectorAll('.kbd-row:not([data-kbd-ret="1"])'));
+        }
+        function applyKbdSel() {
+            document.querySelectorAll('#orders-grid .kbd-sel').forEach(el => el.classList.remove('kbd-sel'));
+            document.querySelectorAll('#orders-grid .kbd-row-sel').forEach(el => el.classList.remove('kbd-row-sel'));
+            if (!kbdSel.gk) return;
+            const card = kbdCardEl(kbdSel.gk);
+            if (!card) { kbdSel = { gk: null, mode: 'card', idx: -1 }; return; }
+            card.classList.add('kbd-sel');
+            if (kbdSel.mode === 'item') {
+                const rows = kbdRows(card);
+                if (!rows.length) { kbdSel.mode = 'card'; return; }
+                kbdSel.idx = Math.min(Math.max(kbdSel.idx, 0), rows.length - 1);
+                rows[kbdSel.idx].classList.add('kbd-row-sel');
+            }
+        }
+        function kbdSelectCard(gk) {
+            if (!kbdCardEl(gk)) return;
+            kbdSel = { gk, mode: 'card', idx: -1 };
+            applyKbdSel();
+        }
+        function kbdMoveCard(dir) {
+            const cards = kbdCards();
+            if (!cards.length) return;
+            if (!kbdSel.gk) { kbdSelectCard(cards[dir > 0 ? 0 : cards.length - 1].dataset.kbdGk); return; }
+            const at = cards.findIndex(c => c.dataset.kbdGk === kbdSel.gk);
+            kbdSelectCard(cards[Math.min(Math.max(at + dir, 0), cards.length - 1)].dataset.kbdGk);
+        }
+        function kbdMoveItem(dir) {
+            if (!kbdSel.gk || kbdSel.mode !== 'item') return;
+            const card = kbdCardEl(kbdSel.gk);
+            if (!card) return;
+            const rows = kbdRows(card);
+            if (!rows.length) return;
+            kbdSel.idx = Math.min(Math.max(kbdSel.idx + dir, 0), rows.length - 1);
+            applyKbdSel();
+        }
+        function kbdServeNth(n) {
+            if (!kbdSel.gk) { showToast('Önce kart seçin — HOME, END veya SAĞ/SOL YÖN.', 'error'); return; }
+            const card = kbdCardEl(kbdSel.gk);
+            if (!card) return;
+            if (card.dataset.kbdQr) { showToast('QR siparişte ürün tek tek hazırlanmaz; SELECT/DONE ile onaylayın.', 'error'); return; }
+            const rows = kbdRows(card).filter(r => r.querySelector('[data-item-ready]'));
+            const row = rows[n - 1];
+            if (!row) { showToast(n + '. sırada hazırlanacak ürün yok.', 'error'); return; }
+            serveItem(row.querySelector('[data-item-ready]'));
+        }
+        function kbdSelectDone() {
+            if (!kbdSel.gk) { showToast('Önce kart veya ürün seçin.', 'error'); return; }
+            const card = kbdCardEl(kbdSel.gk);
+            if (!card) return;
+            if (card.dataset.kbdQr) { confirmQr(Number(card.dataset.kbdQr)); return; }
+            if (kbdSel.mode === 'item') {
+                kbdSel.mode = 'card';
+                kbdSel.idx = -1;
+                applyKbdSel();
+                return;
+            }
+            const completeBtn = card.querySelector('[data-complete-gk]');
+            if (completeBtn) completeOrderFromBtn(completeBtn);
+        }
+        function kbdPushRecall(entry) {
+            kbdRecallStack.push(Object.assign({ ts: Date.now() }, entry));
+            if (kbdRecallStack.length > 20) kbdRecallStack.shift();
+        }
+        function kbdRecall() {
+            const last = kbdRecallStack.pop();
+            if (!last) { showToast('Geri çağrılacak işlem yok.', 'default'); return; }
+            if (Date.now() - last.ts > KBD_RECALL_WINDOW * 1000) {
+                showToast('Süre doldu — son yapılan işlem geri çağrılamaz.', 'error');
+                return;
+            }
+            if (last.type === 'qr') { undoQr(last.id); return; }
+            if (last.type === 'item') {
+                postJson('/kitchen-pos/item-unserve', { group_key: last.gk, item_keys: last.keys })
+                    .then(d => { if (d && d.success === false) showToast(d.message || 'Geri alınamadı.', 'error'); fetchOnce(); })
+                    .catch(e => console.error(e));
+                return;
+            }
+            uncomplete(last.gk);
+        }
+
+        document.addEventListener('keydown', function (e) {
+            if (e.target.closest && e.target.closest('input, textarea, select')) return;
+            if (e.ctrlKey || e.altKey || e.metaKey) return;
+            const tok = e.key.length === 1 ? e.key.toLocaleLowerCase('tr') : e.key;
+            if (!tok) return;
+            let action = null;
+            for (const [act, key] of Object.entries(KBD)) {
+                if (key && key.toLocaleLowerCase('tr') === tok) { action = act; break; }
+            }
+            if (!action) return;
+            if (!['home', 'end', 'card_prev', 'card_next', 'item_prev', 'item_next'].includes(action) && e.repeat) return;
+            e.preventDefault();
+            switch (action) {
+                case 'home': { const c = kbdCards(); if (c.length) kbdSelectCard(c[0].dataset.kbdGk); break; }
+                case 'end': { const c = kbdCards(); if (c.length) kbdSelectCard(c[c.length - 1].dataset.kbdGk); break; }
+                case 'card_prev': kbdMoveCard(-1); break;
+                case 'card_next': kbdMoveCard(1); break;
+                case 'item_prev': kbdMoveItem(-1); break;
+                case 'item_next': kbdMoveItem(1); break;
+                case 'ok': {
+                    if (!kbdSel.gk) {
+                        const c = kbdCards();
+                        if (!c.length) break;
+                        kbdSel = { gk: c[0].dataset.kbdGk, mode: 'card', idx: -1 };
+                    }
+                    const card = kbdCardEl(kbdSel.gk);
+                    if (!card) break;
+                    if (card.dataset.kbdQr) { showToast('QR sipariş: SELECT/DONE ile onaylanır.', 'default'); applyKbdSel(); break; }
+                    const rows = kbdRows(card);
+                    if (rows.length) { kbdSel.mode = 'item'; kbdSel.idx = 0; }
+                    applyKbdSel();
+                    break;
+                }
+                case 'cancel': {
+                    if (kbdSel.mode === 'item') { kbdSel.mode = 'card'; kbdSel.idx = -1; }
+                    else { kbdSel = { gk: null, mode: 'card', idx: -1 }; }
+                    applyKbdSel();
+                    break;
+                }
+                case 'done1': kbdServeNth(1); break;
+                case 'done2': kbdServeNth(2); break;
+                case 'done3': kbdServeNth(3); break;
+                case 'done4': kbdServeNth(4); break;
+                case 'select_done': kbdSelectDone(); break;
+                case 'recall': kbdRecall(); break;
+            }
+        });
 
         // ── Sayaç kalıcılığı (localStorage) ─────────────────────────────────
         // API her 5sn'de DOM'u yeniden kursa da start time localStorage'da saklanır.
@@ -275,7 +437,7 @@
 
             const unservedCount = (order.items || []).filter(it => !it.is_returned && !it.served).length;
 
-            const itemsHtml = (order.items || []).map(it => {
+            const itemsHtml = (order.items || []).map((it, ri) => {
                 const isReturned  = !!it.is_returned;
                 const isCombo     = !!it.is_combo;
                 const isCond      = !!it.is_condiment;
@@ -291,6 +453,7 @@
                 const readyBtn = isReturned ? '' : (isServed
                     ? `<button data-item-gk="${escapeHtml(groupKey)}"
                               data-item-units="${escapeHtml(JSON.stringify(itemUnits))}"
+                              data-item-unserve="1"
                               onclick="unserveItem(this)"
                               title="Hazır işaretini geri al"
                               class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-700 hover:bg-emerald-600 text-emerald-100 transition shrink-0">
@@ -305,6 +468,7 @@
                               data-item-names="${escapeHtml(itemNamesList)}"
                               data-item-self="${escapeHtml(it.name)}"
                               data-item-self-qty="${it.qty}"
+                              data-item-ready="1"
                               onclick="serveItem(this)"
                               title="${isLast ? 'Son ürün → hesap tamamlanır' : 'Ürünü hazır işaretle'}"
                               class="px-1.5 py-0.5 rounded text-[10px] font-bold border border-amber-500/70 bg-amber-600/20 hover:bg-amber-600/50 text-amber-200 transition shrink-0">
@@ -323,7 +487,7 @@
                 }).join('');
 
                 return `
-                <div class="py-0.5 border-b border-gray-700">
+                <div class="py-0.5 border-b border-gray-700 kbd-row" data-kbd-row="${ri}"${isReturned ? ' data-kbd-ret="1"' : ''}>
                     <div class="flex justify-between items-start">
                         <div class="flex-1 min-w-0">
                             <div class="text-lg leading-tight ${textClass}${isReturned ? ' iade-blink' : ''}">
@@ -376,7 +540,7 @@
                 : `<span class="text-yellow-400">CHECKSIZ</span>`;
 
             return `
-            <div class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden">
+            <div data-kbd-gk="${escapeHtml(groupKey)}" class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden">
                 <div class="px-2 py-1 bg-gray-750 border-b border-gray-700">
                     <div class="flex items-center justify-between">
                         <span class="text-xl font-bold text-gold">TBL ${escapeHtml(order.table_no || '-')}${order._seqTotal > 1 ? ` <span class="text-orange-300">#${order._seq}/${order._seqTotal}</span>` : ''}</span>
@@ -426,7 +590,7 @@
             `).join('');
 
             return `
-            <div class="bg-purple-950/40 rounded-lg border-2 border-purple-500 qr-card overflow-hidden">
+            <div data-kbd-gk="${groupKey}" data-kbd-qr="${order.qr_order_id}" class="bg-purple-950/40 rounded-lg border-2 border-purple-500 qr-card overflow-hidden">
                 <div class="flex items-center justify-between px-4 py-2 bg-purple-900/40">
                     <div class="flex items-center gap-3">
                         <span class="text-xl font-bold text-purple-200 leading-tight">
@@ -587,6 +751,7 @@
                 name: nm || null,
                 qty: kind === 'item' ? (parseInt(selfQty, 10) || null) : null,
             }).then(() => {
+                kbdPushRecall({ type: kind === 'item' ? 'item' : 'check', gk: groupKey, keys: itemKeys || [] });
                 clearStartTime(groupKey);
                 fetchOnce();
             }).catch(e => console.error(e));
@@ -618,7 +783,7 @@
 
         function confirmQr(orderId) {
             postJson('/kitchen-pos/qr/' + orderId + '/confirm', {}, 'PATCH')
-                .then(() => { clearStartTime('Q' + orderId); fetchOnce(); })
+                .then(() => { kbdPushRecall({ type: 'qr', id: orderId }); clearStartTime('Q' + orderId); fetchOnce(); })
                 .catch(e => console.error(e));
         }
 
@@ -717,6 +882,7 @@
             }
             previousIds = ids;
             previousMsgKeys = msgKeys;
+            applyKbdSel();
             isFirstLoad = false;
         }
 
