@@ -353,7 +353,7 @@ class SymphonyKdsController extends Controller
 
         // Check kapaninca: '1' (default) ekrandan sil; '0' bekleme modu — mutfak
         // tamamlanana kadar KAPANDI rozetiyle kart ekranda kalir.
-        $checkCloseWait = Setting::get($screen === 'ana' ? 'ana_check_close_wait' : 'kitchen_check_close_wait', '1') !== '0';
+        $deleteOnCheckClose = Setting::get($screen === 'ana' ? 'ana_check_close_wait' : 'kitchen_check_close_wait', '1') !== '0';
 
         $host     = (string) Setting::get('mssql_kds_host', '');
         $port     = (string) Setting::get('mssql_kds_port', '1433');
@@ -503,7 +503,7 @@ class SymphonyKdsController extends Controller
                 // Kapanmış checkler: sil modunda gösterilmez; bekleme modunda status='C'
                 // payload'a düşer → kartta KAPANDI rozeti, tamamlanınca kind=check
                 // filtresi kartı kaldırır.
-                if ($status === 'C' && !$checkCloseWait) continue;
+                if ($status === 'C' && $deleteOnCheckClose) continue;
 
                 // Eski sorgu uyumluluğu (LineKind/LineType yoksa): MajGrp/MajorGroupID=99 → MESAJ
                 $majGrpId = (int) $mssql->getField($row, ['MajorGroupID', 'major_group_id', 'MajGrp', 'maj_grp'], 0);
@@ -831,7 +831,7 @@ class SymphonyKdsController extends Controller
                         } else {
                             $fk = ($item['item_id'] !== null && $item['item_id'] !== '')
                                 ? (string) $item['item_id']
-                                : (($item['dtl_seq'] ?? 0) . '|' . $item['name']);
+                                : (string) $item['name'];
                             if (!isset($servedSet[$fk])) $newItems[] = $item;
                         }
                     }

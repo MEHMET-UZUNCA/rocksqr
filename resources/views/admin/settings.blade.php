@@ -229,7 +229,7 @@
                     <input type="hidden" name="_display_only" value="bar">
                     @csrf
                     @method('PUT')
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-heading mr-1"></i>Bar Ekrani Basligi</label>
                             <input type="text" name="bar_screen_title" value="{{ old('bar_screen_title', $settings['bar_screen_title']) }}"
@@ -241,17 +241,11 @@
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-amber-400">
                             <p class="text-xs text-gray-400 mt-1">Siparis Hazir ve Tamamlanan alani (1-100)</p>
                         </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-list-check mr-1"></i>Siparis Hazir: Görüntülenecek Adet</label>
-                            <input type="number" min="1" max="200" name="order_ready_display" value="{{ old('order_ready_display', $settings['order_ready_display']) }}"
+                            <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-concierge-bell mr-1"></i>Hazirlanan (Servise Gotur) Sayisi</label>
+                            <input type="number" min="1" max="100" name="bar_ready_display" value="{{ old('bar_ready_display', $settings['bar_ready_display']) }}"
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-amber-400">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-chart-line mr-1"></i>Siparis Kari: Görüntülenecek Adet</label>
-                            <input type="number" min="1" max="200" name="order_profit_display" value="{{ old('order_profit_display', $settings['order_profit_display']) }}"
-                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-amber-400">
+                            <p class="text-xs text-gray-400 mt-1">Hazirlanan/Servise Gotur seridi adedi (1-100)</p>
                         </div>
                     </div>
                     <div class="mb-4">

@@ -344,7 +344,6 @@ class SyncController extends Controller
         $database           = Setting::get('mssql_database', '');
         $username           = Setting::get('mssql_username', '');
         $password           = Setting::get('mssql_password', '');
-        $table              = Setting::get('mssql_table', '');
         $colId              = Setting::get('mssql_column_id', 'ID');
         $colName            = Setting::get('mssql_column_name', 'NAME');
         $colPrice           = Setting::get('mssql_column_price', 'PRICE');
@@ -604,18 +603,6 @@ class SyncController extends Controller
             unset($r['_level']);
             return $r;
         }, $byId));
-    }
-
-    private function quoteSqlServerIdentifier(string $identifier): string
-    {
-        return '[' . str_replace(']', ']]', trim($identifier)) . ']';
-    }
-
-    private function quoteSqlServerTable(string $table): string
-    {
-        $parts = array_map('trim', explode('.', $table));
-
-        return implode('.', array_map(fn (string $part) => $this->quoteSqlServerIdentifier($part), $parts));
     }
 
     private function resolveMssqlValue(array $row, array $candidates, mixed $default = null): mixed

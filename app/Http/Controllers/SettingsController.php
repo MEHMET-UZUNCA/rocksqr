@@ -32,6 +32,7 @@ class SettingsController extends Controller
             'screen_clear_time_ana'  => Setting::get('screen_clear_time_ana', Setting::get('screen_clear_time', '14:00')),
             'kitchen_completed_display' => (int) Setting::get('kitchen_completed_display', 6),
             'bar_completed_display' => (int) Setting::get('bar_completed_display', 6),
+            'bar_ready_display' => (int) Setting::get('bar_ready_display', 12),
             'ready_undo_seconds' => (int) Setting::get('ready_undo_seconds', 30),
             'bar_screen_title' => Setting::get('bar_screen_title', 'KDS - Bar Ekrani'),
             'screen_clock_source' => \App\Support\Clock::source(),
@@ -43,8 +44,6 @@ class SettingsController extends Controller
             'ana_waiter_call_display' => (int) Setting::get('ana_waiter_call_display', 10),
             'ana_ready_undo_seconds' => (int) Setting::get('ana_ready_undo_seconds', 30),
             'ana_check_close_wait' => Setting::get('ana_check_close_wait', '1'),
-            'order_ready_display' => (int) Setting::get('order_ready_display', 10),
-            'order_profit_display' => (int) Setting::get('order_profit_display', 20),
             'bg_screens'        => self::BG_SCREENS,
 
             // Subdomain aliases
@@ -93,7 +92,7 @@ class SettingsController extends Controller
         $settings['kitchen_sc_recall_window'] = (int) Setting::get('kitchen_sc_recall_window', 30);
 
         // Ekran PIN (BDS / KDS / KPOS / AKDS açılış kilidi) — hash görünmez, sadece durum
-        foreach (['bar', 'kitchen', 'kpos', 'ana'] as $pinScreen) {
+        foreach (['bar', 'kpos', 'ana'] as $pinScreen) {
             $settings["screen_pin_{$pinScreen}_enabled"] = Setting::get("screen_pin_{$pinScreen}_enabled", '') === '1';
             $settings["screen_pin_{$pinScreen}_set"]     = Setting::get("screen_pin_{$pinScreen}", '') !== '';
         }
@@ -146,12 +145,11 @@ class SettingsController extends Controller
         } elseif ($request->has('_pin_only')) {
             $request->validate([
                 'screen_pin_bar'     => 'nullable|digits_between:4,6',
-                'screen_pin_kitchen' => 'nullable|digits_between:4,6',
                 'screen_pin_kpos'    => 'nullable|digits_between:4,6',
                 'screen_pin_ana'     => 'nullable|digits_between:4,6',
             ]);
 
-            foreach (['bar', 'kitchen', 'kpos', 'ana'] as $pinScreen) {
+            foreach (['bar', 'kpos', 'ana'] as $pinScreen) {
                 $enabled   = $request->boolean("screen_pin_{$pinScreen}_enabled");
                 $submitted = trim((string) $request->input("screen_pin_{$pinScreen}", ''));
                 $hasStored = Setting::get("screen_pin_{$pinScreen}", '') !== '';
@@ -217,13 +215,11 @@ class SettingsController extends Controller
                 $request->validate([
                     'bar_screen_title'       => 'nullable|string|max:255',
                     'bar_completed_display'  => 'required|integer|min:1|max:100',
-                    'order_ready_display'    => 'required|integer|min:1|max:200',
-                    'order_profit_display'   => 'required|integer|min:1|max:200',
+                    'bar_ready_display'      => 'required|integer|min:1|max:100',
                 ]);
                 Setting::set('bar_screen_title', $request->bar_screen_title ?: 'KDS - Bar Ekrani');
                 Setting::set('bar_completed_display', $request->bar_completed_display);
-                Setting::set('order_ready_display', $request->order_ready_display);
-                Setting::set('order_profit_display', $request->order_profit_display);
+                Setting::set('bar_ready_display', $request->bar_ready_display);
                 // Bar kategori tick'leri — RVC 44 (Pool Bar) × Symphony grubu, ayri set
                 foreach (\App\Support\KitchenFilter::BAR_RVCS as $barRvcId => $_barRvcName) {
                     foreach (array_keys(\App\Support\KitchenFilter::GROUPS) as $barMg) {
@@ -398,7 +394,6 @@ class SettingsController extends Controller
             'mssql_database' => Setting::get('mssql_database', 'Datastore'),
             'mssql_username' => Setting::get('mssql_username', 'rocks'),
             'mssql_password' => Setting::get('mssql_password', '') ? '********' : 'Protel2026++',
-            'mssql_table' => Setting::get('mssql_table', ''),
             'mssql_column_id' => Setting::get('mssql_column_id', 'ID'),
             'mssql_column_name' => Setting::get('mssql_column_name', 'NAME'),
             'mssql_column_price' => Setting::get('mssql_column_price', 'PRICE'),
@@ -528,7 +523,6 @@ class SettingsController extends Controller
             'mssql_database' => 'nullable|string|max:255',
             'mssql_username' => 'nullable|string|max:255',
             'mssql_password' => 'nullable|string|max:255',
-            'mssql_table' => 'nullable|string|max:255',
             'mssql_column_id' => 'nullable|string|max:255',
             'mssql_column_name' => 'nullable|string|max:255',
             'mssql_column_price' => 'nullable|string|max:255',
@@ -543,7 +537,6 @@ class SettingsController extends Controller
         Setting::set('mssql_port', trim((string) ($request->mssql_port ?: '1433')));
         Setting::set('mssql_database', trim((string) ($request->mssql_database ?? '')));
         Setting::set('mssql_username', trim((string) ($request->mssql_username ?? '')));
-        Setting::set('mssql_table', trim((string) ($request->mssql_table ?? '')));
         Setting::set('mssql_column_id', trim((string) ($request->mssql_column_id ?: 'ID')));
         Setting::set('mssql_column_name', trim((string) ($request->mssql_column_name ?: 'NAME')));
         Setting::set('mssql_column_price', trim((string) ($request->mssql_column_price ?: 'PRICE')));
@@ -569,7 +562,7 @@ class SettingsController extends Controller
         $database = $request->input('mssql_database', '');
         $username = $request->input('mssql_username', '');
         $password = $request->input('mssql_password', '');
-        $section  = $request->input('section', 'product'); // product|kds|bds
+        $section  = $request->input('section', 'product'); // product|kds|akds|bds
 
         if (!$host || !$database || !$username) {
             return response()->json([

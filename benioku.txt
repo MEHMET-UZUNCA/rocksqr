@@ -1,7 +1,10 @@
 RocksQR - Sistem Detayları
 Versiyon: v1.0.54 (2026-04-27)
-Güncelleme: 2026-10-06 — Symphony KDS/BDS gerçek zamanlı akış (CheckPostingDB),
-            yazılım tarafı RVC filtresi, iade gösterimi, kapanan hesap davranışı
+Güncelleme: 2026-10-07 — A-Z kod denetimi: ölü kod ve kalıntı ayar temizliği,
+            bar hazır şeridi limiti admin ayarı (bar_ready_display), garson
+            çağrısı sorgu limiti; Symphony KDS/BDS gerçek zamanlı akış
+            (CheckPostingDB), yazılım tarafı RVC filtresi, iade gösterimi,
+            kapanan hesap davranışı
 =====================================
 
 Laravel 12, MySQL, Tailwind CSS ile geliştirildi.
@@ -176,15 +179,16 @@ ADMIN AYARLAR — BÖLÜMLER
 
 Bar Ekran Ayarları:
   - bar_screen_title        : Bar ekranı üst başlığı
-  - bar_completed_display   : Tamamlanan sipariş listesi max adet (1-100)
-  - order_ready_display     : Sipariş hazır alanı max adet (1-200)
-  - order_profit_display    : Sipariş karı raporu max adet (1-200)
+  - bar_completed_display   : Tamamlanan (SON) şeridi max adet (1-100)
+  - bar_ready_display       : Hazirlanan/Servise Gotur (HAZIRLANAN) şeridi max adet (1-100)
 
 Kitchen Ekran Ayarları:
   - kitchen_screen_title      : Mutfak ekranı üst başlığı
   - kitchen_completed_display : Tamamlanan sipariş listesi max adet (1-100)
   - waiter_call_display       : Garson çağrıları listesi max adet (1-200)
   - ready_undo_seconds        : Geri alma butonu aktif kalma süresi (5-600 sn)
+  - kitchen_check_close_wait  : Kapanan hesap silinsin ('1') / KAPANDI rozetiyle bekle ('0')
+  - ana_check_close_wait      : Ana mutfak için aynı ayar (ayrı anahtar)
 
 Ekran Temizleme:
   - clear_time : Ekranda bekleyen kart temizleme saati (HH:MM)

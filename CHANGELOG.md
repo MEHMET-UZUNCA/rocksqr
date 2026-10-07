@@ -1,5 +1,26 @@
 
 
+## v1.0.90 - 2026-10-07
+
+### Check kapanma ters koşul düzeltmesi (repoya alındı)
+- `SymphonyKdsController::kdsPayload`'da check-kapanma ayarı ters çalışıyordu: "Kapanan hesap ekrandan silinsin" işaretliyken kapanan hesap ekranda KALIYOR, işaretsizken SİLİNİYORDU. Değişken `$checkCloseWait` → `$deleteOnCheckClose` olarak yeniden adlandırılıp koşul `if ($status === 'C' && $deleteOnCheckClose) continue;` olarak düzeltildi. (Canlıya önceki deploy ile uygulanmıştı; bu sürümle repoya alındı.)
+
+### Bar: hazır şeridi limiti admin ayarı oldu
+- `bar_ready_display` ayarı BarController'da okunuyordu ama panelde alanı yoktu (hep 12 kullanılıyordu). Ayarlar → Ekran → Bar Ekran Ayarları'na **"Hazirlanan (Servise Gotur) Sayisi"** alanı eklendi (1-100, varsayılan 12). Bar HAZIRLANAN (servise götür) şeridindeki QR ve Symphony kartlarının adedini panelden sınırlar.
+
+### Denetim temizliği (A-Z kod denetimi bulguları)
+- Ölü controller'lar silindi: `Admin/OrderController`, `Admin/CategoryController`, `Admin/ProductController` — hiçbir route kullanmıyordu; gerçek route'lar kök controller'ları kullanıyor.
+- Kullanılmayan view'lar silindi: `welcome.blade.php`, `dashboard.blade.php`.
+- `SyncController`: hiç çağrılmayan `quoteSqlServerIdentifier`/`quoteSqlServerTable` metotları ve kullanılmayan `$table` okuması kaldırıldı.
+- Hayalet ayarlar temizlendi: `order_ready_display` + `order_profit_display` (formda vardı, hiçbir ekranda okunmuyordu), `mssql_table` (form alanı yoktu, her kayıtta boş yazılıyordu), `screen_pin_kitchen` (kitchen ekranı kaldırılmıştı; PIN döngüleri bar/kpos/ana'ya indirildi).
+- `SymphonyKdsController`: hiçbir yerde set edilmeyen `dtl_seq` fallback'i kaldırıldı (davranış değişmedi).
+- `AdminCategoryController`: `(int) $request->sort_order ?? 0` operatör önceliği düzeltildi → `(int) ($request->sort_order ?? 0)`.
+- Bar: bekleyen garson çağrısı sorgusuna güvenlik limiti (50) eklendi (yanıtlananlar zaten 8 ile sınırlıydı).
+- `benioku.txt` çalışma senaryosu güncellendi (Bar/Kitchen ayar anahtarları + check-kapanma davranışı).
+
+---
+
+
 ## v1.0.89 - 2026-10-05
 
 ### Yeni: Ekran PIN kilidi (BDS / KDS / Kitchen POS / AKDS)

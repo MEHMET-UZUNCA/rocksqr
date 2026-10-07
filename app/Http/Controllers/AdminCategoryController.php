@@ -63,7 +63,7 @@ class AdminCategoryController extends Controller
             $trashed->update([
                 'description' => $request->description,
                 'parent_id'   => $request->parent_id ?: null,
-                'sort_order'  => (int) $request->sort_order ?? 0,
+                'sort_order'  => (int) ($request->sort_order ?? 0),
                 'is_active'   => $request->has('is_active'),
             ]);
             return redirect()->route('admin.categories.index')

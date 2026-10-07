@@ -227,6 +227,7 @@ class BarController extends Controller
 
         $waiterCalls = WaiterCall::where('status', 'pending')
             ->orderBy('created_at', 'desc')
+            ->limit(50)
             ->get()
             ->map(fn ($call) => [
                 'id'         => $call->id,
