@@ -421,6 +421,13 @@ class SymphonyKdsController extends Controller
                 $kitchenVisible[$filterRvcId] = KitchenFilter::visibleMap($filterRvcId);
             }
 
+            // Ürün grubu (FamGrp) gizle listeleri — RVC başına; admin Ekran ayarlarından
+            // yönetilir (işaretli grup mutfak ekranına yazılmaz).
+            $famHide = [];
+            foreach (array_keys(KitchenFilter::RVCS) as $hideRvcId) {
+                $famHide[$hideRvcId] = KitchenFilter::familyHideMap($hideRvcId);
+            }
+
             $checks              = [];
             $checkless           = [];
             $comboParentIdxByKey = [];
@@ -473,6 +480,10 @@ class SymphonyKdsController extends Controller
                 $majGrpId = (int) $mssql->getField($row, ['MajorGroupID', 'major_group_id', 'MajGrp', 'maj_grp'], 0);
                 if ($lineKindRaw === null && $majGrpId === 99) $lineKind = 'MESAJ';
 
+                // v1.4 sorguda FamGrpObjNum AS FamilyGroupID gelir; eski sorguda kolon
+                // yoktur → 0 döner ve ürün grubu gizlemesi hiçbir satırı etkilemez.
+                $famGrp = (int) $mssql->getField($row, ['FamilyGroupID', 'family_group_id', 'FamGrpObjNum', 'fam_grp_obj_num'], 0);
+
                 $isMessage = ($lineKind === 'MESAJ');
                 $isMars    = ($lineKind === 'MARS');
                 $isCombo   = ($lineKind === 'COMBO') || $isComboItem;
@@ -491,6 +502,12 @@ class SymphonyKdsController extends Controller
                     $filterMg = $isBarMsg ? 98 : 99;
                 }
                 if (isset($kitchenVisible[$rvcId][$filterMg]) && !$kitchenVisible[$rvcId][$filterMg]) {
+                    continue;
+                }
+
+                // Ürün grubu gizle listesi (FamGrp): yalnız ürün satırlarını hedefler;
+                // mesaj/mars satırlarında FamGrp 0'dır, asla gizlenmez.
+                if ($famGrp > 0 && isset($famHide[$rvcId][$famGrp])) {
                     continue;
                 }
 

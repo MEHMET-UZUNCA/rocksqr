@@ -241,6 +241,21 @@
                                 </label>
                                 @endforeach
                             </div>
+                            <div class="mt-3 pt-3 border-t border-orange-100">
+                                <p class="text-xs font-bold text-orange-700 mb-1"><i class="fas fa-eye-slash mr-1"></i>Mutfak Ekranına Yazdırma — Ürün Grubu Gizle</p>
+                                <p class="text-[11px] text-gray-500 mb-2">Ters mantık: işaretlenen ürün gruplarındaki satırlar mutfak ekranına düşmez. Grup kodları Symphony FamGrp (ürün grubu) kodlarıdır.</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
+                                    @foreach (\App\Support\KitchenFilter::FOOD_FAMILIES as $famCode => [$famLabel, $famDesc])
+                                    <label class="flex items-start gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                                        <input type="checkbox" name="kitchen_fg_hide_{{ $kitchenRvcId }}[]" value="{{ $famCode }}" class="rounded mt-0.5"
+                                               @checked(in_array($famCode, old('kitchen_fg_hide_' . $kitchenRvcId, array_keys(\App\Support\KitchenFilter::familyHideMap($kitchenRvcId)))))>
+                                        <span>{{ $famLabel }}
+                                            <span class="block text-xs font-normal text-gray-400">{{ $famDesc }}</span>
+                                        </span>
+                                    </label>
+                                    @endforeach
+                                </div>
+                            </div>
                         </div>
                         @endforeach
                         <p class="text-xs text-gray-400">İşaretiniz kaldırılan Symphony satırları mutfak ekranına gelmez. Filtre yalnızca Symphony (POS) satırları için geçerlidir; kapatılıp yeniden açıldığında süre sayaçları kaldığı yerden devam eder.</p>

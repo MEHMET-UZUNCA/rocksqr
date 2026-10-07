@@ -36,7 +36,7 @@
         #kpos-completed-bar ::-webkit-scrollbar { display: none; }
         @keyframes iade-blink { 0%,100% { background-color: rgba(239,68,68,0.10); } 50% { background-color: rgba(239,68,68,0.35); } }
         .iade-blink { animation: iade-blink 0.9s ease-in-out infinite; border-radius: 4px; }
-        .watermark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; line-height: 1.04; pointer-events: none; user-select: none; overflow: hidden; z-index: 0; }
+        .watermark { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; line-height: 1.04; pointer-events: none; user-select: none; overflow: hidden; z-index: 0; }
         .watermark span { font-weight: 800; letter-spacing: 0.05em; white-space: nowrap; color: rgba(255,255,255,0.06); font-size: min(8.5vw, 170px); text-align: center; }
         /* MBB-20 klavye seçim göstergeleri */
         .kbd-sel { box-shadow: 0 0 0 3px #ffffff, 0 0 16px rgba(255,255,255,0.35); }
@@ -45,7 +45,7 @@
 </head>
 <body class="bg-gray-900 font-poppins text-white min-h-screen">
     <div id="toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
-    <header class="bg-primary px-3 py-1 flex items-center justify-between border-b border-gold/20">
+    <header class="relative z-10 bg-primary px-3 py-1 flex items-center justify-between border-b border-gold/20">
         <div class="flex items-center gap-1 bg-yellow-900/60 border border-yellow-700 rounded px-2 py-0.5">
             <i class="fas fa-utensils text-gold text-[10px]"></i>
             <span class="text-gold font-bold text-sm">{{ \App\Models\Setting::get('kitchen_screen_title', 'Mutfak Ekrani') }} <span class="text-gray-500 font-normal text-xs">Symphony POS</span></span>
