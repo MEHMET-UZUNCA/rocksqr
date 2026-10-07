@@ -242,19 +242,12 @@
                                 @endforeach
                             </div>
                             <div class="mt-3 pt-3 border-t border-orange-100">
-                                <p class="text-xs font-bold text-orange-700 mb-1"><i class="fas fa-eye-slash mr-1"></i>Mutfak Ekranına Yazdırma — Ürün Grubu Gizle</p>
-                                <p class="text-[11px] text-gray-500 mb-2">Ters mantık: işaretlenen ürün gruplarındaki satırlar mutfak ekranına düşmez. Grup kodları Symphony FamGrp (ürün grubu) kodlarıdır.</p>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
-                                    @foreach (\App\Support\KitchenFilter::FOOD_FAMILIES as $famCode => [$famLabel, $famDesc])
-                                    <label class="flex items-start gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
-                                        <input type="checkbox" name="kitchen_fg_hide_{{ $kitchenRvcId }}[]" value="{{ $famCode }}" class="rounded mt-0.5"
-                                               @checked(in_array($famCode, old('kitchen_fg_hide_' . $kitchenRvcId, array_keys(\App\Support\KitchenFilter::familyHideMap($kitchenRvcId)))))>
-                                        <span>{{ $famLabel }}
-                                            <span class="block text-xs font-normal text-gray-400">{{ $famDesc }}</span>
-                                        </span>
-                                    </label>
-                                    @endforeach
-                                </div>
+                                <label for="kitchen_fg_hide_{{ $kitchenRvcId }}" class="block text-xs font-bold text-orange-700 mb-1"><i class="fas fa-eye-slash mr-1"></i>Hariç Tutulacak Family Grupları</label>
+                                <p class="text-[11px] text-gray-500 mb-2">Mutfak ekranına yazdırılmayacak Symphony FamilyGroup kodları; virgül veya + ile eklenebilir (örn: 1205,1206 ya da 1205+1206). Boş bırakılırsa hiçbir grup gizlenmez.</p>
+                                <input type="text" id="kitchen_fg_hide_{{ $kitchenRvcId }}" name="kitchen_fg_hide_{{ $kitchenRvcId }}"
+                                       value="{{ old('kitchen_fg_hide_' . $kitchenRvcId, \App\Support\KitchenFilter::familyHideList($kitchenRvcId)) }}"
+                                       class="w-full max-w-xs border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400"
+                                       placeholder="Örn: 1205">
                             </div>
                         </div>
                         @endforeach

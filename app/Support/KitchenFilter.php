@@ -27,42 +27,8 @@ class KitchenFilter
     // Varsayılan kapalı kategoriler — eski kitchen_show_drinks=0 davranışının devamı
     public const DEFAULT_HIDDEN = [2, 3];
 
-    // FamGrp (ürün grubu) kodu → [etiket, açıklama] — mutfak ekranına yazdırma
-    // gizle listesi için aday gruplar. Poğaça/simit ayrı MajorGroup değildir (hepsi
-    // mg=1 YİYECEK içinde); ayırt eden kod FamGrpObjNum'dır (canlı probe: 1205=RP MAYALI).
-    public const FOOD_FAMILIES = [
-        1018 => ['Cafe Dondurma', 'Symphony ürün grubu 1018 — CAFE DONDURMA'],
-        1025 => ['Açık Yiyecek', 'Symphony ürün grubu 1025 — ACIK YIYECEK'],
-        1201 => ['RP Pasta', 'Symphony ürün grubu 1201 — RP PASTA'],
-        1202 => ['RP Donut', 'Symphony ürün grubu 1202 — RP DONUT'],
-        1203 => ['RP Ekler', 'Symphony ürün grubu 1203 — RP EKLER'],
-        1204 => ['RP Ekmek', 'Symphony ürün grubu 1204 — RP EKMEK'],
-        1205 => ['RP Mayalı (Poğaça / Simit)', 'Symphony ürün grubu 1205 — RP MAYALI (POGACA*, SIMIT*)'],
-        1206 => ['RP Kruvasan', 'Symphony ürün grubu 1206 — RP KRUVASAN'],
-        1207 => ['RP Tatlı', 'Symphony ürün grubu 1207 — RP TATLI'],
-        1208 => ['RP Cheesecake', 'Symphony ürün grubu 1208 — RP CHEESECAKE'],
-        1209 => ['RP Kurabiye', 'Symphony ürün grubu 1209 — RP KURABIYE'],
-        1210 => ['RP KG Ürünler', 'Symphony ürün grubu 1210 — RP KG URUNLER'],
-        1211 => ['RP Yaş Pasta', 'Symphony ürün grubu 1211 — RP YAS PASTA'],
-        1212 => ['RP Börek', 'Symphony ürün grubu 1212 — RP BOREK'],
-        1213 => ['RP Çörek & Çıtır', 'Symphony ürün grubu 1213 — RP COREK&CITIR'],
-        1215 => ['RP Çikolata', 'Symphony ürün grubu 1215 — RP CIKOLATA'],
-        1216 => ['RP Kuru Meyve', 'Symphony ürün grubu 1216 — RP KURU MEYVE'],
-        1402 => ['RS Başlangıçlar', 'Symphony ürün grubu 1402 — RS BASLANGICLAR'],
-        1405 => ['RS Kahvaltılar', 'Symphony ürün grubu 1405 — RS KAHVALTILAR (POGACA SOSISLI buradadır)'],
-        1503 => ['Kahvaltılar', 'Symphony ürün grubu 1503 — KAHVALTILAR'],
-        1901 => ['Pool Pizzalar', 'Symphony ürün grubu 1901 — POOL PIZZALAR'],
-        1902 => ['Pool Pideler', 'Symphony ürün grubu 1902 — POOL PIDELER'],
-        1903 => ['Pool Makarnalar', 'Symphony ürün grubu 1903 — POOL MAKARNALAR'],
-        1904 => ['Pool Ana Yemekler', 'Symphony ürün grubu 1904 — POOL ANA YEMEKLER'],
-        1905 => ['Pool Atıştırmalıklar', 'Symphony ürün grubu 1905 — POOL ATISTIRMALIKLAR'],
-        1906 => ['Pool Sandviç & Burgerler', 'Symphony ürün grubu 1906 — POOL SANDVC VE BURGERLER'],
-        1907 => ['Pool Salatalar', 'Symphony ürün grubu 1907 — POOL SALATALAR'],
-        1908 => ['Pool Tatlılar', 'Symphony ürün grubu 1908 — POOL TATLILAR'],
-        1909 => ['Pool Dondurma', 'Symphony ürün grubu 1909 — POOL DONDURMA'],
-        1910 => ['Pool Tostlar', 'Symphony ürün grubu 1910 — POOL TOSTLAR'],
-        4001 => ['Diğer (Pasta Mumu vb.)', 'Symphony ürün grubu 4001 — DIGER'],
-    ];
+    // FamGrp (ürün grubu) kodları admin ayarlarında elle girilir (kitchen_fg_hide_{rvc}).
+    // Bilinen kod: 1205 = RP MAYALI (Poğaça / Simit) — FamGrpObjNum canlı probe ile doğrulandı.
 
     // Hiç kayıt yokken devrede olan gizle varsayılanı: Patisserie'de yalnız poğaça/simit
     public const FAMILY_HIDE_DEFAULT = [81 => [1205]];
@@ -85,7 +51,7 @@ class KitchenFilter
         return $map;
     }
 
-    // Mutfak ekranına yazdırilmayacak FamGrp kodları (ters mantık: işaretli = gizli).
+    // Mutfak ekranına yazdırilmayacak FamGrp kodları (ters mantık: girilen = gizli).
     // kitchen_fg_hide_{rvc} ayarı virgülle ayrılmış kod listesi tutar; kayıt yokken
     // FAMILY_HIDE_DEFAULT devrededir, boş kayıt ("") hiçbir grubu gizlemez.
     public static function familyHideMap(int $rvcId): array
@@ -100,5 +66,15 @@ class KitchenFilter
             $map[$code] = true;
         }
         return $map;
+    }
+
+    // Ayar sayfasındaki metin alanına yazılacak değer (virgüllü kod listesi).
+    public static function familyHideList(int $rvcId): string
+    {
+        $saved = Setting::get("kitchen_fg_hide_{$rvcId}");
+        if ($saved === null) {
+            $saved = implode(',', self::FAMILY_HIDE_DEFAULT[$rvcId] ?? []);
+        }
+        return (string) $saved;
     }
 }

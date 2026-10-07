@@ -220,9 +220,10 @@ class SettingsController extends Controller
                         $request->boolean("kitchen_show_{$kitchenRvcId}_{$kitchenMg}") ? '1' : '0'
                     );
                 }
-                // Ürün grubu gizle listesi (FamGrp): işaretli = mutfak ekranına yazılmaz
-                $hideCodes = array_map('intval', (array) $request->input("kitchen_fg_hide_{$kitchenRvcId}", []));
-                Setting::set("kitchen_fg_hide_{$kitchenRvcId}", implode(',', array_filter($hideCodes)));
+                // Ürün grubu gizle listesi (FamGrp): virgül veya + ile girilen kodlar mutfak ekranına yazılmaz
+                $hideRaw = (string) $request->input("kitchen_fg_hide_{$kitchenRvcId}", '');
+                $hideCodes = array_filter(array_map('intval', preg_split('/[+,]/', $hideRaw) ?: []));
+                Setting::set("kitchen_fg_hide_{$kitchenRvcId}", implode(',', array_unique($hideCodes)));
             }
             return back()->with('success', 'Kitchen ekran ayarları güncellendi.');
         } elseif ($request->has('_clock_only')) {
