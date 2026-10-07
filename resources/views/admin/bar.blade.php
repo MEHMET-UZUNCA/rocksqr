@@ -584,12 +584,15 @@
             const startTime = isSymphony ? getStartTime(gk, order.order_time) : (order.order_time || '');
 
             // Sag kolon (Hazirlanan) gizli kategorileri satirdan da eler; Gelen kolonu filtresiz.
-            // Mesaj satirlari (mg=99) urun listesinden ayrilir, okunur mesaj kutusunda gosterilir.
+            // Mesaj satirlari (mg=99) ayri kutuya alinmaz; POS'taki satir konumunda sari satir olarak basilir.
             const allItems = filterItems ? visibleItems(order) : parseItems(order);
-            const msgItems = allItems.filter(item => item.mg === 99);
-            const items = allItems.filter(item => item.mg !== 99);
 
-            const itemsHtml = items.map(item => {
+            const itemsHtml = allItems.map(item => {
+                if (item.mg === 99) {
+                    return `<div class="py-[2px] border-b border-gray-700">
+                        <div class="text-yellow-100 text-[11px] leading-snug"><i class="fas fa-comment-dots mr-1 text-yellow-400"></i>${escapeHtml(item.note || item.name)}</div>
+                    </div>`;
+                }
                 const name = item.name || (item.id ? getProductName(item.id) : '');
                 const qty  = item.quantity || item.qty || 1;
                 const note = item.note || '';
@@ -597,17 +600,14 @@
                 const nameClass = ret ? 'line-through text-red-400' : '';
                 const qtyClass  = ret ? 'text-red-400' : 'text-gold';
                 const retBadge  = ret ? `<span class="shrink-0 px-1 py-0.5 rounded text-[9px] font-bold bg-red-700 text-white uppercase">İade</span>` : '';
-                return `<div class="flex justify-between items-center py-[2px] border-b border-gray-700${ret ? ' iade-blink' : ''}">
-                    <span class="truncate pr-1"><span class="font-bold ${qtyClass} shrink-0 mr-1">${qty}x</span><span class="${nameClass}">${escapeHtml(name)}</span>${note ? ` <span class="text-yellow-400 text-[9px]">(${escapeHtml(note)})</span>` : ''}</span>
-                    ${retBadge}
+                return `<div class="py-[2px] border-b border-gray-700${ret ? ' iade-blink' : ''}">
+                    <div class="flex justify-between items-center">
+                        <span class="truncate pr-1"><span class="font-bold ${qtyClass} shrink-0 mr-1">${qty}x</span><span class="${nameClass}">${escapeHtml(name)}</span></span>
+                        ${retBadge}
+                    </div>
+                    ${note ? `<div class="text-yellow-400 text-[9px] leading-snug truncate">— ${escapeHtml(note)}</div>` : ''}
                 </div>`;
             }).join('');
-
-            const msgHtml = msgItems.length > 0 ? `
-                <div class="mx-1 mb-1 p-1 bg-yellow-900/40 border border-yellow-500/60 rounded-lg">
-                    <div class="text-[9px] text-yellow-400 font-bold uppercase mb-0.5"><i class="fas fa-bullhorn mr-1"></i>Mesajlar</div>
-                    ${msgItems.map(m => `<div class="text-yellow-100 text-[11px] leading-snug py-0.5">${escapeHtml(m.note || m.name)}</div>`).join('')}
-                </div>` : '';
 
             const chkLabel = isSymphony && order.check_number ? `Chk #${order.check_number}` : (isSymphony ? '' : `Chk #${order.id}`);
             // Mutfak karti duzeni: Chk meta satirinda tek basina, garson adi altinda kendi satirinda
@@ -664,7 +664,6 @@
                     ${itemsHtml || '<div class="text-gray-400 text-center py-0.5">Urun yok</div>'}
                     ${order.order_note ? `<div class="mt-0.5 p-1 bg-yellow-900/30 rounded text-yellow-300 text-[10px]"><i class="fas fa-sticky-note mr-1"></i>${escapeHtml(order.order_note)}</div>` : ''}
                 </div>
-                ${msgHtml}
                 ${footer}
             </div>`;
         }

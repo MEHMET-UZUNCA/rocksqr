@@ -70,8 +70,8 @@ class SettingsController extends Controller
             $settings["screen_pin_{$pinScreen}_set"]     = Setting::get("screen_pin_{$pinScreen}", '') !== '';
         }
 
-        // Mutfak kategori filtreleri — RVC (44/81) × Symphony grubu başına ayrı tick
-        foreach (\App\Support\KitchenFilter::RVCS as $kitchenRvcId => $_rvcName) {
+        // Mutfak kategori filtreleri — RVC (44/81 + ana 43/45/46/63) × Symphony grubu başına ayrı tick
+        foreach (\App\Support\KitchenFilter::RVCS + \App\Support\KitchenFilter::ANA_RVCS as $kitchenRvcId => $_rvcName) {
             foreach (\App\Support\KitchenFilter::visibleMap($kitchenRvcId) as $kitchenMg => $on) {
                 $settings["kitchen_show_{$kitchenRvcId}_{$kitchenMg}"] = $on;
             }
@@ -213,7 +213,7 @@ class SettingsController extends Controller
             Setting::set('kitchen_completed_display', $request->kitchen_completed_display);
             Setting::set('waiter_call_display', $request->waiter_call_display);
             Setting::set('ready_undo_seconds', $request->ready_undo_seconds);
-            foreach (\App\Support\KitchenFilter::RVCS as $kitchenRvcId => $_rvcName) {
+            foreach (\App\Support\KitchenFilter::RVCS + \App\Support\KitchenFilter::ANA_RVCS as $kitchenRvcId => $_rvcName) {
                 foreach (array_keys(\App\Support\KitchenFilter::GROUPS) as $kitchenMg) {
                     Setting::set(
                         "kitchen_show_{$kitchenRvcId}_{$kitchenMg}",
@@ -224,6 +224,12 @@ class SettingsController extends Controller
                 $hideRaw = (string) $request->input("kitchen_fg_hide_{$kitchenRvcId}", '');
                 $hideCodes = array_filter(array_map('intval', preg_split('/[+,]/', $hideRaw) ?: []));
                 Setting::set("kitchen_fg_hide_{$kitchenRvcId}", implode(',', array_unique($hideCodes)));
+                // Açık Yiyecek/İçecek/Diğer kodları: fiş içerik çözümü bu satırlara uygulanır
+                foreach (\App\Support\KitchenFilter::OPEN_KINDS as $openKind) {
+                    $openRaw   = (string) $request->input("kitchen_open_{$openKind}_{$kitchenRvcId}", '');
+                    $openCodes = array_filter(array_map('intval', preg_split('/[+,]/', $openRaw) ?: []));
+                    Setting::set("kitchen_open_{$openKind}_{$kitchenRvcId}", implode(',', array_unique($openCodes)));
+                }
             }
             return back()->with('success', 'Kitchen ekran ayarları güncellendi.');
         } elseif ($request->has('_clock_only')) {

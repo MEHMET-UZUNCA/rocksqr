@@ -333,6 +333,13 @@ class SymphonyKdsController extends Controller
 
     public function kitchenPosApi()
     {
+        return $this->kdsPayload('mssql_kds_rvc_filter');
+    }
+
+    // Mutfak ve Ana Mutfak (AKDS) ekranları aynı v1.4 sorguyu ve payload
+    // mantığını paylaşır; yalnız RVC yazılım filtresi ayar anahtarıyla ayrışır.
+    private function kdsPayload(string $rvcFilterKey)
+    {
         // Ekran temizleme saati dolduysa bu anket tetikler (gunde bir kez)
         ScreenCleaner::clearIfDue();
 
@@ -369,7 +376,7 @@ class SymphonyKdsController extends Controller
             // RVC / Gelir Merkezi yazılım filtresi (sorgunun RVC kapsamı FULL kalır).
             // first_seen kaydı aşağıdaki pre-pass'ta tüm satırlar için tutulur;
             // filtre kapatılıp açılırsa sayaçlar doğru devam eder.
-            $rvcFilterIds = self::parseRvcFilter((string) Setting::get('mssql_kds_rvc_filter', ''));
+            $rvcFilterIds = self::parseRvcFilter((string) Setting::get($rvcFilterKey, ''));
 
             // ── Satır bazlı kalıcı unit anahtarı + local first_seen_at ──────────────
             // Symphony, ürün eklenince tüm satırların ItemTime'ını günceller.
@@ -417,16 +424,19 @@ class SymphonyKdsController extends Controller
             // Mutfak filtresi — RVC başına (44=Pool Bar, 81=Rocks Patisserie) ayrı,
             // kategori başına (1/2/3/4, 99+98=mesajlar, 0=etiketsiz) ayrı tick.
             $kitchenVisible = [];
-            foreach (array_keys(KitchenFilter::RVCS) as $filterRvcId) {
+            foreach (array_keys(KitchenFilter::RVCS + KitchenFilter::ANA_RVCS) as $filterRvcId) {
                 $kitchenVisible[$filterRvcId] = KitchenFilter::visibleMap($filterRvcId);
             }
 
             // Ürün grubu (FamGrp) gizle listeleri — RVC başına; admin Ekran ayarlarından
             // yönetilir (işaretli grup mutfak ekranına yazılmaz).
             $famHide = [];
-            foreach (array_keys(KitchenFilter::RVCS) as $hideRvcId) {
+            foreach (array_keys(KitchenFilter::RVCS + KitchenFilter::ANA_RVCS) as $hideRvcId) {
                 $famHide[$hideRvcId] = KitchenFilter::familyHideMap($hideRvcId);
             }
+
+            // Açık Yiyecek/İçecek/Diğer POS kodları (RVC bazlı): fiş içerik çözümü bu satırlara uygulanır
+            $openSets = [];
 
             $checks              = [];
             $checkless           = [];
@@ -434,7 +444,7 @@ class SymphonyKdsController extends Controller
             $lastUrunIdxByKey    = [];
             $prodRowIdxByKey     = [];
             $prodMergeIdxByKey   = [];
-            $msgGuids            = [];
+            $journalGuids        = [];
 
             foreach ($rows as $rowIndex => $row) {
                 $checkNum    = $mssql->getField($row, ['CheckNumber', 'check_number', 'ChkNum'], null);
@@ -467,6 +477,11 @@ class SymphonyKdsController extends Controller
                 $parentItemId = (int) $mssql->getField($row, ['ParentItemID', 'parent_item_id'], 0);
                 $checkGid     = (string) $mssql->getField($row, ['CheckGID', 'check_gid'], '');
                 $isV14Row     = $objNo > 0;
+                $isOpenRow    = false;
+                if ($isV14Row && $rvcId > 0) {
+                    $openSets[$rvcId] ??= KitchenFilter::openCodeMap($rvcId);
+                    $isOpenRow = isset($openSets[$rvcId][$objNo]);
+                }
 
                 // RVC / Gelir Merkezi yazılım filtresi (boş = tüm RVC'ler; RVC'siz satır filtrelenmez)
                 if ($rvcFilterIds !== [] && $rvcId > 0 && !isset($rvcFilterIds[$rvcId])) {
@@ -540,13 +555,21 @@ class SymphonyKdsController extends Controller
                     'age_seconds' => max(0, (int) $localCarbon->diffInSeconds(now())),
                 ];
 
+                // Açık satır: gerçek içerik POS_JOURNAL_LOG fişinden çözülür
+                if ($isOpenRow && $checkGid !== '') {
+                    $item['_gid'] = $checkGid;
+                    $item['_open'] = true;
+                    $journalGuids[$checkGid] = true;
+                }
+
                 // Mesaj ve Mars → checkless veya check.messages
                 if ($isMessage || $isMars) {
                     // MESAJ satırlarının gerçek metni POS_JOURNAL_LOG fiş metninden çözülür;
                     // MARS metni fişte ayrı biçimde olduğundan adıyla kalır.
                     if ($isMessage && $checkGid !== '') {
                         $item['_gid'] = $checkGid;
-                        $msgGuids[$checkGid] = true;
+                        $item['_k']   = $isBarMsg ? 'bar' : 'mutfak';
+                        $journalGuids[$checkGid] = true;
                     }
                     if (!$hasCheck) {
                         $checkless[] = array_merge($item, ['table_no' => $tableNo, 'rvc' => $rvc, 'rvc_id' => $rvcId]);
@@ -556,6 +579,8 @@ class SymphonyKdsController extends Controller
                     if (!isset($checks[$key])) {
                         $checks[$key] = $this->newCheck($checkNum, $tableNo, $rvc, $rvcId, $waiterFull, $status);
                     }
+                    // POS fişindeki satır konumu: blade mesajları ürün satırları arasına buraya serpiştirir
+                    $item['pos'] = count($checks[$key]['items']);
                     $checks[$key]['messages'][] = $item;
                     continue;
                 }
@@ -582,7 +607,7 @@ class SymphonyKdsController extends Controller
                         $items[$pIdx]['unit_ids'][]  = $unitId;
                         $items[$pIdx]['unit_qtys'][$unitId] = max(1, $rowQty);
                     }
-                } elseif ($objNo > 0 && ($mIdx = $prodMergeIdxByKey[$key][$objNo] ?? null) !== null && isset($items[$mIdx])) {
+                } elseif (!$isOpenRow && $objNo > 0 && ($mIdx = $prodMergeIdxByKey[$key][$objNo] ?? null) !== null && isset($items[$mIdx])) {
                     // v1.4: aynı checkte aynı ürün (ProductObjectNumber) → tek satırda birleştir.
                     // Net adet sıfırın altına inerse satır komple iade sayılır.
                     $items[$mIdx]['qty_net']   += $rowQty;
@@ -693,17 +718,18 @@ class SymphonyKdsController extends Controller
             // MESAJ satırlarının gerçek metni POS_JOURNAL_LOG fiş metninden çözülür:
             // her check için fişteki mesaj metinleri, sonuç sırasındaki mesaj satırlarıyla
             // eşleşir; eşleşmeyen satır adıyla kalır.
-            $journalTexts = $msgGuids !== [] ? self::resolveJournalMessages($pdo, array_keys($msgGuids)) : [];
+            $journalTexts = $journalGuids !== [] ? self::resolveJournalTexts($pdo, array_keys($journalGuids)) : [];
             $cursor = [];
             $nextText = function (array &$item) use (&$cursor, $journalTexts) {
-                $gid = (string) ($item['_gid'] ?? '');
-                unset($item['_gid']);
-                if ($gid === '' || !isset($journalTexts[$gid])) return;
-                $i = $cursor[$gid] ?? 0;
-                if (isset($journalTexts[$gid][$i])) {
-                    $item['note'] = $journalTexts[$gid][$i];
+                $gid  = (string) ($item['_gid'] ?? '');
+                $kind = (string) ($item['_k'] ?? 'mutfak');
+                unset($item['_gid'], $item['_k']);
+                if ($gid === '' || !isset($journalTexts[$gid]['messages'][$kind])) return;
+                $i = $cursor[$gid . ':' . $kind] ?? 0;
+                if (isset($journalTexts[$gid]['messages'][$kind][$i])) {
+                    $item['note'] = $journalTexts[$gid]['messages'][$kind][$i];
                 }
-                $cursor[$gid] = $i + 1;
+                $cursor[$gid . ':' . $kind] = $i + 1;
             };
             foreach ($checks as &$chk) {
                 foreach ($chk['messages'] as &$m) $nextText($m);
@@ -712,6 +738,27 @@ class SymphonyKdsController extends Controller
             unset($chk);
             foreach ($checkless as &$m) $nextText($m);
             unset($m);
+
+            // Açık satırlar: fişteki içerik satırları, sonuç sırasındaki açık satırlara
+            // fiş sırasıyla atanır; çözülemeyen satır adıyla kalır.
+            $openCursor = [];
+            $nextOpen = function (array &$item) use (&$openCursor, $journalTexts) {
+                $gid = (string) ($item['_gid'] ?? '');
+                unset($item['_gid'], $item['_open']);
+                if ($gid === '' || !isset($journalTexts[$gid]['opens'])) return;
+                $i = $openCursor[$gid] ?? 0;
+                if (isset($journalTexts[$gid]['opens'][$i])) {
+                    $item['note'] = implode(', ', $journalTexts[$gid]['opens'][$i]['contents']);
+                }
+                $openCursor[$gid] = $i + 1;
+            };
+            foreach ($checks as &$chk) {
+                foreach ($chk['items'] as &$it) {
+                    if (!empty($it['_open'])) $nextOpen($it);
+                }
+                unset($it);
+            }
+            unset($chk);
 
             // Onaylanan checksiz mesajları filtrele
             $completedMsgKeys = DB::table('kitchen_pos_completions')
@@ -942,11 +989,11 @@ class SymphonyKdsController extends Controller
         return $ids;
     }
 
-    // Check GUID listesi → POS_JOURNAL_LOG fiş metinlerinden mesaj metinleri.
-    // Bir check'in fişleri zamanla değişir (M.Servis kısmi fişleri mesaj satırlarını
-    // hiç taşımaz) → yalnız son fişe bakmak yerine en çok mesaj metni içeren fiş
-    // seçilir; eşitlikte en yenisi kazanır.
-    public static function resolveJournalMessages(\PDO $pdo, array $guids): array
+    // Check GUID listesi → POS_JOURNAL_LOG fiş metinlerinden mesaj metinleri +
+    // açık satır içerikleri. Bir check'in fişleri zamanla değişir (M.Servis kısmi
+    // fişleri bazı satırları hiç taşımaz) → yalnız son fişe bakmak yerine en çok
+    // bölüm çözen fiş seçilir.
+    public static function resolveJournalTexts(\PDO $pdo, array $guids): array
     {
         $guids = array_values(array_unique(array_filter(array_map('trim', $guids), fn($g) => $g !== '')));
         if ($guids === []) return [];
@@ -967,35 +1014,92 @@ class SymphonyKdsController extends Controller
         }
 
         $out = [];
+        // Check uzun yaşarsa açık ürün ve mesajlar ayrı fişlerde (ayrı postinglerde)
+        // gelir; tek "en iyi" fiş seçimi diğerini boş bırakır — tüm fişler
+        // posJournalLogId sırasıyla birleştirilir. Bar/Mutfak mesaj metinleri ayrı
+        // tutulur: ekranlar yalnız kendi türündeki satırları sırayla tüketir.
         foreach ($textsPerGuid as $guid => $list) {
-            $best = [];
+            $messages = ['bar' => [], 'mutfak' => []];
+            $opens    = [];
             foreach ($list as $text) {
-                $parsed = self::parseJournalMessageTexts($text);
-                if (count($parsed) > count($best)) $best = $parsed;
+                foreach (self::parseJournalMessageTexts($text) as $m) $messages[$m['k']][] = $m['t'];
+                foreach (self::parseJournalOpenTexts($text) as $o) $opens[] = $o;
             }
-            if ($best !== []) $out[$guid] = $best;
+            if ($messages['bar'] !== [] || $messages['mutfak'] !== [] || $opens !== []) {
+                $out[$guid] = ['messages' => $messages, 'opens' => $opens];
+            }
         }
         return $out;
     }
 
     // Fiş metni: " 1 Mutfak Mesaj  0.00" (1 boşluk girinti) başlık satırı,
     // hemen altındaki "   HERSEY MARS" (3 boşluk girinti) satırı gerçek mesaj metnidir.
+    // Cafe Rocks (RVC 43) biçimi: mesaj, açık içerik bloğu içinde "     Mesaj"
+    // (5 boşluk girinti) etiketiyle gelir; altındaki 3-girintili satır metindir.
+    // Dönen kayıt tür etiketlidir: ['k' => 'bar'|'mutfak', 't' => metin].
     private static function parseJournalMessageTexts(string $journalText): array
     {
         $texts = [];
-        $expectText = false;
+        $expectKind = null;
         foreach (explode("\n", str_replace("\r\n", "\n", $journalText)) as $line) {
             $indent = strlen($line) - strlen(ltrim($line));
+            if ($indent >= 4 && preg_match('/^\s{4,}mesaj\b/iu', $line)) {
+                $expectKind = 'mutfak';
+                continue;
+            }
             if ($indent === 1) {
-                $expectText = (bool) preg_match('/^ \d+ +(?:mutfak mesaj|bar mesaj|mesaj)\b/iu', $line);
-            } elseif ($expectText && $indent === 3) {
-                $texts[] = trim($line);
-                $expectText = false;
+                $expectKind = preg_match('/^ \d+ +bar mesaj\b/iu', $line)
+                    ? 'bar'
+                    : (preg_match('/^ \d+ +(?:mutfak mesaj|mesaj)\b/iu', $line) ? 'mutfak' : null);
+            } elseif ($expectKind !== null && $indent === 3) {
+                $texts[] = ['k' => $expectKind, 't' => trim($line)];
+                $expectKind = null;
             } elseif ($indent !== 3) {
-                $expectText = false;
+                $expectKind = null;
             }
         }
         return $texts;
+    }
+
+    // Fiş metni: " 1 Acik Yiyecek  1200.00" (1 boşluk girinti) başlık satırı,
+    // altındaki "   ICE GIT" (3 boşluk girinti) satırlar içeriktir; bir sonraki
+    // 1-girintili bölüm başlığı açık bölümü kapatır. Fiş sonu özet satırları
+    // (AraToplam/Toplam/Ödeme/KDV) içerik sayılmaz, bölümü kapatır.
+    private static function parseJournalOpenTexts(string $journalText): array
+    {
+        $opens  = [];
+        $cur    = null;
+        $isTail = fn(string $s) => (bool) preg_match('/^(ara ?toplam|genel ?toplam|toplam|odeme|oda hesabi|m\.servis|service|kdv|vergi|vat|tax|nakit|bakiye)\b/iu', $s);
+        foreach (explode("\n", str_replace("\r\n", "\n", $journalText)) as $line) {
+            $indent = strlen($line) - strlen(ltrim($line));
+            if (preg_match('/^ \d+ +acik\b/iu', $line)) {
+                if ($cur !== null) $opens[] = $cur;
+                $cur = ['name' => trim($line), 'contents' => []];
+                continue;
+            }
+            if ($cur === null) continue;
+            $content = trim($line);
+            if ($content !== '' && $isTail($content)) {
+                $opens[] = $cur;
+                $cur = null;
+                continue;
+            }
+            // Cafe Rocks biçimi: "     Mesaj" etiketi açık bölümün içeriğini kapatır;
+            // altındaki 3-girintili satırlar mesaj metnidir, açık içeriğe yazılmaz.
+            if ($indent >= 4 && preg_match('/^\s{4,}mesaj\b/iu', $line)) {
+                $opens[] = $cur;
+                $cur = null;
+                continue;
+            }
+            if ($indent === 3) {
+                if ($content !== '') $cur['contents'][] = $content;
+            } elseif ($indent === 1) {
+                $opens[] = $cur;
+                $cur = null;
+            }
+        }
+        if ($cur !== null) $opens[] = $cur;
+        return $opens;
     }
 
     // ──────────────────────────────────────────────
@@ -1004,153 +1108,7 @@ class SymphonyKdsController extends Controller
 
     public function kitchenAnaApi()
     {
-        $host      = (string) Setting::get('mssql_akds_host', '');
-        $port      = (string) Setting::get('mssql_akds_port', '1433');
-        $database  = (string) Setting::get('mssql_akds_database', '');
-        $username  = (string) Setting::get('mssql_akds_username', '');
-        $password  = (string) Setting::get('mssql_akds_password', '');
-        $query     = trim((string) Setting::get('mssql_akds_query', ''));
-        $rvcFilter = trim((string) Setting::get('mssql_akds_rvc_filter', ''));
-
-        if ($query === '' || !$host || !$database || !$username) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Ana Mutfak (AKDS) MSSQL ayarları/sorgusu eksik. Admin → MSSQL Ayarları → Ana Mutfak (AKDS) sekmesinden tanımlayın.',
-                'orders'  => [],
-            ]);
-        }
-
-        // {{RVC}} placeholder → RVC filtre değeriyle değiştir (sadece sayı / virgülle ayrılmış liste)
-        if (str_contains($query, '{{RVC}}')) {
-            if ($rvcFilter === '') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'SQL sorgusunda {{RVC}} placeholder var ama RVC Filtresi boş. Admin → MSSQL Ayarları → Ana Mutfak (AKDS) → RVC Filtresi alanını doldurun.',
-                    'orders'  => [],
-                ]);
-            }
-            if (!preg_match('/^\d+(\s*,\s*\d+)*$/', $rvcFilter)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'RVC Filtresi sadece sayısal değer veya virgülle ayrılmış liste olabilir (örn: 43 ya da 43, 44, 45).',
-                    'orders'  => [],
-                ]);
-            }
-            $safeRvc = implode(', ', array_map('trim', explode(',', $rvcFilter)));
-            $query   = str_replace('{{RVC}}', $safeRvc, $query);
-        }
-
-        try {
-            $pdo  = $this->mssql->connect($host, $port, $database, $username, $password);
-            $rows = $this->mssql->runQuery($pdo, $this->mssql->cleanSql($query));
-
-            $checks = [];
-            foreach ($rows as $row) {
-                $mssql     = $this->mssql;
-                $checkNum  = $mssql->getField($row, ['CheckNumber', 'check_number', 'ChkNum'], null);
-                $tableNo   = (string) $mssql->getField($row, ['TableNumber', 'table_number'], '');
-                $orderTime = $mssql->getField($row, ['OrderTime', 'order_time'], null);
-                $itemTime  = $mssql->getField($row, ['ItemTime', 'item_time'], null);
-                $rvc       = $mssql->getField($row, ['RevenueCenter', 'revenue_center'], '');
-                $covers    = (int) $mssql->getField($row, ['Covers', 'covers'], 0);
-                $qty       = (int) $mssql->getField($row, ['Qty', 'qty', 'Quantity'], 1);
-                $name      = (string) $mssql->getField($row, ['ProductName', 'product_name', 'Name'], '');
-                $note      = (string) $mssql->getField($row, ['MessageNote', 'message_note', 'RefInfo'], '');
-                $itemId    = $mssql->getField($row, ['ItemID', 'item_id'], null);
-
-                $groupKey = $checkNum !== null && (int) $checkNum > 0
-                    ? (string) $checkNum
-                    : 'T' . $tableNo;
-
-                if (!isset($checks[$groupKey])) {
-                    $checks[$groupKey] = [
-                        'group_key'    => $groupKey,
-                        'check_number' => $checkNum,
-                        'table_no'     => $tableNo,
-                        'rvc'          => $rvc,
-                        'covers'       => $covers,
-                        'order_time'   => $orderTime,
-                        'items'        => [],
-                    ];
-                }
-
-                if ($orderTime && (!$checks[$groupKey]['order_time'] || strcmp((string) $orderTime, (string) $checks[$groupKey]['order_time']) < 0)) {
-                    $checks[$groupKey]['order_time'] = $orderTime;
-                }
-
-                $effectiveItemTime = $itemTime ?? $orderTime;
-                $checks[$groupKey]['items'][] = [
-                    'item_id'   => $itemId,
-                    'qty'       => $qty,
-                    'name'      => $name,
-                    'note'      => $note,
-                    'item_time' => $effectiveItemTime
-                        ? \Carbon\Carbon::parse((string) $effectiveItemTime, 'Europe/Istanbul')->toIso8601String()
-                        : null,
-                ];
-
-                if ($effectiveItemTime && (!$checks[$groupKey]['order_time'] || strcmp((string) $effectiveItemTime, (string) $checks[$groupKey]['order_time']) < 0)) {
-                    $checks[$groupKey]['order_time'] = $effectiveItemTime;
-                }
-            }
-
-            // order_time → ISO8601
-            foreach ($checks as &$chk) {
-                if ($chk['order_time']) {
-                    try {
-                        $chk['order_time'] = \Carbon\Carbon::parse((string) $chk['order_time'], 'Europe/Istanbul')->toIso8601String();
-                    } catch (\Exception) {}
-                }
-            }
-            unset($chk);
-
-            // Tamamlanmış hesapları filtrele
-            $completedCheckRows = DB::table('kitchen_pos_completions')
-                ->where('kind', 'check')
-                ->select('group_key', 'served_item_keys')
-                ->get()
-                ->keyBy('group_key');
-
-            if ($completedCheckRows->isNotEmpty()) {
-                foreach ($checks as $k => $chk) {
-                    if (!$completedCheckRows->has($k)) continue;
-                    $servedKeys = json_decode($completedCheckRows[$k]->served_item_keys ?? '[]', true) ?: [];
-                    if (empty($servedKeys)) { unset($checks[$k]); continue; }
-                    $servedSet = array_flip($servedKeys);
-                    $newItems  = array_values(array_filter($chk['items'], function ($item) use ($servedSet) {
-                        $key = ($item['item_id'] !== null && $item['item_id'] !== '')
-                            ? (string) $item['item_id']
-                            : (($item['dtl_seq'] ?? 0) . '|' . $item['name']);
-                        return !isset($servedSet[$key]);
-                    }));
-                    if (empty($newItems)) {
-                        unset($checks[$k]);
-                    } else {
-                        $checks[$k]['items']       = $newItems;
-                        $checks[$k]['is_addition'] = true;
-                        $earliest = collect($newItems)->filter(fn($i) => !empty($i['item_time']))->min('item_time');
-                        if ($earliest) $checks[$k]['order_time'] = $earliest;
-                    }
-                }
-            }
-
-            uasort($checks, fn($a, $b) => strcmp((string) ($b['order_time'] ?? ''), (string) ($a['order_time'] ?? '')));
-
-            return response()->json([
-                'success'    => true,
-                'orders'     => array_values($checks),
-                'fetched_at' => now()->format('H:i:s'),
-                'server_now' => \App\Support\Clock::nowIso(),
-                'count'      => count($checks),
-            ]);
-        } catch (\Exception $e) {
-            Log::error('AKDS MSSQL sorgu hatası', ['error' => $e->getMessage()]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Ana Mutfak bağlantı hatası oluştu.',
-                'orders'  => [],
-            ]);
-        }
+        return $this->kdsPayload('mssql_akds_rvc_filter');
     }
 
     // ──────────────────────────────────────────────

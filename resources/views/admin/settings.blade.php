@@ -249,8 +249,90 @@
                                        class="w-full max-w-xs border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400"
                                        placeholder="Örn: 1205">
                             </div>
+                            <div class="mt-3 pt-3 border-t border-orange-100">
+                                <p class="block text-xs font-bold text-orange-700 mb-1"><i class="fas fa-layer-group mr-1"></i>Açık Sipariş Kodları (İçerikli Satırlar)</p>
+                                <p class="text-[11px] text-gray-500 mb-2">Bu kodlu satırlar birleştirilmez; içerikleri POS fişinden çözülür. Virgül veya + ile eklenebilir (örn: 1998001,1998002). Alanı boşaltırsanız o sınıf izlenmez.</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <div>
+                                        <label for="kitchen_open_food_{{ $kitchenRvcId }}" class="block text-[11px] font-bold text-gray-600 mb-1">Açık Yiyecek</label>
+                                        <input type="text" id="kitchen_open_food_{{ $kitchenRvcId }}" name="kitchen_open_food_{{ $kitchenRvcId }}"
+                                               value="{{ old('kitchen_open_food_' . $kitchenRvcId, \App\Support\KitchenFilter::openCodeList($kitchenRvcId, 'food')) }}"
+                                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400"
+                                               placeholder="{{ \App\Support\KitchenFilter::OPEN_DEFAULTS['food'] }}">
+                                    </div>
+                                    <div>
+                                        <label for="kitchen_open_drink_{{ $kitchenRvcId }}" class="block text-[11px] font-bold text-gray-600 mb-1">Açık İçecek</label>
+                                        <input type="text" id="kitchen_open_drink_{{ $kitchenRvcId }}" name="kitchen_open_drink_{{ $kitchenRvcId }}"
+                                               value="{{ old('kitchen_open_drink_' . $kitchenRvcId, \App\Support\KitchenFilter::openCodeList($kitchenRvcId, 'drink')) }}"
+                                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400"
+                                               placeholder="{{ \App\Support\KitchenFilter::OPEN_DEFAULTS['drink'] }}">
+                                    </div>
+                                    <div>
+                                        <label for="kitchen_open_other_{{ $kitchenRvcId }}" class="block text-[11px] font-bold text-gray-600 mb-1">Açık Diğer</label>
+                                        <input type="text" id="kitchen_open_other_{{ $kitchenRvcId }}" name="kitchen_open_other_{{ $kitchenRvcId }}"
+                                               value="{{ old('kitchen_open_other_' . $kitchenRvcId, \App\Support\KitchenFilter::openCodeList($kitchenRvcId, 'other')) }}"
+                                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400"
+                                               placeholder="{{ \App\Support\KitchenFilter::OPEN_DEFAULTS['other'] }}">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         @endforeach
+                        <div class="mt-5 pt-4 border-t-2 border-orange-200">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-tv mr-1"></i>Ana Mutfak KDS Filtreleri <span class="text-xs font-normal text-gray-400">(/kitchen-ana ekranı)</span></label>
+                            @foreach (\App\Support\KitchenFilter::ANA_RVCS as $kitchenRvcId => $kitchenRvcName)
+                            <div class="p-3 bg-orange-50 border border-orange-200 rounded-lg mb-3">
+                                <p class="text-xs font-bold text-orange-700 mb-2">{{ strtoupper($kitchenRvcName) }} <span class="font-normal text-orange-400">(Symphony RVC {{ $kitchenRvcId }})</span></p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                    @foreach (\App\Support\KitchenFilter::GROUPS as $kitchenMg => [$kitchenLabel, $kitchenDesc, $kitchenIcon])
+                                    <label class="flex items-start gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                                        <input type="checkbox" name="kitchen_show_{{ $kitchenRvcId }}_{{ $kitchenMg }}" value="1" class="rounded mt-0.5"
+                                               @checked(old("kitchen_show_{$kitchenRvcId}_{$kitchenMg}", $settings["kitchen_show_{$kitchenRvcId}_{$kitchenMg}"]))>
+                                        <span><i class="fas {{ $kitchenIcon }} mr-1"></i>{{ $kitchenLabel }}
+                                            <span class="block text-xs font-normal text-gray-400">{{ $kitchenDesc }}</span>
+                                        </span>
+                                    </label>
+                                    @endforeach
+                                </div>
+                                <div class="mt-3 pt-3 border-t border-orange-100">
+                                    <label for="kitchen_fg_hide_{{ $kitchenRvcId }}" class="block text-xs font-bold text-orange-700 mb-1"><i class="fas fa-eye-slash mr-1"></i>Hariç Tutulacak Family Grupları</label>
+                                    <p class="text-[11px] text-gray-500 mb-2">Ana mutfak ekranına yazdırılmayacak Symphony FamilyGroup kodları; virgül veya + ile eklenebilir (örn: 1205,1206 ya da 1205+1206). Boş bırakılırsa hiçbir grup gizlenmez.</p>
+                                    <input type="text" id="kitchen_fg_hide_{{ $kitchenRvcId }}" name="kitchen_fg_hide_{{ $kitchenRvcId }}"
+                                           value="{{ old('kitchen_fg_hide_' . $kitchenRvcId, \App\Support\KitchenFilter::familyHideList($kitchenRvcId)) }}"
+                                           class="w-full max-w-xs border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400"
+                                           placeholder="Örn: 1205">
+                                </div>
+                                <div class="mt-3 pt-3 border-t border-orange-100">
+                                    <p class="block text-xs font-bold text-orange-700 mb-1"><i class="fas fa-layer-group mr-1"></i>Açık Sipariş Kodları (İçerikli Satırlar)</p>
+                                    <p class="text-[11px] text-gray-500 mb-2">Bu kodlu satırlar birleştirilmez; içerikleri POS fişinden çözülür. Virgül veya + ile eklenebilir (örn: 1998001,1998002). Alanı boşaltırsanız o sınıf izlenmez.</p>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                        <div>
+                                            <label for="kitchen_open_food_{{ $kitchenRvcId }}" class="block text-[11px] font-bold text-gray-600 mb-1">Açık Yiyecek</label>
+                                            <input type="text" id="kitchen_open_food_{{ $kitchenRvcId }}" name="kitchen_open_food_{{ $kitchenRvcId }}"
+                                                   value="{{ old('kitchen_open_food_' . $kitchenRvcId, \App\Support\KitchenFilter::openCodeList($kitchenRvcId, 'food')) }}"
+                                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400"
+                                                   placeholder="{{ \App\Support\KitchenFilter::OPEN_DEFAULTS['food'] }}">
+                                        </div>
+                                        <div>
+                                            <label for="kitchen_open_drink_{{ $kitchenRvcId }}" class="block text-[11px] font-bold text-gray-600 mb-1">Açık İçecek</label>
+                                            <input type="text" id="kitchen_open_drink_{{ $kitchenRvcId }}" name="kitchen_open_drink_{{ $kitchenRvcId }}"
+                                                   value="{{ old('kitchen_open_drink_' . $kitchenRvcId, \App\Support\KitchenFilter::openCodeList($kitchenRvcId, 'drink')) }}"
+                                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400"
+                                                   placeholder="{{ \App\Support\KitchenFilter::OPEN_DEFAULTS['drink'] }}">
+                                        </div>
+                                        <div>
+                                            <label for="kitchen_open_other_{{ $kitchenRvcId }}" class="block text-[11px] font-bold text-gray-600 mb-1">Açık Diğer</label>
+                                            <input type="text" id="kitchen_open_other_{{ $kitchenRvcId }}" name="kitchen_open_other_{{ $kitchenRvcId }}"
+                                                   value="{{ old('kitchen_open_other_' . $kitchenRvcId, \App\Support\KitchenFilter::openCodeList($kitchenRvcId, 'other')) }}"
+                                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400"
+                                                   placeholder="{{ \App\Support\KitchenFilter::OPEN_DEFAULTS['other'] }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @endforeach
+                            <p class="text-xs text-gray-400">Ana Mutfak KDS ekranı yalnız bu gelir merkezlerinin satırlarını gösterir (RVC filtresi: {{ implode(', ', array_keys(\App\Support\KitchenFilter::ANA_RVCS)) }}).</p>
+                        </div>
                         <p class="text-xs text-gray-400">İşaretiniz kaldırılan Symphony satırları mutfak ekranına gelmez. Filtre yalnızca Symphony (POS) satırları için geçerlidir; kapatılıp yeniden açıldığında süre sayaçları kaldığı yerden devam eder.</p>
                     </div>
                     <button type="submit" class="py-2.5 px-5 bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-600 transition text-sm">

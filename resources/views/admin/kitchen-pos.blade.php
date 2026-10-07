@@ -443,7 +443,14 @@
 
             const unservedCount = (order.items || []).filter(it => !it.is_returned && !it.served).length;
 
-            const itemsHtml = (order.items || []).map((it, ri) => {
+            // MESAJ satırları POS'taki satır konumuna (pos) göre ürünler arasına serpiştirilir
+            const mesajItems = (order.messages || []).filter(m => m.line_kind !== 'MARS');
+            const msgsHtmlAt = p => mesajItems.filter(m => (m.pos ?? 0) === p).map(m => `
+                <div class="py-0.5 border-b border-gray-700">
+                    <div class="text-yellow-100 text-base leading-snug"><i class="fas fa-comment-dots mr-1 text-yellow-400"></i>${m.note ? escapeHtml(m.note) : escapeHtml(m.name)}</div>
+                </div>`).join('');
+
+            const itemsHtml = msgsHtmlAt(0) + (order.items || []).map((it, ri) => {
                 const isReturned  = !!it.is_returned;
                 const isCombo     = !!it.is_combo;
                 const isCond      = !!it.is_condiment;
@@ -507,25 +514,11 @@
                         </div>
                     </div>
                     ${subHtml}
-                </div>`;
+                </div>` + msgsHtmlAt(ri + 1);
             }).join('');
 
-            // Mesajları LineKind'a göre ayır
-            const mesajItems = (order.messages || []).filter(m => m.line_kind !== 'MARS');
+            // MARS alt kutuda kalır; MESAJ satırları ürünler arasına serpiştirildi
             const marsItems  = (order.messages || []).filter(m => m.line_kind === 'MARS');
-
-            const messagesHtml = mesajItems.length > 0 ? `
-                <div class="mx-2 mb-1 p-1.5 bg-yellow-900/40 border border-yellow-500/60 rounded-lg">
-                    <div class="text-xs text-yellow-400 font-bold uppercase mb-0.5">
-                        <i class="fas fa-bullhorn mr-1"></i>Mutfak Mesajları
-                    </div>
-                    ${mesajItems.map(m => `
-                        <div class="text-yellow-100 text-base leading-snug py-0.5">
-                            ${m.note ? escapeHtml(m.note) : escapeHtml(m.name)}
-                        </div>
-                    `).join('')}
-                </div>
-            ` : '';
 
             const marsHtml = marsItems.length > 0 ? `
                 <div class="mx-2 mb-1 p-1.5 bg-orange-950/70 border border-orange-500/60 rounded-lg">
@@ -563,7 +556,7 @@
                     ${order.waiter_name ? `<div class="text-[11px] text-gray-300 mt-0.5"><i class="fas fa-user mr-1 text-gray-500"></i>${escapeHtml(order.waiter_name)}</div>` : ''}
                 </div>
                 <div class="px-2 py-1 text-sm">${itemsHtml || '<div class="text-gray-500 text-center py-1">Urun yok</div>'}</div>
-                ${messagesHtml}${marsHtml}
+                ${marsHtml}
                 <div class="px-2 pt-1 pb-1 border-t border-gray-700">
                     <button data-complete-kind="check"
                             data-complete-gk="${escapeHtml(groupKey)}"

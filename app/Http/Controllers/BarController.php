@@ -288,8 +288,10 @@ class BarController extends Controller
             $rvcFilterIds = SymphonyKdsController::parseRvcFilter((string) Setting::get('mssql_bds_rvc_filter', ''));
 
             $groups = [];
-            $msgGuids = [];
+            $journalGuids = [];
             $closedCheckNums = [];
+            // Açık Yiyecek/İçecek/Diğer POS kodları (RVC bazlı): fiş içerik çözümü bu satırlara uygulanır
+            $openSets = [];
             foreach ($rows as $row) {
                 $tableNo    = (string) $this->mssql->getField($row, ['TableNo', 'TableNumber', 'MASA', 'table_no'], '');
                 $checkNum   = $this->mssql->getField($row, ['CheckNumber', 'CheckNum', 'ADISYON', 'check_number'], null);
@@ -324,6 +326,11 @@ class BarController extends Controller
                 $objNo    = (int) $this->mssql->getField($row, ['ProductObjectNumber', 'product_object_number'], 0);
                 $rowQty   = (int) $this->mssql->getField($row, ['Qty', 'Quantity', 'ADET', 'qty', 'SalesCount'], 1);
                 $checkGid = (string) $this->mssql->getField($row, ['CheckGID', 'check_gid'], '');
+                $isOpenRow = false;
+                if ($objNo > 0 && $rvcId > 0) {
+                    $openSets[$rvcId] ??= \App\Support\KitchenFilter::openCodeMap($rvcId);
+                    $isOpenRow = isset($openSets[$rvcId][$objNo]);
+                }
                 $fc = ($lineType === 'BAR_MESSAGE' || ($lineType === 'MESAJ' && $objNo === 9001020)) ? 98 : $mg;
 
                 if (!isset($groups[$key])) {
@@ -346,10 +353,10 @@ class BarController extends Controller
                     $entry = ['name' => $itemName, 'qty' => max(1, $rowQty), 'note' => $note, 'mg' => $mg, 'fc' => $fc, 'is_returned' => false];
                     if ($lineType === 'MESAJ' && $checkGid !== '') {
                         $entry['_gid'] = $checkGid;
-                        $msgGuids[$checkGid] = true;
+                        $journalGuids[$checkGid] = true;
                     }
                     $groups[$key]['items'][] = $entry;
-                } elseif ($objNo > 0 && ($mIdx = $groups[$key]['merge'][$objNo] ?? null) !== null) {
+                } elseif (!$isOpenRow && $objNo > 0 && ($mIdx = $groups[$key]['merge'][$objNo] ?? null) !== null) {
                     // v1.4: aynı checkte aynı ürün (ProductObjectNumber) → tek satırda birleştir.
                     // Net adet sıfırın altına inerse satır komple iade sayılır.
                     $it = &$groups[$key]['items'][$mIdx];
@@ -360,7 +367,7 @@ class BarController extends Controller
                     }
                     unset($it);
                 } else {
-                    $groups[$key]['items'][] = [
+                    $entry = [
                         'name'         => $itemName,
                         'qty'          => max(1, $rowQty),
                         'note'         => $note,
@@ -371,6 +378,13 @@ class BarController extends Controller
                         'row_count'    => 1,
                         'is_returned'  => (bool) (int) $this->mssql->getField($row, ['IsReturned', 'is_returned'], 0) || $rowQty < 0,
                     ];
+                    // Açık satır: gerçek içerik POS_JOURNAL_LOG fişinden çözülür
+                    if ($isOpenRow && $checkGid !== '') {
+                        $entry['_gid']  = $checkGid;
+                        $entry['_open'] = true;
+                        $journalGuids[$checkGid] = true;
+                    }
+                    $groups[$key]['items'][] = $entry;
                     if ($objNo > 0) {
                         $groups[$key]['merge'][$objNo] = count($groups[$key]['items']) - 1;
                     }
@@ -414,22 +428,43 @@ class BarController extends Controller
             }
             unset($g);
 
-            // MESAJ satırlarının gerçek metni POS_JOURNAL_LOG fiş metninden çözülür
-            $journalTexts = $msgGuids !== [] ? SymphonyKdsController::resolveJournalMessages($pdo, array_keys($msgGuids)) : [];
+            // MESAJ ve AÇIK satırlarının gerçek metni POS_JOURNAL_LOG fiş metninden çözülür
+            $journalTexts = $journalGuids !== [] ? SymphonyKdsController::resolveJournalTexts($pdo, array_keys($journalGuids)) : [];
             $cursor = [];
             $nextText = function (array &$item) use (&$cursor, $journalTexts) {
-                $gid = (string) ($item['_gid'] ?? '');
+                $gid  = (string) ($item['_gid'] ?? '');
+                $kind = ((int) ($item['fc'] ?? 0) === 98) ? 'bar' : 'mutfak';
                 unset($item['_gid']);
-                if ($gid === '' || !isset($journalTexts[$gid])) return;
-                $i = $cursor[$gid] ?? 0;
-                if (isset($journalTexts[$gid][$i])) {
-                    $item['note'] = $journalTexts[$gid][$i];
+                if ($gid === '' || !isset($journalTexts[$gid]['messages'][$kind])) return;
+                $i = $cursor[$gid . ':' . $kind] ?? 0;
+                if (isset($journalTexts[$gid]['messages'][$kind][$i])) {
+                    $item['note'] = $journalTexts[$gid]['messages'][$kind][$i];
                 }
-                $cursor[$gid] = $i + 1;
+                $cursor[$gid . ':' . $kind] = $i + 1;
             };
             foreach ($groups as &$g) {
                 foreach ($g['items'] as &$it) {
                     if (($it['fc'] ?? 0) === 98 || ($it['fc'] ?? 0) === 99) $nextText($it);
+                }
+                unset($it);
+            }
+            unset($g);
+
+            // Açık satırlara fiş içerikleri (sıralı imleçle)
+            $openCursor = [];
+            $nextOpen = function (array &$item) use (&$openCursor, $journalTexts) {
+                $gid = (string) ($item['_gid'] ?? '');
+                unset($item['_gid'], $item['_open']);
+                if ($gid === '' || !isset($journalTexts[$gid]['opens'])) return;
+                $i = $openCursor[$gid] ?? 0;
+                if (isset($journalTexts[$gid]['opens'][$i])) {
+                    $item['note'] = implode(', ', $journalTexts[$gid]['opens'][$i]['contents']);
+                }
+                $openCursor[$gid] = $i + 1;
+            };
+            foreach ($groups as &$g) {
+                foreach ($g['items'] as &$it) {
+                    if (!empty($it['_open'])) $nextOpen($it);
                 }
                 unset($it);
             }
