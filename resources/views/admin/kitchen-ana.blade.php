@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-title" content="Ana Mutfak KDS">
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="/favicon.ico">
-    <title>Ana Mutfak KDS - Symphony POS</title>
+    <title>{{ \App\Models\Setting::get('ana_screen_title', 'Ana Mutfak Ekrani') }} - Symphony POS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -48,7 +48,7 @@
     <header class="relative z-10 bg-primary px-3 py-1 flex items-center justify-between border-b border-gold/20">
         <div class="flex items-center gap-1 bg-yellow-900/60 border border-yellow-700 rounded px-2 py-0.5">
             <i class="fas fa-utensils text-gold text-[10px]"></i>
-            <span class="text-gold font-bold text-sm">Ana Mutfak KDS <span class="text-gray-500 font-normal text-xs">Symphony POS</span></span>
+            <span class="text-gold font-bold text-sm">{{ \App\Models\Setting::get('ana_screen_title', 'Ana Mutfak Ekrani') }} <span class="text-gray-500 font-normal text-xs">Symphony POS</span></span>
         </div>
         <div class="flex items-center gap-3">
             <span id="clock" class="text-gold font-bold text-[26px] leading-none tabular-nums"></span>
@@ -806,9 +806,19 @@
                 .catch(e => console.error(e));
         }
 
+        function buildWaiterCard(c) {
+            const callLabel = [c.table_no ? 'Masa ' + c.table_no : '', c.room_no ? 'ROOM ' + c.room_no : ''].filter(Boolean).join(' ') || 'Genel';
+            return `<div class="bg-red-950 rounded-lg p-2 border border-red-800">
+                <div class="font-bold text-red-200 text-sm flex items-center gap-1"><i class="fas fa-bell text-red-400 animate-pulse shrink-0"></i><span class="truncate">${escapeHtml(callLabel)}</span></div>
+                ${c.note ? `<p class="text-red-300 text-[11px] mt-0.5 truncate">${escapeHtml(c.note)}</p>` : ''}
+                <div class="mt-1"><span class="elapsed-counter px-2 py-0.5 rounded text-xs font-bold" data-order-time="${escapeHtml(c.order_time || '')}"></span></div>
+            </div>`;
+        }
+
         function render(data) {
             const orders = data.orders || [];
             const messages = data.messages || [];
+            const waiterCalls = data.waiter_calls || [];
             const completed = data.completed || [];
             const completedMsgs = data.completed_msgs || [];
             const completedChecks = data.completed_checks || [];
@@ -861,13 +871,13 @@
             // Hesaplar
             const grid = document.getElementById('orders-grid');
             const noOrders = document.getElementById('no-orders');
-            if (orders.length === 0 && messages.length === 0) {
+            if (orders.length === 0 && messages.length === 0 && waiterCalls.length === 0) {
                 grid.classList.add('hidden');
                 noOrders.classList.remove('hidden');
             } else {
                 noOrders.classList.add('hidden');
                 grid.classList.remove('hidden');
-                grid.innerHTML = orders.map(buildOrderCard).join('');
+                grid.innerHTML = waiterCalls.map(buildWaiterCard).join('') + orders.map(buildOrderCard).join('');
             }
 
             // Tamamlananlar → alt şerit (tek ürün onayları dahil)

@@ -268,7 +268,12 @@ class SymphonyKdsController extends Controller
             return response()->json(['success' => false, 'message' => 'Kayıt bulunamadı.'], 404);
         }
 
-        $undoWindowSeconds = (int) Setting::get('ready_undo_seconds', 30);
+        // Ana mutfak (AKDS) onaylarinin geri alma penceresi ayri ayarlanir; rvc_id=0 eski kayit mutfak penceresini kullanir
+        $anaRvcIds = array_keys(self::parseRvcFilter((string) Setting::get('mssql_akds_rvc_filter', '')));
+        $undoKey   = (!empty($row->rvc_id) && in_array((int) $row->rvc_id, $anaRvcIds, true))
+            ? 'ana_ready_undo_seconds'
+            : 'ready_undo_seconds';
+        $undoWindowSeconds = (int) Setting::get($undoKey, 30);
         if (now()->diffInSeconds(\Carbon\Carbon::parse($row->completed_at)) > $undoWindowSeconds) {
             return response()->json([
                 'success' => false,
@@ -861,7 +866,7 @@ class SymphonyKdsController extends Controller
             $checks = array_filter($checks, fn($c) => !empty($c['items']) || !empty($c['messages']));
             uasort($checks, fn($a, $b) => strcmp((string) $b['order_time'], (string) $a['order_time']));
 
-            $completedLimit = (int) Setting::get('kitchen_completed_display', 6);
+            $completedLimit = (int) Setting::get($screen === 'ana' ? 'ana_completed_display' : 'kitchen_completed_display', 6);
             // SON seritleri sadece son ekran temizlemesinden sonrakileri gosterir
             $clearedAt = ScreenCleaner::clearedAt($screen);
 
@@ -964,6 +969,22 @@ class SymphonyKdsController extends Controller
             }
             unset($chk);
 
+            // Ana mutfak ekrani bekleyen garson cagrilarini da gorur (adet ayri ayarlanir)
+            $waiterCalls = [];
+            if ($screen === 'ana') {
+                $waiterCalls = \App\Models\WaiterCall::where('status', 'pending')
+                    ->orderBy('created_at', 'desc')
+                    ->limit((int) Setting::get('ana_waiter_call_display', 10))
+                    ->get()
+                    ->map(fn ($call) => [
+                        'table_no'    => $call->table_no,
+                        'room_no'     => $call->room_no,
+                        'note'        => $call->note,
+                        'order_time'  => $call->created_at->toIso8601String(),
+                        'seconds_ago' => (int) $call->created_at->diffInSeconds(now()),
+                    ])->all();
+            }
+
             return response()->json([
                 'success'         => true,
                 'orders'          => array_values($checks),
@@ -974,6 +995,7 @@ class SymphonyKdsController extends Controller
                 'completed_items' => $itemsOut,
                 'completed_limit' => $completedLimit,
                 'completed_today' => $completedTodayCount,
+                'waiter_calls'    => $waiterCalls,
                 'fetched_at'      => now()->format('H:i:s'),
                 'server_now' => \App\Support\Clock::nowIso(),
                 'count'           => count($checks),
@@ -989,6 +1011,7 @@ class SymphonyKdsController extends Controller
                 'completed_msgs'  => [],
                 'completed_checks'=> [],
                 'completed_items' => [],
+                'waiter_calls'    => [],
             ]);
         }
     }

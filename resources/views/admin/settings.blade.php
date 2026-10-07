@@ -435,6 +435,50 @@
                 <hr class="border-gray-100 mb-6">
 
                 <div class="mb-2 flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                        <i class="fas fa-concierge-bell text-blue-600"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-gray-800">Ana Mutfak Ekran Ayarlari</h3>
+                </div>
+                <form action="{{ route('admin.settings.update') }}?tab=ekran" method="POST" class="mb-8">
+                    <input type="hidden" name="_display_only" value="kitchen_ana">
+                    @csrf
+                    @method('PUT')
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-heading mr-1"></i>Ana Mutfak Ekrani Basligi</label>
+                            <input type="text" name="ana_screen_title" value="{{ old('ana_screen_title', $settings['ana_screen_title']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400" placeholder="Ana Mutfak Ekrani">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-check-circle mr-1"></i>Tamamlanan Son Siparis Sayisi</label>
+                            <input type="number" min="1" max="100" name="ana_completed_display" value="{{ old('ana_completed_display', $settings['ana_completed_display']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400">
+                            <p class="text-xs text-gray-400 mt-1">Ana mutfak alt seridinde gösterilecek son kaç tamamlanan (1-100)</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-bell mr-1"></i>Garson Çagrilari: Görüntülenecek Adet</label>
+                            <input type="number" min="1" max="200" name="ana_waiter_call_display" value="{{ old('ana_waiter_call_display', $settings['ana_waiter_call_display']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400">
+                            <p class="text-xs text-gray-400 mt-1">Ana mutfak ekraninda bekleyen garson çagri karti adedi (1-200)</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-rotate-left mr-1"></i>Geri Alma Süresi (saniye)</label>
+                            <input type="number" min="5" max="600" name="ana_ready_undo_seconds" value="{{ old('ana_ready_undo_seconds', $settings['ana_ready_undo_seconds']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400">
+                            <p class="text-xs text-gray-400 mt-1">Ana mutfak onaylarinda Geri Al butonu bu süre çalisir</p>
+                        </div>
+                    </div>
+                    <button type="submit" class="py-2.5 px-5 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600 transition text-sm">
+                        <i class="fas fa-save mr-2"></i>Ana Mutfak Ayarlarini Kaydet
+                    </button>
+                </form>
+
+                <hr class="border-gray-100 mb-6">
+
+                <div class="mb-2 flex items-center gap-2">
                     <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
                         <i class="fas fa-clock text-emerald-600"></i>
                     </div>

@@ -37,6 +37,10 @@ class SettingsController extends Controller
             'screen_clock_source' => \App\Support\Clock::source(),
             'kitchen_screen_title' => Setting::get('kitchen_screen_title', 'POOL Mutfak Ekrani'),
             'waiter_call_display' => (int) Setting::get('waiter_call_display', 10),
+            'ana_screen_title' => Setting::get('ana_screen_title', 'Ana Mutfak Ekrani'),
+            'ana_completed_display' => (int) Setting::get('ana_completed_display', 6),
+            'ana_waiter_call_display' => (int) Setting::get('ana_waiter_call_display', 10),
+            'ana_ready_undo_seconds' => (int) Setting::get('ana_ready_undo_seconds', 30),
             'order_ready_display' => (int) Setting::get('order_ready_display', 10),
             'order_profit_display' => (int) Setting::get('order_profit_display', 20),
             'bg_screens'        => self::BG_SCREENS,
@@ -228,6 +232,20 @@ class SettingsController extends Controller
                     }
                 }
                 return back()->with('success', 'Bar ekran ayarları güncellendi.');
+            }
+
+            if ($section === 'kitchen_ana') {
+                $request->validate([
+                    'ana_screen_title'        => 'nullable|string|max:255',
+                    'ana_completed_display'   => 'required|integer|min:1|max:100',
+                    'ana_waiter_call_display' => 'required|integer|min:1|max:200',
+                    'ana_ready_undo_seconds'  => 'required|integer|min:5|max:600',
+                ]);
+                Setting::set('ana_screen_title', $request->ana_screen_title ?: 'Ana Mutfak Ekrani');
+                Setting::set('ana_completed_display', $request->ana_completed_display);
+                Setting::set('ana_waiter_call_display', $request->ana_waiter_call_display);
+                Setting::set('ana_ready_undo_seconds', $request->ana_ready_undo_seconds);
+                return back()->with('success', 'Ana mutfak ekran ayarları güncellendi.');
             }
 
             // kitchen
