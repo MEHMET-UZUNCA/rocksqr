@@ -10,10 +10,11 @@ use Illuminate\Support\Facades\DB;
 
 class ScreenCleaner
 {
-    // SON serit kesme noktasi: bu andan once tamamlananlar ekran gecmisinde gosterilmez
-    public static function clearedAt(): ?Carbon
+    // SON serit kesme noktasi: bu andan once tamamlananlar ekran gecmisinde gosterilmez.
+    // $screen: bar | kpos | ana — ekran bazli anahtar; eski global anahtara geri dusen okuma.
+    public static function clearedAt(string $screen): ?Carbon
     {
-        $value = (string) Setting::get('screen_cleared_at', '');
+        $value = (string) Setting::get("screen_cleared_at_{$screen}", Setting::get('screen_cleared_at', ''));
         if ($value === '') {
             return null;
         }
@@ -25,15 +26,18 @@ class ScreenCleaner
         }
     }
 
-    // Ayarlanan saatte (screen_clear_time) ekranlari temizler — kayit silmez, sadece durum isaretler.
-    // Bar/mutfak ekran anketleri tetikler; gunde bir kez calisir. Ayrica cron/komut ile de calisabilir.
-    public static function clearIfDue(): bool
+    // Ayarlanan saatte (screen_clear_time_{ekran}) ilgili ekrani temizler — kayit silmez, sadece durum isaretler.
+    // Bar/mutfak ekran anketleri tetikler; ekran basina gunde bir kez calisir. Ayrica cron/komut ile de calisabilir.
+    public static function clearIfDue(string $screen): bool
     {
         try {
             // Kayit damgalari uygulama saatiyle (UTC); admin'in girdigi saat TR duvar saatiyle karsilastirilir
             $now       = Carbon::now();
             $localNow  = Carbon::now('Europe/Istanbul');
-            $clearTime = (string) Setting::get('screen_clear_time', '14:00');
+            $clearTime = trim((string) Setting::get("screen_clear_time_{$screen}", ''));
+            if ($clearTime === '') {
+                $clearTime = (string) Setting::get('screen_clear_time', '14:00');
+            }
             if (!preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $clearTime)) {
                 return false;
             }
@@ -42,7 +46,8 @@ class ScreenCleaner
             if ($now->lt($scheduledAt)) {
                 return false;
             }
-            if (Setting::get('screen_clear_last_run_date', '') === $localNow->toDateString()) {
+            $lastRun = (string) Setting::get("screen_clear_last_run_date_{$screen}", Setting::get('screen_clear_last_run_date', ''));
+            if ($lastRun === $localNow->toDateString()) {
                 return false;
             }
 
@@ -72,9 +77,9 @@ class ScreenCleaner
                     'attended_at' => $now,
                 ]);
 
-            Setting::set('screen_clear_last_run_date', $now->toDateString());
+            Setting::set("screen_clear_last_run_date_{$screen}", $now->toDateString());
             // Kesme noktasi en son yazilir: az once kapatilanlar SON seritlerine dusmez
-            Setting::set('screen_cleared_at', Carbon::now()->format('Y-m-d H:i:s'));
+            Setting::set("screen_cleared_at_{$screen}", Carbon::now()->format('Y-m-d H:i:s'));
             return true;
         } catch (\Throwable) {
             return false;

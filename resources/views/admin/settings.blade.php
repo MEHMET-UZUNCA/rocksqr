@@ -123,6 +123,63 @@
                         <i class="fas fa-save mr-2"></i>Genel Ayarlari Kaydet
                     </button>
                 </form>
+
+                <hr class="border-gray-100 my-8">
+
+                <div class="mb-3 flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                        <i class="fas fa-image text-indigo-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-800">Ekran Arka Plan Logoları</h3>
+                        <p class="text-xs text-gray-400">Her ekranın tam ortasına ayrı logo/görsel basılır; görseli olmayan ekranda logo görünmez. PNG (şeffaf zemin önerilir), JPG veya WEBP; en fazla 8 MB. Değişiklik ekran açılışında uygulanır (F5).</p>
+                    </div>
+                </div>
+                <form action="{{ route('admin.settings.update') }}?tab=genel" method="POST" enctype="multipart/form-data" class="mb-8">
+                    <input type="hidden" name="_bg_only" value="1">
+                    @csrf
+                    @method('PUT')
+                    <div class="hidden md:grid grid-cols-12 gap-3 px-3 mb-1 text-[11px] font-bold text-gray-400 uppercase">
+                        <div class="col-span-3">Ekran</div>
+                        <div class="col-span-5">Görsel</div>
+                        <div class="col-span-2">Opaklık % (2-80)</div>
+                        <div class="col-span-2">Boyut % (25-95)</div>
+                    </div>
+                    <div class="space-y-3">
+                        @foreach($settings['bg_screens'] as $bgKey => $bgLabel)
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center p-3 bg-indigo-50/50 border border-gray-200 rounded-lg">
+                            <div class="md:col-span-3 text-sm font-bold text-gray-700">{{ $bgLabel }}</div>
+                            <div class="md:col-span-5">
+                                @if($settings['screen_bg_image_' . $bgKey])
+                                <div class="flex items-center gap-2 mb-2">
+                                    <img src="{{ asset('images/' . $settings['screen_bg_image_' . $bgKey]) }}?v={{ @filemtime(public_path('images/' . $settings['screen_bg_image_' . $bgKey])) }}" alt="" class="h-10 object-contain bg-gray-900 rounded px-2">
+                                    <span class="text-[11px] text-gray-500">{{ $settings['screen_bg_image_' . $bgKey] }}</span>
+                                </div>
+                                @endif
+                                <input type="file" name="screen_bg_file_{{ $bgKey }}" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+                                       class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-400">
+                            </div>
+                            <div class="md:col-span-2">
+                                <input type="number" min="2" max="80" name="screen_bg_opacity_{{ $bgKey }}"
+                                       value="{{ old('screen_bg_opacity_' . $bgKey, $settings['screen_bg_opacity_' . $bgKey]) }}"
+                                       class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-indigo-400">
+                            </div>
+                            <div class="md:col-span-2 flex items-center gap-3">
+                                <input type="number" min="25" max="95" name="screen_bg_size_{{ $bgKey }}"
+                                       value="{{ old('screen_bg_size_' . $bgKey, $settings['screen_bg_size_' . $bgKey]) }}"
+                                       class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-indigo-400">
+                                <label class="flex items-center gap-1.5 text-xs text-red-600 whitespace-nowrap cursor-pointer">
+                                    <input type="checkbox" name="remove_bg_{{ $bgKey }}" value="1" class="rounded">
+                                    Kaldır
+                                </label>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                    <button type="submit" class="mt-4 py-2.5 px-5 bg-indigo-500 text-white font-bold rounded-lg hover:bg-indigo-600 transition text-sm">
+                        <i class="fas fa-save mr-2"></i>Arka Plan Logolarını Kaydet
+                    </button>
+                </form>
                 @endif
 
                 @if($activeTab === 'ekran')
@@ -391,18 +448,31 @@
                     <div class="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center shrink-0">
                         <i class="fas fa-clock text-sky-600"></i>
                     </div>
-                    <h3 class="text-base font-bold text-gray-800">Ekran Temizleme Saati</h3>
+                    <h3 class="text-base font-bold text-gray-800">Ekran Temizleme Saatleri</h3>
                 </div>
-                <form action="{{ route('admin.settings.update') }}?tab=ekran" method="POST" class="mb-8 flex items-end gap-4">
-                    <input type="hidden" name="_clear_time_only" value="1">
+                <form action="{{ route('admin.settings.update') }}?tab=ekran" method="POST" class="mb-8">
+                    <input type="hidden" name="_clear_times_only" value="1">
                     @csrf
                     @method('PUT')
-                    <div class="flex-1">
-                        <input type="time" name="screen_clear_time" value="{{ old('screen_clear_time', $settings['screen_clear_time'] ?? '14:00') }}"
-                               class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-400" required>
-                        <p class="text-xs text-gray-400 mt-1">Her gün bu saatte mutfak ve bar ekranlari otomatik temizlenir. Sadece ekranlardaki bekleyenler kapatilir; kayitlar ve rapor verileri korunur.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Bar Ekranı</label>
+                            <input type="time" name="screen_clear_time_bar" value="{{ old('screen_clear_time_bar', $settings['screen_clear_time_bar'] ?? '14:00') }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-400" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Mutfak KDS</label>
+                            <input type="time" name="screen_clear_time_kpos" value="{{ old('screen_clear_time_kpos', $settings['screen_clear_time_kpos'] ?? '14:00') }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-400" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Ana Mutfak (AKDS)</label>
+                            <input type="time" name="screen_clear_time_ana" value="{{ old('screen_clear_time_ana', $settings['screen_clear_time_ana'] ?? '14:00') }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-400" required>
+                        </div>
                     </div>
-                    <button type="submit" class="py-2.5 px-5 bg-sky-500 text-white font-bold rounded-lg hover:bg-sky-600 transition text-sm whitespace-nowrap">
+                    <p class="text-xs text-gray-400 mt-2">Her ekran kendi saatinde otomatik temizlenir; sadece ekrandaki bekleyenler kapatılır, kayıtlar ve rapor verileri korunur.</p>
+                    <button type="submit" class="mt-3 py-2.5 px-5 bg-sky-500 text-white font-bold rounded-lg hover:bg-sky-600 transition text-sm">
                         <i class="fas fa-save mr-2"></i>Kaydet
                     </button>
                 </form>

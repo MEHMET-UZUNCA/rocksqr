@@ -388,6 +388,17 @@
     </style>
 </head>
 <body>
+    @php
+        $qrBg        = \App\Models\Setting::get('screen_bg_image_qr', '');
+        $qrBgOpacity = (int) \App\Models\Setting::get('screen_bg_opacity_qr', 30);
+        $qrBgSize    = (int) \App\Models\Setting::get('screen_bg_size_qr', 60);
+    @endphp
+    @if($qrBg)
+    <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;user-select:none">
+        <img src="{{ asset('images/' . $qrBg) }}?v={{ @filemtime(public_path('images/' . $qrBg)) }}" alt=""
+             style="max-height:{{ $qrBgSize }}vh;max-width:{{ $qrBgSize }}vw;object-fit:contain;opacity:{{ round($qrBgOpacity / 100, 2) }};filter:brightness(0.45)">
+    </div>
+    @endif
 
     <!-- ===== HEADER ===== -->
     <header class="app-header sticky top-0 z-40">

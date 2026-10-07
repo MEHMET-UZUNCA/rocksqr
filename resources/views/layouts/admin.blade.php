@@ -25,6 +25,17 @@
     </script>
 </head>
 <body class="bg-gray-50 font-poppins">
+    @php
+        $screenBg        = \App\Models\Setting::get('screen_bg_image_admin', '');
+        $screenBgOpacity = (int) \App\Models\Setting::get('screen_bg_opacity_admin', 30);
+        $screenBgSize    = (int) \App\Models\Setting::get('screen_bg_size_admin', 60);
+    @endphp
+    @if($screenBg)
+    <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;user-select:none">
+        <img src="{{ asset('images/' . $screenBg) }}?v={{ @filemtime(public_path('images/' . $screenBg)) }}" alt=""
+             style="max-height:{{ $screenBgSize }}vh;max-width:{{ $screenBgSize }}vw;object-fit:contain;opacity:{{ round($screenBgOpacity / 100, 2) }};filter:brightness(0.45)">
+    </div>
+    @endif
     <nav class="bg-primary text-white shadow-lg sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6">
             <div class="flex justify-between items-center h-16">

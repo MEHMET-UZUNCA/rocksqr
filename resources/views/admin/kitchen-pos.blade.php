@@ -79,6 +79,17 @@
 
     <main class="p-2 relative" style="padding-bottom:60px">
         <div class="watermark"><span>ROCKS SERVICES</span><span>KDS MUTFAK</span></div>
+        @php
+            $screenBg = \App\Models\Setting::get('screen_bg_image_kpos', '');
+            $screenBgOpacity = (int) \App\Models\Setting::get('screen_bg_opacity_kpos', 30);
+            $screenBgSize = (int) \App\Models\Setting::get('screen_bg_size_kpos', 60);
+        @endphp
+        @if($screenBg)
+        <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;user-select:none">
+            <img src="{{ asset('images/' . $screenBg) }}?v={{ @filemtime(public_path('images/' . $screenBg)) }}" alt=""
+                 style="max-height:{{ $screenBgSize }}vh;max-width:{{ $screenBgSize }}vw;object-fit:contain;opacity:{{ round($screenBgOpacity / 100, 2) }}">
+        </div>
+        @endif
         <!-- Checksiz Mutfak Mesajları -->
         <div id="checkless-section" class="hidden mb-6 relative">
             <h2 class="text-lg font-semibold text-yellow-400 mb-3 flex items-center gap-2">

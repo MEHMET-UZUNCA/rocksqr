@@ -84,8 +84,8 @@ class BarController extends Controller
     public function barApiOrders()
     {
         // Ekran temizleme saati dolduysa bu anket tetikler (gunde bir kez)
-        ScreenCleaner::clearIfDue();
-        $clearedAt = ScreenCleaner::clearedAt();
+        ScreenCleaner::clearIfDue('bar');
+        $clearedAt = ScreenCleaner::clearedAt('bar');
 
         $completedLimit    = (int) Setting::get('bar_completed_display', 12);
         $readyLimit        = (int) Setting::get('bar_ready_display', 12);

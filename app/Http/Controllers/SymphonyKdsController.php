@@ -333,15 +333,16 @@ class SymphonyKdsController extends Controller
 
     public function kitchenPosApi()
     {
-        return $this->kdsPayload('mssql_kds_rvc_filter');
+        return $this->kdsPayload('mssql_kds_rvc_filter', 'kpos');
     }
 
     // Mutfak ve Ana Mutfak (AKDS) ekranları aynı v1.4 sorguyu ve payload
     // mantığını paylaşır; yalnız RVC yazılım filtresi ayar anahtarıyla ayrışır.
-    private function kdsPayload(string $rvcFilterKey)
+    // $screen: temizleme saati ve SON şeridi kesme noktası ekran bazlı tutulur (bar | kpos | ana).
+    private function kdsPayload(string $rvcFilterKey, string $screen)
     {
-        // Ekran temizleme saati dolduysa bu anket tetikler (gunde bir kez)
-        ScreenCleaner::clearIfDue();
+        // Ekran temizleme saati dolduysa bu anket tetikler (ekran basina gunde bir kez)
+        ScreenCleaner::clearIfDue($screen);
 
         $host     = (string) Setting::get('mssql_kds_host', '');
         $port     = (string) Setting::get('mssql_kds_port', '1433');
@@ -860,7 +861,7 @@ class SymphonyKdsController extends Controller
 
             $completedLimit = (int) Setting::get('kitchen_completed_display', 6);
             // SON seritleri sadece son ekran temizlemesinden sonrakileri gosterir
-            $clearedAt = ScreenCleaner::clearedAt();
+            $clearedAt = ScreenCleaner::clearedAt($screen);
 
             $completedMsgs = DB::table('kitchen_pos_completions')
                 ->where('kind', 'checkless_msg')
@@ -1108,7 +1109,7 @@ class SymphonyKdsController extends Controller
 
     public function kitchenAnaApi()
     {
-        return $this->kdsPayload('mssql_akds_rvc_filter');
+        return $this->kdsPayload('mssql_akds_rvc_filter', 'ana');
     }
 
     // ──────────────────────────────────────────────

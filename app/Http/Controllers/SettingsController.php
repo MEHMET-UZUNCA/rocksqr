@@ -8,6 +8,17 @@ use Illuminate\Support\Facades\Hash;
 
 class SettingsController extends Controller
 {
+    // Arka plan logosu uygulanan ekranlar — her ekran icin ayri gorsel/opaklik/boyut
+    public const BG_SCREENS = [
+        'bar'   => 'Bar KDS',
+        'kpos'  => 'Mutfak KDS',
+        'ana'   => 'Ana Mutfak KDS',
+        'admin' => 'Yönetim Paneli',
+        'login' => 'Giriş Ekranı',
+        'pin'   => 'PIN Ekranı',
+        'qr'    => 'QR Menü (Sipariş Arayüzü)',
+    ];
+
     public function index()
     {
         $settings = [
@@ -15,7 +26,10 @@ class SettingsController extends Controller
             'meta_description' => Setting::get('meta_description', ''),
             'meta_keywords' => Setting::get('meta_keywords', ''),
             'logo_svg' => Setting::get('logo_svg', ''),
-            'screen_clear_time' => Setting::get('screen_clear_time', '14:00'),
+            // Ekran temizleme saatleri ekran bazli; eski tekil anahtar varsayilan olarak korunur
+            'screen_clear_time_bar'  => Setting::get('screen_clear_time_bar', Setting::get('screen_clear_time', '14:00')),
+            'screen_clear_time_kpos' => Setting::get('screen_clear_time_kpos', Setting::get('screen_clear_time', '14:00')),
+            'screen_clear_time_ana'  => Setting::get('screen_clear_time_ana', Setting::get('screen_clear_time', '14:00')),
             'kitchen_completed_display' => (int) Setting::get('kitchen_completed_display', 6),
             'bar_completed_display' => (int) Setting::get('bar_completed_display', 6),
             'ready_undo_seconds' => (int) Setting::get('ready_undo_seconds', 30),
@@ -25,6 +39,7 @@ class SettingsController extends Controller
             'waiter_call_display' => (int) Setting::get('waiter_call_display', 10),
             'order_ready_display' => (int) Setting::get('order_ready_display', 10),
             'order_profit_display' => (int) Setting::get('order_profit_display', 20),
+            'bg_screens'        => self::BG_SCREENS,
 
             // Subdomain aliases
             'subdomain_bar'     => Setting::get('subdomain_bar', ''),
@@ -50,6 +65,13 @@ class SettingsController extends Controller
             'timer_waiter_orange' => (int) Setting::get('timer_waiter_orange', 5),
             'timer_waiter_red'    => (int) Setting::get('timer_waiter_red', 10),
         ];
+
+        // Ekran arka plan logolari — ekran basina ayri gorsel/opaklik/boyut (devralma yok)
+        foreach (self::BG_SCREENS as $bgScreenKey => $_bgLabel) {
+            $settings["screen_bg_image_{$bgScreenKey}"]   = Setting::get("screen_bg_image_{$bgScreenKey}", '');
+            $settings["screen_bg_opacity_{$bgScreenKey}"] = (int) Setting::get("screen_bg_opacity_{$bgScreenKey}", 30);
+            $settings["screen_bg_size_{$bgScreenKey}"]    = (int) Setting::get("screen_bg_size_{$bgScreenKey}", 60);
+        }
 
         // Mutfak kısayolları (Micros MBB-20) — admin'den değiştirilebilir
         foreach ([
@@ -171,11 +193,17 @@ class SettingsController extends Controller
             return back()->with('success', empty($rooms)
                 ? 'Oda numarası listesi temizlendi.'
                 : count($rooms) . ' oda numarası güncellendi.');
-        } elseif ($request->has('_clear_time_only')) {            $request->validate([
-                'screen_clear_time' => ['required', 'regex:/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/'],
+        } elseif ($request->has('_clear_times_only')) {
+            $timeRule = ['required', 'regex:/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/'];
+            $request->validate([
+                'screen_clear_time_bar'  => $timeRule,
+                'screen_clear_time_kpos' => $timeRule,
+                'screen_clear_time_ana'  => $timeRule,
             ]);
-            Setting::set('screen_clear_time', $request->screen_clear_time);
-            return back()->with('success', 'Ekran temizleme saati güncellendi.');
+            Setting::set('screen_clear_time_bar', $request->screen_clear_time_bar);
+            Setting::set('screen_clear_time_kpos', $request->screen_clear_time_kpos);
+            Setting::set('screen_clear_time_ana', $request->screen_clear_time_ana);
+            return back()->with('success', 'Ekran temizleme saatleri güncellendi.');
         } elseif ($request->has('_display_only')) {
             $section = $request->input('_display_only');
 
@@ -232,6 +260,57 @@ class SettingsController extends Controller
                 }
             }
             return back()->with('success', 'Kitchen ekran ayarları güncellendi.');
+        } elseif ($request->has('_bg_only')) {
+            $bgRules    = [];
+            $bgAttrs    = [];
+            $bgMessages = [
+                'required'             => ':attribute zorunludur.',
+                'integer'              => ':attribute sayısal bir değer olmalıdır.',
+                'min'                  => ':attribute en az :min olmalıdır.',
+                'max'                  => ':attribute en fazla :max olmalıdır.',
+                'image'                => ':attribute geçerli bir görsel dosyası olmalıdır.',
+                'mimes'                => ':attribute yalnızca PNG, JPG, JPEG veya WEBP olabilir.',
+                'screen_bg_file_*.max' => ':attribute en fazla 8 MB olabilir.',
+            ];
+            foreach (self::BG_SCREENS as $bgKey => $bgLabel) {
+                $bgRules["screen_bg_file_{$bgKey}"]    = 'nullable|image|mimes:png,jpg,jpeg,webp|max:8192';
+                $bgRules["screen_bg_opacity_{$bgKey}"] = 'required|integer|min:2|max:80';
+                $bgRules["screen_bg_size_{$bgKey}"]    = 'required|integer|min:25|max:95';
+                $bgAttrs["screen_bg_file_{$bgKey}"]    = $bgLabel . ' görseli';
+                $bgAttrs["screen_bg_opacity_{$bgKey}"] = $bgLabel . ' opaklığı';
+                $bgAttrs["screen_bg_size_{$bgKey}"]    = $bgLabel . ' boyutu';
+            }
+            $request->validate($bgRules, $bgMessages, $bgAttrs);
+
+            $bgExts = ['png', 'jpg', 'jpeg', 'webp'];
+            foreach (self::BG_SCREENS as $bgKey => $_bgLabel) {
+                if ($request->hasFile("screen_bg_file_{$bgKey}")) {
+                    $ext = strtolower($request->file("screen_bg_file_{$bgKey}")->getClientOriginalExtension() ?: 'png');
+                    if (!in_array($ext, $bgExts, true)) {
+                        $ext = 'png';
+                    }
+                    foreach ($bgExts as $oldBgExt) {
+                        if ($oldBgExt !== $ext) {
+                            @unlink(public_path('images/screen-bg-' . $bgKey . '.' . $oldBgExt));
+                        }
+                    }
+                    try {
+                        $request->file("screen_bg_file_{$bgKey}")->move(public_path('images'), 'screen-bg-' . $bgKey . '.' . $ext);
+                    } catch (\Throwable $e) {
+                        return back()->withErrors(["screen_bg_file_{$bgKey}" => 'Dosya kaydedilemedi: ' . $e->getMessage()])->withInput();
+                    }
+                    Setting::set("screen_bg_image_{$bgKey}", 'screen-bg-' . $bgKey . '.' . $ext);
+                }
+                if ($request->boolean("remove_bg_{$bgKey}")) {
+                    foreach ($bgExts as $oldBgExt) {
+                        @unlink(public_path('images/screen-bg-' . $bgKey . '.' . $oldBgExt));
+                    }
+                    Setting::set("screen_bg_image_{$bgKey}", '');
+                }
+                Setting::set("screen_bg_opacity_{$bgKey}", (int) $request->input("screen_bg_opacity_{$bgKey}", 30));
+                Setting::set("screen_bg_size_{$bgKey}", (int) $request->input("screen_bg_size_{$bgKey}", 60));
+            }
+            return back()->with('success', 'Arka plan logo ayarları güncellendi.');
         } elseif ($request->has('_clock_only')) {
             $request->validate([
                 'screen_clock_source' => ['required', 'string', 'in:server,database,browser'],

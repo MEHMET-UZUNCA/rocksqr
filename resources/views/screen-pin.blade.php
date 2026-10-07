@@ -15,6 +15,7 @@
             color: #f9fafb; padding: 16px; user-select: none;
         }
         .gate-card {
+            position: relative;
             width: 100%; max-width: 360px; background: #111827;
             border: 1px solid #374151; border-radius: 20px;
             padding: 30px 24px 26px; text-align: center;
@@ -64,6 +65,17 @@
     </style>
 </head>
 <body>
+    @php
+        $screenBg        = \App\Models\Setting::get('screen_bg_image_pin', '');
+        $screenBgOpacity = (int) \App\Models\Setting::get('screen_bg_opacity_pin', 30);
+        $screenBgSize    = (int) \App\Models\Setting::get('screen_bg_size_pin', 60);
+    @endphp
+    @if($screenBg)
+    <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;user-select:none">
+        <img src="{{ asset('images/' . $screenBg) }}?v={{ @filemtime(public_path('images/' . $screenBg)) }}" alt=""
+             style="max-height:{{ $screenBgSize }}vh;max-width:{{ $screenBgSize }}vw;object-fit:contain;opacity:{{ round($screenBgOpacity / 100, 2) }}">
+    </div>
+    @endif
     <div class="gate-card" id="gate-card">
         <div class="gate-icon">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>

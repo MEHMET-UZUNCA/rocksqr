@@ -12,8 +12,15 @@ class ClearKitchenBarScreens extends Command
 
     public function handle()
     {
-        $ran = ScreenCleaner::clearIfDue();
-        $this->info($ran ? 'Mutfak ve bar ekranlari temizlendi.' : 'Temizleme saati henuz gelmedi veya bugun zaten yapildi.');
+        $ran = [];
+        foreach (['bar', 'kpos', 'ana'] as $screen) {
+            if (ScreenCleaner::clearIfDue($screen)) {
+                $ran[] = $screen;
+            }
+        }
+        $this->info($ran === []
+            ? 'Temizleme saati henuz gelmedi veya bugun zaten yapildi.'
+            : 'Temizlenen ekranlar: ' . implode(', ', $ran) . '.');
         return 0;
     }
 }

@@ -107,6 +107,18 @@
         </div>
     </header>
 
+    @php
+        $screenBg = \App\Models\Setting::get('screen_bg_image_bar', '');
+        $screenBgOpacity = (int) \App\Models\Setting::get('screen_bg_opacity_bar', 30);
+        $screenBgSize = (int) \App\Models\Setting::get('screen_bg_size_bar', 60);
+    @endphp
+    @if($screenBg)
+    <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;user-select:none">
+        <img src="{{ asset('images/' . $screenBg) }}?v={{ @filemtime(public_path('images/' . $screenBg)) }}" alt=""
+             style="max-height:{{ $screenBgSize }}vh;max-width:{{ $screenBgSize }}vw;object-fit:contain;opacity:{{ round($screenBgOpacity / 100, 2) }}">
+    </div>
+    @endif
+
     <main class="p-1 flex-1 min-h-0 flex flex-col" style="padding-bottom:42px">
         <div id="boards" class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-2">
             <section class="relative min-h-0 border border-gray-700 rounded-lg bg-gray-900/60 overflow-hidden">
