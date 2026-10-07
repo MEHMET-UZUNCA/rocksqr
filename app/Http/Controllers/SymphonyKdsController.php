@@ -943,13 +943,15 @@ class SymphonyKdsController extends Controller
     }
 
     // Check GUID listesi → POS_JOURNAL_LOG fiş metinlerinden mesaj metinleri.
-    // Son posJournalLogId satırı fişin güncel anlık görüntüsüdür.
+    // Bir check'in fişleri zamanla değişir (M.Servis kısmi fişleri mesaj satırlarını
+    // hiç taşımaz) → yalnız son fişe bakmak yerine en çok mesaj metni içeren fiş
+    // seçilir; eşitlikte en yenisi kazanır.
     public static function resolveJournalMessages(\PDO $pdo, array $guids): array
     {
         $guids = array_values(array_unique(array_filter(array_map('trim', $guids), fn($g) => $g !== '')));
         if ($guids === []) return [];
 
-        $latest = [];
+        $textsPerGuid = [];
         foreach (array_chunk($guids, 50) as $chunk) {
             $quoted = implode(',', array_map(fn($g) => "'" . str_replace("'", "''", (string) $g) . "'", $chunk));
             $sql = 'SELECT posJournalLogId, guid, journalText FROM CheckPostingDB.dbo.POS_JOURNAL_LOG '
@@ -957,7 +959,7 @@ class SymphonyKdsController extends Controller
             try {
                 foreach ($pdo->query($sql)->fetchAll(\PDO::FETCH_ASSOC) as $r) {
                     $g = (string) ($r['guid'] ?? $r['Guid'] ?? '');
-                    if ($g !== '') $latest[$g] = (string) ($r['journalText'] ?? $r['JournalText'] ?? '');
+                    if ($g !== '') $textsPerGuid[$g][] = (string) ($r['journalText'] ?? $r['JournalText'] ?? '');
                 }
             } catch (\Throwable) {
                 return [];
@@ -965,9 +967,13 @@ class SymphonyKdsController extends Controller
         }
 
         $out = [];
-        foreach ($latest as $guid => $text) {
-            $texts = self::parseJournalMessageTexts($text);
-            if ($texts !== []) $out[$guid] = $texts;
+        foreach ($textsPerGuid as $guid => $list) {
+            $best = [];
+            foreach ($list as $text) {
+                $parsed = self::parseJournalMessageTexts($text);
+                if (count($parsed) > count($best)) $best = $parsed;
+            }
+            if ($best !== []) $out[$guid] = $best;
         }
         return $out;
     }
