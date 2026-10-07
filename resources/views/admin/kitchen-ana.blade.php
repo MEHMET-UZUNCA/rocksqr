@@ -145,7 +145,7 @@
                 <div class="flex justify-between items-start py-1 border-b border-slate-700">
                     <div class="flex-1 min-w-0">
                         <div class="text-lg leading-tight">
-                            <span class="text-teal-400 font-bold text-xl">x${escapeHtml(it.qty)}</span>
+                            <span class="text-teal-400 font-bold text-xl">${escapeHtml(it.qty)}x</span>
                             <span class="font-semibold">${escapeHtml(it.name)}</span>
                         </div>
                         ${it.note ? `<div class="text-sm text-yellow-300"><i class="fas fa-comment-dots mr-1"></i>${escapeHtml(it.note)}</div>` : ''}

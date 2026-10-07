@@ -502,8 +502,7 @@
             const itemRows = items.map(i => {
                 const nm = i.name || (i.id ? getProductName(i.id) : '');
                 return `<div class="flex justify-between py-[2px] border-b border-emerald-800/60">
-                    <span class="truncate pr-1">${escapeHtml(nm)}</span>
-                    <span class="font-bold text-gold shrink-0">x${i.quantity || i.qty || 1}</span>
+                    <span class="truncate pr-1"><span class="font-bold text-gold mr-1">${i.quantity || i.qty || 1}x</span>${escapeHtml(nm)}</span>
                 </div>`;
             }).join('');
             const msgSummary = msgItems.map(m => escapeHtml(m.note || m.name)).join(' • ');
@@ -599,9 +598,8 @@
                 const qtyClass  = ret ? 'text-red-400' : 'text-gold';
                 const retBadge  = ret ? `<span class="shrink-0 px-1 py-0.5 rounded text-[9px] font-bold bg-red-700 text-white uppercase">İade</span>` : '';
                 return `<div class="flex justify-between items-center py-[2px] border-b border-gray-700${ret ? ' iade-blink' : ''}">
-                    <span class="truncate pr-1 ${nameClass}">${escapeHtml(name)}${note ? ` <span class="text-yellow-400 text-[9px]">(${escapeHtml(note)})</span>` : ''}</span>
+                    <span class="truncate pr-1"><span class="font-bold ${qtyClass} shrink-0 mr-1">${qty}x</span><span class="${nameClass}">${escapeHtml(name)}</span>${note ? ` <span class="text-yellow-400 text-[9px]">(${escapeHtml(note)})</span>` : ''}</span>
                     ${retBadge}
-                    <span class="font-bold ${qtyClass} shrink-0">x${qty}</span>
                 </div>`;
             }).join('');
 
@@ -744,7 +742,7 @@
                 catch(e) { items = []; }
                 const summary = items.map(i => {
                     const nm = i.name || (i.id ? getProductName(i.id) : '');
-                    return `${escapeHtml(nm)} x${i.quantity || 1}`;
+                    return `${i.quantity || 1}x ${escapeHtml(nm)}`;
                 }).join(', ');
                 const isSymphony = order.source === 'symphony';
                 const srcBadge = isSymphony

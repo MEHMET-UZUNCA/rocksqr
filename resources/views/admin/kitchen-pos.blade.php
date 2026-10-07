@@ -438,7 +438,7 @@
             // Ürün isimleri → tamamlama sonrası alt şerit için localStorage'a yazılacak
             const itemNamesList = (order.items || [])
                 .filter(it => !it.is_returned)
-                .map(it => `${it.name} x${it.qty}`)
+                .map(it => `${it.qty}x ${it.name}`)
                 .join(' · ');
 
             const unservedCount = (order.items || []).filter(it => !it.is_returned && !it.served).length;
@@ -497,7 +497,7 @@
                     <div class="flex justify-between items-start">
                         <div class="flex-1 min-w-0">
                             <div class="text-lg leading-tight ${textClass}${isReturned ? ' iade-blink' : ''}">
-                                <span class="${qtyColor} font-bold text-xl">x${it.qty}</span> <span class="font-semibold">${escapeHtml(it.name)}</span>${badge}
+                                <span class="${qtyColor} font-bold text-xl">${it.qty}x</span> <span class="font-semibold">${escapeHtml(it.name)}</span>${badge}
                             </div>
                             ${it.note ? `<div class="text-sm text-yellow-300"><i class="fas fa-comment-dots mr-1"></i>${escapeHtml(it.note)}</div>` : ''}
                         </div>
@@ -590,7 +590,7 @@
             const itemsHtml = (order.items || []).map(it => `
                 <div class="flex justify-between items-start py-1 border-b border-gray-700">
                     <div class="flex-1 min-w-0">
-                        <div class="text-lg leading-tight"><span class="text-purple-300 font-bold text-xl">x${it.qty}</span> <span class="font-semibold">${escapeHtml(it.name)}</span></div>
+                        <div class="text-lg leading-tight"><span class="text-purple-300 font-bold text-xl">${it.qty}x</span> <span class="font-semibold">${escapeHtml(it.name)}</span></div>
                     </div>
                 </div>
             `).join('');
@@ -663,7 +663,7 @@
                         <span class="text-gray-500 ml-auto">TBL ${escapeHtml(order.table_no || '-')}</span>
                     </div>
                     <p class="text-yellow-100 truncate">
-                        ${order.qty > 1 ? `<span class="text-yellow-400">x${order.qty}</span> ` : ''}${escapeHtml(order.name || '—')}
+                        ${order.qty > 1 ? `<span class="text-yellow-400">${order.qty}x</span> ` : ''}${escapeHtml(order.name || '—')}
                         ${order.note ? ` <span class="text-yellow-400/80">— ${escapeHtml(order.note)}</span>` : ''}
                     </p>
                     <button data-uncomplete-key="${gkAttr}"
@@ -674,7 +674,7 @@
                 </div>`;
             }
             // QR siparis tamamlanmasi
-            const items = (order.items || []).map(i => `${i.name} x${i.qty}`).join(', ');
+            const items = (order.items || []).map(i => `${i.qty}x ${i.name}`).join(', ');
             return `
             <div class="bg-gray-800 rounded-lg border-2 border-emerald-700 p-3 text-xs">
                 <div class="flex items-center justify-between mb-1 gap-1">
@@ -943,7 +943,7 @@
                     accentCls  = 'bg-yellow-950/60';
                     badgeHtml  = `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-yellow-700 text-yellow-100">MSG</span>`;
                     titleHtml  = `<span class="font-bold text-yellow-200 text-xs">${tableLabel}</span> ${badgeHtml}`;
-                    contentText = (order.qty > 1 ? `x${order.qty} ` : '') + (order.name || 'Mesaj') + (order.note ? ' — ' + order.note : '');
+                    contentText = (order.qty > 1 ? `${order.qty}x ` : '') + (order.name || 'Mesaj') + (order.note ? ' — ' + order.note : '');
                     const gk = escapeHtml(order.group_key || '');
                     undoFn = `uncomplete('${gk}')`;
                 } else {
@@ -952,7 +952,7 @@
                     const qrId = order.qr_order_id || order.id || 0;
                     badgeHtml  = `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-purple-700 text-purple-100">QR</span>`;
                     titleHtml  = `<span class="font-bold text-purple-200 text-xs">${tableLabel}</span> ${badgeHtml} <span class="text-purple-300 text-[10px]">#${qrId}</span>`;
-                    contentText = (order.items || []).map(i => `${i.name||''} x${i.qty||1}`).join(' · ') || '—';
+                    contentText = (order.items || []).map(i => `${i.qty||1}x ${i.name||''}`).join(' · ') || '—';
                     undoFn = `undoQr(${Number(qrId)})`;
                 }
 
