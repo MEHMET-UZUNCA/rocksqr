@@ -91,6 +91,14 @@ class BarController extends Controller
         $readyLimit        = (int) Setting::get('bar_ready_display', 12);
         $undoWindowSeconds = (int) Setting::get('ready_undo_seconds', 30);
 
+        // Bar yalniz mutfak (kitchen-pos) onaylarini gorur; ana mutfak onaylari bara dusmez.
+        // rvc_id=0 deploy oncesi eski kayittir, gosterilmeye devam eder.
+        $kposRvcIds = array_keys(SymphonyKdsController::parseRvcFilter((string) Setting::get('mssql_kds_rvc_filter', '')));
+        $kposScope  = function ($q) use ($kposRvcIds) {
+            if ($kposRvcIds === []) return;
+            $q->where(fn ($w) => $w->whereIn('rvc_id', $kposRvcIds)->orWhere('rvc_id', 0));
+        };
+
         $orders = Order::where('bar_status', 'new')
             ->orderBy('created_at', 'asc')
             ->get()
@@ -109,6 +117,7 @@ class BarController extends Controller
         // bara gerçek ürün adıyla düşer. kind=check kartları canlı feed'den çözülür;
         // feed'de yoksa db_items (onay anında persist edilen ürün listesi) yedek içerik olur.
         $symphonyReady = DB::table('kitchen_pos_completions')
+            ->where($kposScope)
             ->whereNull('delivered_at')
             ->whereIn('kind', ['check', 'checkless_msg', 'item'])
             ->orderByDesc('completed_at')
@@ -174,6 +183,7 @@ class BarController extends Controller
 
         // Symphony servis edilenleri tamamlananlara ekle
         $symphonyDelivered = DB::table('kitchen_pos_completions')
+            ->where($kposScope)
             ->whereNotNull('delivered_at')
             ->when($clearedAt, fn ($q) => $q->where('delivered_at', '>', $clearedAt))
             ->orderByDesc('delivered_at')

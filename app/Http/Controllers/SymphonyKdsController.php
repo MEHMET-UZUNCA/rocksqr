@@ -117,6 +117,7 @@ class SymphonyKdsController extends Controller
             'name'          => 'nullable|string|max:255',
             'note'          => 'nullable|string|max:255',
             'qty'           => 'nullable|integer|min:1|max:999',
+            'rvc_id'        => 'nullable|integer|min:0|max:9999',
             'item_keys'     => 'nullable|array',
             'item_keys.*'   => 'string|max:128',
             'first_seen_at' => 'nullable|string|max:64',
@@ -157,6 +158,7 @@ class SymphonyKdsController extends Controller
             ['group_key' => $validated['group_key']],
             [
                 'kind'             => $validated['kind'],
+                'rvc_id'           => (int) ($validated['rvc_id'] ?? 0),
                 'check_number'     => $validated['check_number'] ?? null,
                 'table_no'         => $validated['table_no'] ?? null,
                 'name'             => $validated['name'] ?? null,
@@ -863,7 +865,15 @@ class SymphonyKdsController extends Controller
             // SON seritleri sadece son ekran temizlemesinden sonrakileri gosterir
             $clearedAt = ScreenCleaner::clearedAt($screen);
 
+            // Tamamlama çipi yalnız onaylandığı RVC'yi gören ekranda çıkar
+            // (çapraz ekran sızıntısı düzeltmesi); rvc_id=0 eski kayıt her ekranda.
+            $completionScope = function ($q) use ($rvcFilterIds) {
+                if ($rvcFilterIds === []) return;
+                $q->where(fn ($w) => $w->whereIn('rvc_id', array_keys($rvcFilterIds))->orWhere('rvc_id', 0));
+            };
+
             $completedMsgs = DB::table('kitchen_pos_completions')
+                ->where($completionScope)
                 ->where('kind', 'checkless_msg')
                 ->when($clearedAt, fn ($q) => $q->where('completed_at', '>', $clearedAt))
                 ->orderByDesc('completed_at')
@@ -882,6 +892,7 @@ class SymphonyKdsController extends Controller
                 ])->all();
 
             $completedChecks = DB::table('kitchen_pos_completions')
+                ->where($completionScope)
                 ->where('kind', 'check')
                 ->when($clearedAt, fn ($q) => $q->where('completed_at', '>', $clearedAt))
                 ->orderByDesc('completed_at')
@@ -898,6 +909,7 @@ class SymphonyKdsController extends Controller
 
             // Tek ürün onayları (kind=item) → alt şeritte "ÜRÜN" çipleri
             $completedItems = DB::table('kitchen_pos_completions')
+                ->where($completionScope)
                 ->where('kind', 'item')
                 ->when($clearedAt, fn ($q) => $q->where('completed_at', '>', $clearedAt))
                 ->orderByDesc('completed_at')
@@ -939,6 +951,7 @@ class SymphonyKdsController extends Controller
 
             // Bugun sayaci: son temizlemeden sonraki tamamlamalar
             $completedTodayCount = DB::table('kitchen_pos_completions')
+                ->where($completionScope)
                 ->whereDate('completed_at', today())
                 ->when($clearedAt, fn ($q) => $q->where('completed_at', '>', $clearedAt))
                 ->where('kind', '!=', 'item')

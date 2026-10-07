@@ -492,6 +492,7 @@
                               data-item-names="${escapeHtml(itemNamesList)}"
                               data-item-self="${escapeHtml(it.name)}"
                               data-item-self-qty="${it.qty}"
+                              data-item-rvc="${escapeHtml(String(order.rvc_id || 0))}"
                               data-item-ready="1"
                               onclick="serveItem(this)"
                               title="${isLast ? 'Son ürün → hesap tamamlanır' : 'Ürünü hazır işaretle'}"
@@ -576,6 +577,7 @@
                             data-complete-items="${escapeHtml(JSON.stringify(allUnitIds))}"
                             data-complete-start="${escapeHtml(startTime)}"
                             data-complete-names="${escapeHtml(itemNamesList)}"
+                            data-complete-rvc="${escapeHtml(String(order.rvc_id || 0))}"
                             onclick="completeOrderFromBtn(this)"
                             class="w-full py-0.5 bg-emerald-600 hover:bg-emerald-700 rounded text-[11px] font-bold text-white">
                         <i class="fas fa-check-circle mr-0.5"></i>Komple Hazır
@@ -723,7 +725,7 @@
                 </div>
                 <div class="text-white font-medium">${body}</div>
                 ${msg.rvc ? `<div class="text-xs text-gray-400 mt-1"><i class="fas fa-store mr-1"></i>${escapeHtml(msg.rvc)}</div>` : ''}
-                <button onclick="completeOrder('checkless_msg', ${JSON.stringify(groupKey)}, '', ${JSON.stringify(msg.table_no || '')})"
+                <button onclick="completeOrder('checkless_msg', ${JSON.stringify(groupKey)}, '', ${JSON.stringify(msg.table_no || '')}, [], null, '', '', '', ${JSON.stringify(String(msg.rvc_id || 0))})"
                         class="mt-2 w-full py-1 bg-emerald-600 hover:bg-emerald-700 rounded text-white font-bold text-xs">
                     <i class="fas fa-check mr-1"></i>Onayla
                 </button>
@@ -746,10 +748,10 @@
             const itemKeys = JSON.parse(btn.dataset.completeItems || '[]');
             const startTime = btn.dataset.completeStart || null;
             const itemNames = btn.dataset.completeNames || '';
-            completeOrder(btn.dataset.completeKind, btn.dataset.completeGk, btn.dataset.completeCn, btn.dataset.completeTno, itemKeys, startTime, itemNames, '', '');
+            completeOrder(btn.dataset.completeKind, btn.dataset.completeGk, btn.dataset.completeCn, btn.dataset.completeTno, itemKeys, startTime, itemNames, '', '', btn.dataset.completeRvc || '0');
         }
 
-        function completeOrder(kind, groupKey, checkNumber, tableNo, itemKeys, startTime, itemNames, selfName, selfQty) {
+        function completeOrder(kind, groupKey, checkNumber, tableNo, itemKeys, startTime, itemNames, selfName, selfQty, rvcId) {
             if (itemNames) localStorage.setItem('kpos_items_' + groupKey, itemNames);
             // kind=item: onaylanan urunun kendi adi/adedi bar hazir kartina yazilmak üzere gider;
             // kind=check: tüm grup listesi (feed kaybolduğunda yedek içerik). 250: DB varchar sınırı.
@@ -760,6 +762,7 @@
                 first_seen_at: startTime || null,
                 name: nm || null,
                 qty: kind === 'item' ? (parseInt(selfQty, 10) || null) : null,
+                rvc_id: parseInt(rvcId, 10) || 0,
             }).then(() => {
                 kbdPushRecall({ type: kind === 'item' ? 'item' : 'check', gk: groupKey, keys: itemKeys || [] });
                 clearStartTime(groupKey);
@@ -778,7 +781,7 @@
             const kind = btn.dataset.itemLast === '1' ? 'check' : 'item';
             completeOrder(kind, btn.dataset.itemGk, btn.dataset.itemCn || '', btn.dataset.itemTno || '',
                 JSON.parse(btn.dataset.itemUnits || '[]'), btn.dataset.itemStart || null, btn.dataset.itemNames || '',
-                btn.dataset.itemSelf || '', btn.dataset.itemSelfQty || '');
+                btn.dataset.itemSelf || '', btn.dataset.itemSelfQty || '', btn.dataset.itemRvc || '0');
         }
 
         function unserveItem(btn) {
