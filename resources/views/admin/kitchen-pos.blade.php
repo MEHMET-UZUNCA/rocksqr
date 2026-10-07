@@ -44,7 +44,7 @@
     </style>
 </head>
 <body class="bg-gray-900 font-poppins text-white min-h-screen">
-    <div id="toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
+    <div id="toast-container" class="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-3 pointer-events-none"></div>
     <header class="relative z-10 bg-primary px-3 py-1 flex items-center justify-between border-b border-gold/20">
         <div class="flex items-center gap-1 bg-yellow-900/60 border border-yellow-700 rounded px-2 py-0.5">
             <i class="fas fa-utensils text-gold text-[10px]"></i>
@@ -183,12 +183,18 @@
             kbdSelectCard(cards[Math.min(Math.max(at + dir, 0), cards.length - 1)].dataset.kbdGk);
         }
         function kbdMoveItem(dir) {
-            if (!kbdSel.gk || kbdSel.mode !== 'item') return;
+            if (!kbdSel.gk) {
+                const c = kbdCards();
+                if (!c.length) return;
+                kbdSelectCard(c[0].dataset.kbdGk);
+            }
             const card = kbdCardEl(kbdSel.gk);
             if (!card) return;
+            if (card.dataset.kbdQr) { showToast('QR sipariş: SELECT/DONE ile onaylanır.', 'default'); return; }
             const rows = kbdRows(card);
             if (!rows.length) return;
-            kbdSel.idx = Math.min(Math.max(kbdSel.idx + dir, 0), rows.length - 1);
+            if (kbdSel.mode !== 'item') { kbdSel.mode = 'item'; kbdSel.idx = dir > 0 ? 0 : rows.length - 1; }
+            else { kbdSel.idx = Math.min(Math.max(kbdSel.idx + dir, 0), rows.length - 1); }
             applyKbdSel();
         }
         function kbdServeNth(n) {
@@ -335,12 +341,12 @@
                        : type === 'success' ? 'fa-circle-check'
                        : 'fa-circle-info';
             const el = document.createElement('div');
-            el.className = `pointer-events-auto ${bg} text-white border-2 rounded-lg px-4 py-3 shadow-2xl flex items-center gap-3 min-w-[280px] max-w-md transform transition-all duration-300 translate-x-full opacity-0`;
-            el.innerHTML = `<i class="fas ${icon} text-xl"></i><span class="font-medium text-sm flex-1">${escapeHtml(message)}</span>`;
+            el.className = `pointer-events-none ${bg} text-white border-4 rounded-2xl px-10 py-8 shadow-2xl flex items-center gap-6 max-w-4xl transform transition-all duration-300 scale-90 opacity-0`;
+            el.innerHTML = `<i class="fas ${icon} text-5xl"></i><span class="font-bold text-4xl leading-snug">${escapeHtml(message)}</span>`;
             c.appendChild(el);
-            requestAnimationFrame(() => { el.classList.remove('translate-x-full', 'opacity-0'); });
+            requestAnimationFrame(() => { el.classList.remove('scale-90', 'opacity-0'); });
             setTimeout(() => {
-                el.classList.add('translate-x-full', 'opacity-0');
+                el.classList.add('scale-90', 'opacity-0');
                 setTimeout(() => el.remove(), 350);
             }, 3500);
         }
