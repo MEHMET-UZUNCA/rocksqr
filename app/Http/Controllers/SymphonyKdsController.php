@@ -351,6 +351,10 @@ class SymphonyKdsController extends Controller
         // Ekran temizleme saati dolduysa bu anket tetikler (ekran basina gunde bir kez)
         ScreenCleaner::clearIfDue($screen);
 
+        // Check kapaninca: '1' (default) ekrandan sil; '0' bekleme modu — mutfak
+        // tamamlanana kadar KAPANDI rozetiyle kart ekranda kalir.
+        $checkCloseWait = Setting::get($screen === 'ana' ? 'ana_check_close_wait' : 'kitchen_check_close_wait', '1') !== '0';
+
         $host     = (string) Setting::get('mssql_kds_host', '');
         $port     = (string) Setting::get('mssql_kds_port', '1433');
         $database = (string) Setting::get('mssql_kds_database', '');
@@ -496,8 +500,10 @@ class SymphonyKdsController extends Controller
                     continue;
                 }
 
-                // v1.4: kapanmış checkler mutfak ekranında gösterilmez
-                if ($status === 'C') continue;
+                // Kapanmış checkler: sil modunda gösterilmez; bekleme modunda status='C'
+                // payload'a düşer → kartta KAPANDI rozeti, tamamlanınca kind=check
+                // filtresi kartı kaldırır.
+                if ($status === 'C' && !$checkCloseWait) continue;
 
                 // Eski sorgu uyumluluğu (LineKind/LineType yoksa): MajGrp/MajorGroupID=99 → MESAJ
                 $majGrpId = (int) $mssql->getField($row, ['MajorGroupID', 'major_group_id', 'MajGrp', 'maj_grp'], 0);

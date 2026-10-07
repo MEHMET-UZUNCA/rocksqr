@@ -317,6 +317,15 @@
                             <p class="text-xs text-gray-400 mt-1">Geri Al butonu bu süre çalisir</p>
                         </div>
                     </div>
+                    <div class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <label class="flex items-start gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                            <input type="checkbox" name="kitchen_check_close_wait" value="1" class="rounded mt-0.5"
+                                   @checked(old('kitchen_check_close_wait', $settings['kitchen_check_close_wait']))>
+                            <span><i class="fas fa-eraser mr-1"></i>Check kapanınca sipariş ekrandan silinsin
+                                <span class="block text-xs font-normal text-gray-400">İşaretsiz bırakılırsa POS'ta kapanan hesap, mutfak tamamlanana kadar "KAPANDI" rozetiyle ekranda bekler. Gece otomatik ekran temizliği her iki durumda da çalışır.</span>
+                            </span>
+                        </label>
+                    </div>
                     <div class="mb-4">
                         <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-filter mr-1"></i>Mutfak Ekrani Kategori Filtreleri</label>
                         @foreach (\App\Support\KitchenFilter::RVCS as $kitchenRvcId => $kitchenRvcName)
@@ -470,6 +479,15 @@
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400">
                             <p class="text-xs text-gray-400 mt-1">Ana mutfak onaylarinda Geri Al butonu bu süre çalisir</p>
                         </div>
+                    </div>
+                    <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <label class="flex items-start gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                            <input type="checkbox" name="ana_check_close_wait" value="1" class="rounded mt-0.5"
+                                   @checked(old('ana_check_close_wait', $settings['ana_check_close_wait']))>
+                            <span><i class="fas fa-eraser mr-1"></i>Check kapanınca sipariş ekrandan silinsin
+                                <span class="block text-xs font-normal text-gray-400">İşaretsiz bırakılırsa POS'ta kapanan hesap, mutfak tamamlanana kadar "KAPANDI" rozetiyle ekranda bekler. Gece otomatik ekran temizliği her iki durumda da çalışır.</span>
+                            </span>
+                        </label>
                     </div>
                     <button type="submit" class="py-2.5 px-5 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600 transition text-sm">
                         <i class="fas fa-save mr-2"></i>Ana Mutfak Ayarlarini Kaydet

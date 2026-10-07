@@ -433,6 +433,7 @@
             const isNew = elapsed != null && elapsed < 120;
             const isAddition = !!order.is_addition;
             const isReopened = !!order.is_reopened;
+            const isClosed = String(order.status || '').toUpperCase() === 'C';
             const borderClass = isAddition ? 'border-orange-500' : (isReopened ? 'border-yellow-600' : (isNew ? 'new-order border-gold' : 'border-blue-500'));
 
             // Tüm unit_ids'leri düzleştir → served_item_keys fingerprint.
@@ -559,6 +560,7 @@
                             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYM</span>
                             ${isAddition ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-600 text-white animate-pulse"><i class="fas fa-plus-circle mr-0.5"></i>EK</span>` : ''}
                             ${isReopened ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-700 text-yellow-100"><i class="fas fa-rotate-right mr-0.5"></i>YENİDEN</span>` : ''}
+                            ${isClosed ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-600 text-white"><i class="fas fa-lock mr-0.5"></i>KAPANDI</span>` : ''}
                         </div>
                     </div>
                     <div class="flex items-center justify-between mt-0.5">

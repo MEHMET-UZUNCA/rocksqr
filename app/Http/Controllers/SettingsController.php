@@ -37,10 +37,12 @@ class SettingsController extends Controller
             'screen_clock_source' => \App\Support\Clock::source(),
             'kitchen_screen_title' => Setting::get('kitchen_screen_title', 'POOL Mutfak Ekrani'),
             'waiter_call_display' => (int) Setting::get('waiter_call_display', 10),
+            'kitchen_check_close_wait' => Setting::get('kitchen_check_close_wait', '1'),
             'ana_screen_title' => Setting::get('ana_screen_title', 'Ana Mutfak Ekrani'),
             'ana_completed_display' => (int) Setting::get('ana_completed_display', 6),
             'ana_waiter_call_display' => (int) Setting::get('ana_waiter_call_display', 10),
             'ana_ready_undo_seconds' => (int) Setting::get('ana_ready_undo_seconds', 30),
+            'ana_check_close_wait' => Setting::get('ana_check_close_wait', '1'),
             'order_ready_display' => (int) Setting::get('order_ready_display', 10),
             'order_profit_display' => (int) Setting::get('order_profit_display', 20),
             'bg_screens'        => self::BG_SCREENS,
@@ -245,6 +247,7 @@ class SettingsController extends Controller
                 Setting::set('ana_completed_display', $request->ana_completed_display);
                 Setting::set('ana_waiter_call_display', $request->ana_waiter_call_display);
                 Setting::set('ana_ready_undo_seconds', $request->ana_ready_undo_seconds);
+                Setting::set('ana_check_close_wait', $request->boolean('ana_check_close_wait') ? '1' : '0');
                 return back()->with('success', 'Ana mutfak ekran ayarları güncellendi.');
             }
 
@@ -259,6 +262,7 @@ class SettingsController extends Controller
             Setting::set('kitchen_completed_display', $request->kitchen_completed_display);
             Setting::set('waiter_call_display', $request->waiter_call_display);
             Setting::set('ready_undo_seconds', $request->ready_undo_seconds);
+            Setting::set('kitchen_check_close_wait', $request->boolean('kitchen_check_close_wait') ? '1' : '0');
             foreach (\App\Support\KitchenFilter::RVCS + \App\Support\KitchenFilter::ANA_RVCS as $kitchenRvcId => $_rvcName) {
                 foreach (array_keys(\App\Support\KitchenFilter::GROUPS) as $kitchenMg) {
                     Setting::set(
