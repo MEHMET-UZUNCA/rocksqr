@@ -1,9 +1,8 @@
 RocksQR - Sistem Detayları
-Versiyon: v1.0.93 (2026-10-08)
-Güncelleme: 2026-10-08 — RECALL alanı kaldırıldı (geri alma pencereleri ekran
-            ayarlarındaki sürelere bağlandı), MSSQL otomatik fiyat senkronu
-            (Sistem sekmesi + sunucu cron'u), bar HAZIRLANAN'a family gizleme
-            ve açık sipariş kodu alanları (mutfaktan bağımsız ayrı set)
+Versiyon: v1.0.94 (2026-10-08)
+Güncelleme: 2026-10-08 — İade edilen ürünün açıklama notu, mesaj satırları ve
+            alt ürün satırları da iade görünümü aldı (kırmızı + üstü çizili +
+            yanıp sönen) — Mutfak (KPOS) ve Ana Mutfak (AKDS) ekranları
 =====================================
 
 Laravel 12, MySQL, Tailwind CSS ile geliştirildi.
