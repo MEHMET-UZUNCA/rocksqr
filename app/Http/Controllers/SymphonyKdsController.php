@@ -40,7 +40,7 @@ class SymphonyKdsController extends Controller
         }
 
         $firstSeen = $order->kitchen_started_at ?? $order->created_at;
-        $prepSeconds = $firstSeen ? max(0, (int) now()->diffInSeconds($firstSeen)) : null;
+        $prepSeconds = $firstSeen ? max(0, (int) \Carbon\Carbon::parse($firstSeen)->diffInSeconds(now())) : null;
 
         try {
             $now = now();
@@ -167,7 +167,7 @@ class SymphonyKdsController extends Controller
         }
 
         $prepSeconds = $firstSeenAt
-            ? max(0, (int) now()->diffInSeconds(\Carbon\Carbon::parse($firstSeenAt)))
+            ? max(0, (int) \Carbon\Carbon::parse($firstSeenAt)->diffInSeconds(now()))
             : null;
 
         $completedAt = now();
@@ -340,7 +340,7 @@ class SymphonyKdsController extends Controller
             ? 'ana_ready_undo_seconds'
             : 'ready_undo_seconds';
         $undoWindowSeconds = (int) Setting::get($undoKey, 30);
-        if (now()->diffInSeconds(\Carbon\Carbon::parse($row->completed_at)) > $undoWindowSeconds) {
+        if (\Carbon\Carbon::parse($row->completed_at)->diffInSeconds(now()) > $undoWindowSeconds) {
             return response()->json([
                 'success' => false,
                 'message' => 'Geri alma süresi doldu (' . $undoWindowSeconds . ' sn).',
@@ -1120,6 +1120,40 @@ class SymphonyKdsController extends Controller
 
             $checks = array_filter($checks, fn($c) => !empty($c['items']) || !empty($c['messages']));
             uasort($checks, fn($a, $b) => strcmp((string) $b['order_time'], (string) $a['order_time']));
+
+            // "TBL -" tamamlayicisi: ana sorgunun DINING_TABLE join'i bazi check'lerde bos
+            // donuyor (tablo yalniz CheckPostingDB tarafinda tanimli); eksik masa numaralari
+            // tek toplu sorguyla doldurulur — ana SQL sorgusuna dokunulmaz.
+            $missingTable = [];
+            $byCheck      = [];
+            foreach ($checks as $k => $chk) {
+                $cn = (string) $chk['check_number'];
+                if ($cn === '') continue;
+                $byCheck[$cn][] = $k;
+                if ((string) $chk['table_no'] === '') $missingTable[$cn] = (int) $cn;
+            }
+            if ($missingTable !== []) {
+                try {
+                    $in     = implode(',', $missingTable);
+                    $rowsTb = $pdo->query(
+                        'SELECT c.CheckNumber, dt.ObjectNumber FROM CheckPostingDB.dbo.CHECKS c '
+                        . 'LEFT JOIN CheckPostingDB.dbo.DINING_TABLE dt ON dt.DiningTableID = c.DiningTableID '
+                        . "WHERE c.CheckNumber IN ({$in})"
+                    )->fetchAll(\PDO::FETCH_ASSOC);
+                    foreach ($rowsTb as $r) {
+                        $cn  = (string) ($r['CheckNumber'] ?? '');
+                        $obj = $r['ObjectNumber'] ?? null;
+                        if ($cn === '' || $obj === null || (string) $obj === '' || !isset($byCheck[$cn])) continue;
+                        foreach ($byCheck[$cn] as $k) {
+                            if ((string) $checks[$k]['table_no'] === '') {
+                                $checks[$k]['table_no'] = (string) $obj;
+                            }
+                        }
+                    }
+                } catch (\Throwable) {
+                    // Tamamlayici sorgu basarisizsa ekran akisi bozulmaz
+                }
+            }
 
             $completedLimit = (int) Setting::get($screen === 'ana' ? 'ana_completed_display' : 'kitchen_completed_display', 6);
             // SON seritleri sadece son ekran temizlemesinden sonrakileri gosterir

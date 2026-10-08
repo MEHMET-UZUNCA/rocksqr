@@ -57,8 +57,12 @@
         /* SON şeridi: tek sıra kayan yazı (içerik sığmazsa) — çift grup kesintisiz döngü */
         @keyframes strip-marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         .strip-mask { overflow: hidden; flex: 1; min-width: 0; }
-        .strip-ticker { display: flex; align-items: center; width: max-content; animation: strip-marquee 45s linear infinite; }
-        .strip-group { display: flex; align-items: center; gap: 4px; padding-right: 4px; }
+        .strip-ticker { display: flex; align-items: center; animation: strip-marquee 45s linear infinite; }
+        .strip-group { display: flex; align-items: center; gap: 4px; padding-right: 4px; flex: 0 0 auto; }
+        /* Çip içi kayan yazı: içerik kırpılmaz, tümü görünene dek akar */
+        @keyframes bar-chip-marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .bar-chip-win { display: inline-block; overflow: hidden; max-width: 240px; vertical-align: middle; }
+        .bar-chip-text { display: inline-block; white-space: nowrap; will-change: transform; line-height: 1.2; }
     </style>
 </head>
 <body class="bg-gray-900 font-poppins text-white h-screen flex flex-col" style="overflow:hidden">
@@ -761,6 +765,7 @@
                     _lastCompletedKey = 'empty';
                     ticker.innerHTML = `<div class="strip-group"><span class="text-gray-500 text-xs">Henüz tamamlanan yok.</span></div>`;
                     ticker.style.animation = 'none';
+                    ticker.style.width = '';
                 }
                 return;
             }
@@ -782,20 +787,20 @@
                 if (isCancelled) {
                     return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-red-900 rounded px-1 py-0.5 text-xs text-red-400 shrink-0">
                         <i class="fas fa-ban text-red-600 shrink-0"></i>
-                        <span class="font-bold shrink-0 whitespace-nowrap">${tableLabel}</span>${srcBadge}<span class="text-gray-400 line-through whitespace-nowrap">${escapeHtml(summary) || '—'}</span>
+                        <span class="font-bold shrink-0 whitespace-nowrap">${tableLabel}</span>${srcBadge}<span class="bar-chip-win text-gray-400 line-through"><span class="bar-chip-text">${escapeHtml(summary) || '—'}</span></span>
                     </span>`;
                 }
                 return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-emerald-900 rounded px-1 py-0.5 text-xs text-emerald-300 shrink-0">
                     <i class="fas fa-check text-emerald-600 shrink-0"></i>
-                    <span class="font-bold shrink-0 whitespace-nowrap">${tableLabel}</span>${srcBadge}<span class="text-gray-400 whitespace-nowrap">${escapeHtml(summary) || '—'}</span>
+                    <span class="font-bold shrink-0 whitespace-nowrap">${tableLabel}</span>${srcBadge}<span class="bar-chip-win text-gray-400"><span class="bar-chip-text">${escapeHtml(summary) || '—'}</span></span>
                 </span>`;
             });
 
             const callChips = (attendedCalls || []).map(call => {
                 const tableLabel = [call.table_no ? 'M' + call.table_no : '', call.room_no ? 'ROOM' + call.room_no : ''].filter(Boolean).join(' ') || 'Gen';
-                return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-green-900 rounded px-1 py-0.5 text-xs text-green-300 shrink-0">
-                    <i class="fas fa-bell-slash text-green-600 shrink-0"></i>
-                    <span class="font-bold shrink-0 whitespace-nowrap">${escapeHtml(tableLabel)}</span><span class="text-gray-400 whitespace-nowrap">${escapeHtml(call.note) || 'Çağrı'}</span>
+                return `<span class="inline-flex items-center gap-1 bg-red-950 border border-red-800 rounded px-1 py-0.5 text-xs text-red-200 shrink-0">
+                    <i class="fas fa-bell-slash text-red-400 shrink-0"></i>
+                    <span class="font-bold shrink-0 whitespace-nowrap">${escapeHtml(tableLabel)}</span><span class="bar-chip-win text-red-300"><span class="bar-chip-text">${escapeHtml(call.note) || 'Çağrı'}</span></span>
                 </span>`;
             });
 
@@ -806,13 +811,30 @@
             ticker.innerHTML = `<div class="strip-group">${chips}</div><div class="strip-group">${chips}</div>`;
 
             const mask = ticker.parentElement;
-            const groupWidth = ticker.scrollWidth / 2;
-            if (groupWidth <= mask.clientWidth) {
+            const firstGroup = ticker.firstElementChild;
+            const groupWidth = firstGroup ? Math.ceil(firstGroup.getBoundingClientRect().width) : 0;
+            if (!groupWidth || groupWidth <= mask.clientWidth) {
                 ticker.style.animation = 'none'; // sığıyor — kaydırmaya gerek yok
+                ticker.style.width = '';
             } else {
+                ticker.style.width = (groupWidth * 2) + 'px';
                 ticker.style.animation = '';
                 ticker.style.animationDuration = Math.max(30, Math.round(groupWidth / 60)) + 's';
             }
+
+            // Çip içi kayar yazı: pencereye sığmayan içerik çift metinle akar, tamamı görünür
+            requestAnimationFrame(() => {
+                ticker.querySelectorAll('.bar-chip-text').forEach(span => {
+                    const orig = (span.dataset.orig || span.textContent).trim();
+                    if (!orig) return;
+                    span.dataset.orig = orig;
+                    const win = span.parentElement;
+                    if (span.scrollWidth <= win.clientWidth + 1) { span.style.animation = 'none'; return; }
+                    span.textContent = orig + '    ·    ' + orig;
+                    const dur = Math.max(6, (span.scrollWidth / 2) / 30);
+                    span.style.animation = `bar-chip-marquee ${dur}s linear infinite`;
+                });
+            });
         }
 
         function renderWaiterCalls(calls) {
