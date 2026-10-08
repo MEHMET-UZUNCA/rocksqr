@@ -552,9 +552,10 @@
                 </div>
             ` : '';
 
+            const rvcName = order.rvc_name ? ` · ${escapeHtml(order.rvc_name)}` : '';
             const checkLabel = order.check_number
-                ? `Chk #${escapeHtml(order.check_number)}`
-                : `<span class="text-yellow-400">CHECKSIZ</span>`;
+                ? `Chk #${escapeHtml(order.check_number)}${rvcName}`
+                : `<span class="text-yellow-400">CHECKSIZ</span>${rvcName}`;
 
             return `
             <div data-kbd-gk="${escapeHtml(groupKey)}" class="bg-gray-800 rounded-lg border-2 ${borderClass} overflow-hidden">

@@ -22,6 +22,18 @@ class KitchenFilter
         63 => 'Sıralı Et',
     ];
 
+    // Kart ekranında "Chk #... · İsim" için: bilinen RVC → ekran adı,
+    // bilinmeyen RVC → sayısal olmayan ham değer olduğu gibi, aksi halde boş.
+    public static function rvcName(int $rvcId, $raw = null): string
+    {
+        $names = self::RVCS + self::ANA_RVCS;
+        if (isset($names[$rvcId])) {
+            return $names[$rvcId];
+        }
+        $raw = trim((string) $raw);
+        return $raw !== '' && !ctype_digit($raw) ? $raw : '';
+    }
+
     // Symphony MajorGroup kodu → [etiket, açıklama, ikon]
     // Yalnızca KDS akışında gerçekten görünen kodlar (canlı 7 günlük veri)
     public const GROUPS = [

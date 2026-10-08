@@ -1452,6 +1452,7 @@ class SymphonyKdsController extends Controller
             'table_no'     => $tableNo,
             'rvc'          => $rvc,
             'rvc_id'       => $rvcId,
+            'rvc_name'     => KitchenFilter::rvcName($rvcId, $rvc),
             'waiter_name'  => $waiterFull,
             'order_time'   => null,
             'status'       => $status,
