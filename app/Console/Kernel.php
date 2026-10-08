@@ -11,6 +11,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('screens:clear-if-due')->everyMinute()->withoutOverlapping();
+        $schedule->command('sync:mssql-prices')->everyMinute()->withoutOverlapping();
     }
 
     protected function commands()

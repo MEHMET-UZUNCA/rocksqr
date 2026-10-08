@@ -344,10 +344,12 @@ class BarController extends Controller
                 $checkGid = (string) $this->mssql->getField($row, ['CheckGID', 'check_gid'], '');
                 $isOpenRow = false;
                 if ($objNo > 0 && $rvcId > 0) {
-                    $openSets[$rvcId] ??= \App\Support\KitchenFilter::openCodeMap($rvcId);
+                    $openSets[$rvcId] ??= \App\Support\KitchenFilter::openCodeMap($rvcId, 'bar_open');
                     $isOpenRow = isset($openSets[$rvcId][$objNo]);
                 }
                 $fc = ($lineType === 'BAR_MESSAGE' || ($lineType === 'MESAJ' && $objNo === 9001020)) ? 98 : $mg;
+                // FamGrpObjNum AS FamilyGroupID — bar tick/panelleri family gizlemeyi istemci tarafinda uygular
+                $famGrp = (int) $this->mssql->getField($row, ['FamilyGroupID', 'family_group_id', 'FamGrpObjNum', 'fam_grp_obj_num'], 0);
 
                 if (!isset($groups[$key])) {
                     $groups[$key] = [
@@ -367,7 +369,7 @@ class BarController extends Controller
 
                 if ($lineType === 'MESAJ' || $lineType === 'MARS') {
                     // Mesaj satırları birleştirilmez; metin fiş çözümünden gelir
-                    $entry = ['name' => $itemName, 'qty' => max(1, $rowQty), 'note' => $note, 'mg' => $mg, 'fc' => $fc, 'is_returned' => false];
+                    $entry = ['name' => $itemName, 'qty' => max(1, $rowQty), 'note' => $note, 'mg' => $mg, 'fc' => $fc, 'fam' => $famGrp, 'is_returned' => false];
                     if ($lineType === 'MESAJ' && $checkGid !== '') {
                         $entry['_gid'] = $checkGid;
                         $journalGuids[$checkGid] = true;
@@ -390,6 +392,7 @@ class BarController extends Controller
                         'note'         => $note,
                         'mg'           => $mg,
                         'fc'           => $fc,
+                        'fam'          => $famGrp,
                         'qty_net'      => $rowQty,
                         'qty_returned' => $rowQty < 0 ? abs($rowQty) : 0,
                         'row_count'    => 1,

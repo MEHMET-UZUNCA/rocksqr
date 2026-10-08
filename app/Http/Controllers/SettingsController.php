@@ -69,7 +69,22 @@ class SettingsController extends Controller
             'timer_waiter_yellow' => (int) Setting::get('timer_waiter_yellow', 2),
             'timer_waiter_orange' => (int) Setting::get('timer_waiter_orange', 5),
             'timer_waiter_red'    => (int) Setting::get('timer_waiter_red', 10),
+            // Otomatik MSSQL fiyat senkronu (Sistem sekmesi)
+            'auto_price_sync_mode'        => Setting::get('auto_price_sync_mode', 'off'),
+            'auto_price_sync_interval'    => (int) Setting::get('auto_price_sync_interval', 60),
+            'auto_price_sync_time'        => Setting::get('auto_price_sync_time', '03:00'),
+            'auto_price_sync_last_run'    => Setting::get('auto_price_sync_last_run', ''),
+            'auto_price_sync_last_stats'  => Setting::get('auto_price_sync_last_stats', ''),
         ];
+
+        // Son senkron calismasi TR duvar saatiyle gosterilir (kayit UTC tutulur)
+        if ($settings['auto_price_sync_last_run'] !== '') {
+            try {
+                $settings['auto_price_sync_last_run'] = \Illuminate\Support\Carbon::parse($settings['auto_price_sync_last_run'])
+                    ->setTimezone('Europe/Istanbul')->format('d.m.Y H:i');
+            } catch (\Throwable) {
+            }
+        }
 
         // Ekran arka plan logolari — ekran basina ayri gorsel/opaklik/boyut (devralma yok)
         foreach (self::BG_SCREENS as $bgScreenKey => $_bgLabel) {
@@ -89,7 +104,6 @@ class SettingsController extends Controller
         ] as $kbdKey => $kbdDef) {
             $settings['kitchen_sc_' . $kbdKey] = Setting::get('kitchen_sc_' . $kbdKey, $kbdDef);
         }
-        $settings['kitchen_sc_recall_window'] = (int) Setting::get('kitchen_sc_recall_window', 30);
 
         // Ekran PIN (BDS / KDS / KPOS / AKDS açılış kilidi) — hash görünmez, sadece durum
         foreach (['bar', 'kpos', 'ana'] as $pinScreen) {
@@ -228,6 +242,17 @@ class SettingsController extends Controller
                             $request->boolean("bar_show_{$barRvcId}_{$barMg}") ? '1' : '0'
                         );
                     }
+                    // Ürün grubu gizle listesi (FamGrp): virgül veya + ile girilen kodlar
+                    // HAZIRLANAN kartlarında yazdırılmaz (mutfaktan bağımsız ayrı set)
+                    $barHideRaw   = (string) $request->input("bar_fg_hide_{$barRvcId}", '');
+                    $barHideCodes = array_filter(array_map('intval', preg_split('/[+,]/', $barHideRaw) ?: []));
+                    Setting::set("bar_fg_hide_{$barRvcId}", implode(',', array_unique($barHideCodes)));
+                    // Açık Yiyecek/İçecek/Diğer kodları: HAZIRLANAN kartlarında fiş içerik çözümü bu satırlara uygulanır
+                    foreach (\App\Support\KitchenFilter::OPEN_KINDS as $barOpenKind) {
+                        $barOpenRaw   = (string) $request->input("bar_open_{$barOpenKind}_{$barRvcId}", '');
+                        $barOpenCodes = array_filter(array_map('intval', preg_split('/[+,]/', $barOpenRaw) ?: []));
+                        Setting::set("bar_open_{$barOpenKind}_{$barRvcId}", implode(',', array_unique($barOpenCodes)));
+                    }
                 }
                 return back()->with('success', 'Bar ekran ayarları güncellendi.');
             }
@@ -337,9 +362,20 @@ class SettingsController extends Controller
             Setting::set('kitchen_check_close_wait', $request->boolean('kitchen_check_close_wait') ? '1' : '0');
             Setting::set('ana_check_close_wait', $request->boolean('ana_check_close_wait') ? '1' : '0');
             return back()->with('success', 'Check kapanma davranışı güncellendi.');
+        } elseif ($request->has('_sync_only')) {
+            // Otomatik fiyat senkronu: 'off' = kapalı, 'interval' = her N dakikada, 'daily' = her gün HH:MM
+            $request->validate([
+                'auto_price_sync_mode'     => ['required', 'string', 'in:off,interval,daily'],
+                'auto_price_sync_interval' => 'required|integer|min:5|max:1440',
+                'auto_price_sync_time'     => ['required', 'regex:/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/'],
+            ]);
+            Setting::set('auto_price_sync_mode', $request->auto_price_sync_mode);
+            Setting::set('auto_price_sync_interval', (int) $request->auto_price_sync_interval);
+            Setting::set('auto_price_sync_time', $request->auto_price_sync_time);
+            return back()->with('success', 'Otomatik fiyat senkronu ayarları güncellendi.');
         } elseif ($request->has('_kbd_only')) {
             $kbdKeys = ['home', 'end', 'card_prev', 'card_next', 'item_prev', 'item_next', 'ok', 'cancel', 'done1', 'done2', 'done3', 'done4', 'select_done', 'recall'];
-            $rules = ['sc_recall_window' => 'required|integer|min:5|max:600'];
+            $rules = [];
             foreach ($kbdKeys as $kbdKey) {
                 $rules['sc_' . $kbdKey] = 'nullable|string|max:10';
             }
@@ -347,7 +383,6 @@ class SettingsController extends Controller
             foreach ($kbdKeys as $kbdKey) {
                 Setting::set('kitchen_sc_' . $kbdKey, mb_strtolower(trim((string) $request->input('sc_' . $kbdKey, ''))));
             }
-            Setting::set('kitchen_sc_recall_window', (int) $request->input('sc_recall_window'));
             return back()->with('success', 'Mutfak kısayolları güncellendi.');
         } else {
             $request->validate([

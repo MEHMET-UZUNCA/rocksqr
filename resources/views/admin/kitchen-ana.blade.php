@@ -153,7 +153,7 @@
             }
         @endphp
         const KBD = @json($kbdCfg);
-        const KBD_RECALL_WINDOW = @json((int) \App\Models\Setting::get('kitchen_sc_recall_window', 30));
+        const KBD_RECALL_WINDOW = @json((int) \App\Models\Setting::get('ana_ready_undo_seconds', 30));
 
         let kbdSel = { gk: null, mode: 'card', idx: -1 };
         let kbdRecallStack = [];

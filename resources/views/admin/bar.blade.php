@@ -195,6 +195,8 @@
         // ── Bar kategori filtreleri (Admin → Ekran → Bar Ayarları) ─────────
         // RVC 44 (Pool Bar) × Symphony grubu tick'leri — mutfaktan bağımsız ayri set.
         const BAR_TICKS = @json(\App\Support\KitchenFilter::visibleMap(44, 'bar_show'));
+        // Bar family gizleme — mutfaktan bağımsız ayrı set (Admin → Ekran → Bar Ayarları)
+        const BAR_FAM_HIDE = @json(array_keys(\App\Support\KitchenFilter::familyHideMap(44, 'bar_fg_hide')));
 
         // Öğenin tick kodu: Symphony'de sunucu hesaplar (fc: Bar Mesaj→98, diğer→mg),
         // QR öğelerinde cat food→1 / drink→2.
@@ -222,6 +224,8 @@
                 if (match && match.items && match.items.length > 0) items = match.items;
                 else if (Array.isArray(order.db_items) && order.db_items.length > 0) items = order.db_items;
             }
+            // Gizli family (FamGrp) ürünleri elenir; sonra kategori/mesaj filtreleri uygulanır.
+            items = items.filter(i => !(i.fam && BAR_FAM_HIDE.includes(i.fam)));
             const hasFood = items.some(i => itemTick(i) === 1);
             return items.filter(i => {
                 const t = itemTick(i);
@@ -513,8 +517,12 @@
 
             const itemRows = items.map(i => {
                 const nm = i.name || (i.id ? getProductName(i.id) : '');
-                return `<div class="flex justify-between py-[2px] border-b border-emerald-800/60">
-                    <span class="truncate pr-1"><span class="font-bold text-gold mr-1">${i.quantity || i.qty || 1}x</span>${escapeHtml(nm)}</span>
+                const note = i.note || '';
+                return `<div class="py-[2px] border-b border-emerald-800/60">
+                    <div class="flex justify-between">
+                        <span class="truncate pr-1"><span class="font-bold text-gold mr-1">${i.quantity || i.qty || 1}x</span>${escapeHtml(nm)}</span>
+                    </div>
+                    ${note ? `<div class="text-yellow-400 text-[9px] leading-snug truncate">— ${escapeHtml(note)}</div>` : ''}
                 </div>`;
             }).join('');
             const msgSummary = msgItems.map(m => escapeHtml(m.note || m.name)).join(' • ');

@@ -1,9 +1,9 @@
 RocksQR - Sistem Detayları
-Versiyon: v1.0.92 (2026-10-08)
-Güncelleme: 2026-10-08 — Admin panel elden geçirme: dashboard 8 kart + 8 hızlı
-            erişim, raporlara 3. sekme Satış Raporu (ciro, saatlik yoğunluk,
-            garson çağrıları), En Geç Hazırlanan Ürünler paneli ve sipariş
-            içeriği kolonları, dashboard listeleri son 30 gün
+Versiyon: v1.0.93 (2026-10-08)
+Güncelleme: 2026-10-08 — RECALL alanı kaldırıldı (geri alma pencereleri ekran
+            ayarlarındaki sürelere bağlandı), MSSQL otomatik fiyat senkronu
+            (Sistem sekmesi + sunucu cron'u), bar HAZIRLANAN'a family gizleme
+            ve açık sipariş kodu alanları (mutfaktan bağımsız ayrı set)
 =====================================
 
 Laravel 12, MySQL, Tailwind CSS ile geliştirildi.
@@ -18,8 +18,9 @@ RocksQR; QR menü (müşteri), Mutfak/Bar ekranları (personel) ve Symphony POS
 (mevcut sistem) arasında köprü kuran hibrit bir akıştır.
 Symphony tarafı, POS'un canlı işlem tablosundan (CheckPostingDB) gerçek
 zamanlı okunur: adisyon açıldığı an ekranda görünür, ödeme/kapanış beklenmez.
-Ekranlar tarayıcı polling'i ile çalışır (5 sn). Sunucu tarafında
-cron/scheduler YOKTUR.
+Ekranlar tarayıcı polling'i ile çalışır (5 sn). Sunucu cron'u dakikada bir
+Laravel zamanlayıcısını tetikler (gece ekran temizliği zaman kontrolü +
+MSSQL otomatik fiyat senkronu).
 
 -- Sipariş Akışı A: Müşteri QR'dan sipariş verir --
 
@@ -180,17 +181,45 @@ Bar Ekran Ayarları:
   - bar_screen_title        : Bar ekranı üst başlığı
   - bar_completed_display   : Tamamlanan (SON) şeridi max adet (1-100)
   - bar_ready_display       : Hazirlanan/Servise Gotur (HAZIRLANAN) şeridi max adet (1-100)
+  - bar_fg_hide_44          : HAZIRLANAN kartlarında yazdırılmayacak FamilyGroup kodları
+                              (virgül veya + ile ayrılır; boş = hiçbiri gizlenmez)
+  - bar_open_food_44        : Açık Yiyecek POS kodları (varsayılan 1998001)
+  - bar_open_drink_44       : Açık İçecek POS kodları (varsayılan 2998001,3998001)
+  - bar_open_other_44       : Açık Diğer POS kodları (varsayılan 4998001)
+                              Açık satırların içeriği BDS fişinden çözülür; bu set
+                              mutfaktan bağımsızdır, sol GELEN kolonu etkilenmez.
 
 Kitchen Ekran Ayarları:
   - kitchen_screen_title      : Mutfak ekranı üst başlığı
   - kitchen_completed_display : Tamamlanan sipariş listesi max adet (1-100)
-  - waiter_call_display       : Garson çağrıları listesi max adet (1-200)
   - ready_undo_seconds        : Geri alma butonu aktif kalma süresi (5-600 sn)
+  - kitchen_fg_hide_{rvc}     : Mutfakta yazdırılmayacak FamilyGroup kodları
+                                (RVC 44 / 81; virgül veya + ile ayrılır)
+  - kitchen_open_{tür}_{rvc}  : Açık Yiyecek/İçecek/Diğer POS kodları (fiş içerik
+                                çözümü bu satırlara uygulanır)
+
+Ana Mutfak (AKDS) Ekran Ayarları:
+  - ana_screen_title         : Ana Mutfak ekranı üst başlığı
+  - ana_completed_display    : Tamamlanan sipariş listesi max adet (1-100)
+  - ana_waiter_call_display  : Garson çağrıları listesi max adet (1-200)
+  - ana_ready_undo_seconds   : Geri alma butonu aktif kalma süresi (5-600 sn)
+  Ana Mutfak filtreleri de kitchen_fg_hide_{rvc} / kitchen_open_{tür}_{rvc}
+  anahtarlarını kullanır (AKDS RVC'leri: 43, 45, 46, 63).
 
 Check Kapanma Davranışı (Sistem sekmesi — her ekran için ayrı anahtar):
   - bar_check_close_wait      : Bar (BDS) — kapanan hesap silinsin ('1') / KAPANDI rozetiyle bekle ('0')
   - kitchen_check_close_wait  : Mutfak (KPOS) — aynı davranış (ayrı anahtar)
   - ana_check_close_wait      : Ana Mutfak (AKDS) — aynı davranış (ayrı anahtar)
+
+MSSQL Otomatik Fiyat Senkronu (Sistem sekmesi):
+  - auto_price_sync_mode     : off | interval | daily (Kapalı / her N dakikada / günlük saat)
+  - auto_price_sync_interval : Sıklık — dakika (5-1440, varsayılan 60)
+  - auto_price_sync_time     : Günlük çalışma saati HH:MM (TR, varsayılan 03:00)
+  Yalnızca mssql_id eşleşen ürünlerin fiyatı güncellenir; başka alan değişmez.
+  Ürün (Symphony) sekmesindeki MSSQL bağlantısı + SQL sorgusu kullanılır. Sunucu
+  cron'u dakikada bir schedule:run çalıştırır → sync:mssql-prices komutu devreye
+  girer. Formda son çalışma zamanı + istatistik (toplam/güncellenen/aynı/eşleşmeyen)
+  gösterilir; hata durumunda istatistik kutusuna hata mesajı yazılır.
 
 Ekran Temizleme:
   - clear_time : Ekranda bekleyen kart temizleme saati (HH:MM)
@@ -216,6 +245,8 @@ Admin Paneli:
   - Bar ekranı: QR onay + Symphony canlı takip, sipariş hazır şeridi
   - MSSQL Sync: lokal product code'lu ürünleri Symphony'de arar →
     Değişti / Güncel / MSSQL'de Yok badge'leri
+  - MSSQL otomatik fiyat senkronu: Sistem sekmesinden açılır (Kapalı / her N
+    dakikada / günlük saat); yalnız eşleşen ürünlerin fiyatı güncellenir
   - Garson çağrısı yönetimi
   - Raporlar (3 sekme): Mutfak Hazırlık (Symphony süreleri + sipariş içerikleri),
     Süre Raporu (aşama süreleri, en geç hazırlanan ürünler), Satış Raporu

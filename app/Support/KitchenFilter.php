@@ -62,11 +62,12 @@ class KitchenFilter
     }
 
     // Mutfak ekranına yazdırilmayacak FamGrp kodları (ters mantık: girilen = gizli).
-    // kitchen_fg_hide_{rvc} ayarı virgülle ayrılmış kod listesi tutar; kayıt yokken
+    // {$prefix}_{rvc} ayarı virgülle ayrılmış kod listesi tutar; kayıt yokken
     // FAMILY_HIDE_DEFAULT devrededir, boş kayıt ("") hiçbir grubu gizlemez.
-    public static function familyHideMap(int $rvcId): array
+    // $prefix: mutfak 'kitchen_fg_hide', bar 'bar_fg_hide' — ayar anahtarları ayrı settir.
+    public static function familyHideMap(int $rvcId, string $prefix = 'kitchen_fg_hide'): array
     {
-        $saved = Setting::get("kitchen_fg_hide_{$rvcId}");
+        $saved = Setting::get("{$prefix}_{$rvcId}");
         if ($saved === null) {
             $saved = implode(',', self::FAMILY_HIDE_DEFAULT[$rvcId] ?? []);
         }
@@ -79,9 +80,9 @@ class KitchenFilter
     }
 
     // Ayar sayfasındaki metin alanına yazılacak değer (virgüllü kod listesi).
-    public static function familyHideList(int $rvcId): string
+    public static function familyHideList(int $rvcId, string $prefix = 'kitchen_fg_hide'): string
     {
-        $saved = Setting::get("kitchen_fg_hide_{$rvcId}");
+        $saved = Setting::get("{$prefix}_{$rvcId}");
         if ($saved === null) {
             $saved = implode(',', self::FAMILY_HIDE_DEFAULT[$rvcId] ?? []);
         }
@@ -104,11 +105,11 @@ class KitchenFilter
     ];
 
     // RVC'nin tüm açık satır kodları (birleşik küme; kod => true)
-    public static function openCodeMap(int $rvcId): array
+    public static function openCodeMap(int $rvcId, string $prefix = 'kitchen_open'): array
     {
         $map = [];
         foreach (self::OPEN_KINDS as $kind) {
-            foreach (self::openCodeSet($rvcId, $kind) as $code => $_) {
+            foreach (self::openCodeSet($rvcId, $kind, $prefix) as $code => $_) {
                 $map[$code] = true;
             }
         }
@@ -116,9 +117,9 @@ class KitchenFilter
     }
 
     // Tek sınıfın kod kümesi
-    public static function openCodeSet(int $rvcId, string $kind): array
+    public static function openCodeSet(int $rvcId, string $kind, string $prefix = 'kitchen_open'): array
     {
-        $saved = Setting::get("kitchen_open_{$kind}_{$rvcId}");
+        $saved = Setting::get("{$prefix}_{$kind}_{$rvcId}");
         $raw   = $saved === null ? (self::OPEN_DEFAULTS[$kind] ?? '') : (string) $saved;
         $map = [];
         foreach (array_filter(array_map('intval', preg_split('/[+,]/', $raw) ?: [])) as $code) {
@@ -128,9 +129,9 @@ class KitchenFilter
     }
 
     // Ayar sayfasındaki metin alanına yazılacak değer (virgüllü kod listesi).
-    public static function openCodeList(int $rvcId, string $kind): string
+    public static function openCodeList(int $rvcId, string $kind, string $prefix = 'kitchen_open'): string
     {
-        $saved = Setting::get("kitchen_open_{$kind}_{$rvcId}");
+        $saved = Setting::get("{$prefix}_{$kind}_{$rvcId}");
         if ($saved === null) {
             $saved = self::OPEN_DEFAULTS[$kind] ?? '';
         }

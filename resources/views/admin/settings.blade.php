@@ -259,9 +259,44 @@
                                 </label>
                                 @endforeach
                             </div>
+                            <div class="mt-3 pt-3 border-t border-amber-100">
+                                <label for="bar_fg_hide_{{ $barRvcId }}" class="block text-xs font-bold text-amber-700 mb-1"><i class="fas fa-eye-slash mr-1"></i>Hariç Tutulacak Family Grupları</label>
+                                <p class="text-[11px] text-gray-500 mb-2">HAZIRLANAN alanındaki kartlarda gösterilmeyecek Symphony FamilyGroup kodları; virgül veya + ile eklenebilir (örn: 1205,1206 ya da 1205+1206). Boş bırakılırsa hiçbir grup gizlenmez.</p>
+                                <input type="text" id="bar_fg_hide_{{ $barRvcId }}" name="bar_fg_hide_{{ $barRvcId }}"
+                                       value="{{ old('bar_fg_hide_' . $barRvcId, \App\Support\KitchenFilter::familyHideList($barRvcId, 'bar_fg_hide')) }}"
+                                       class="w-full max-w-xs border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400"
+                                       placeholder="Örn: 1205">
+                            </div>
+                            <div class="mt-3 pt-3 border-t border-amber-100">
+                                <p class="block text-xs font-bold text-amber-700 mb-1"><i class="fas fa-layer-group mr-1"></i>Açık Sipariş Kodları (İçerikli Satırlar)</p>
+                                <p class="text-[11px] text-gray-500 mb-2">Bu kodlu satırlar HAZIRLANAN kartlarında birleştirilmez; içerikleri POS fişinden çözülüp satır altında gösterilir. Virgül veya + ile eklenebilir (örn: 1998001,1998002). Alanı boşaltırsanız o sınıf izlenmez.</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <div>
+                                        <label for="bar_open_food_{{ $barRvcId }}" class="block text-[11px] font-bold text-gray-600 mb-1">Açık Yiyecek</label>
+                                        <input type="text" id="bar_open_food_{{ $barRvcId }}" name="bar_open_food_{{ $barRvcId }}"
+                                               value="{{ old('bar_open_food_' . $barRvcId, \App\Support\KitchenFilter::openCodeList($barRvcId, 'food', 'bar_open')) }}"
+                                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400"
+                                               placeholder="{{ \App\Support\KitchenFilter::OPEN_DEFAULTS['food'] }}">
+                                    </div>
+                                    <div>
+                                        <label for="bar_open_drink_{{ $barRvcId }}" class="block text-[11px] font-bold text-gray-600 mb-1">Açık İçecek</label>
+                                        <input type="text" id="bar_open_drink_{{ $barRvcId }}" name="bar_open_drink_{{ $barRvcId }}"
+                                               value="{{ old('bar_open_drink_' . $barRvcId, \App\Support\KitchenFilter::openCodeList($barRvcId, 'drink', 'bar_open')) }}"
+                                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400"
+                                               placeholder="{{ \App\Support\KitchenFilter::OPEN_DEFAULTS['drink'] }}">
+                                    </div>
+                                    <div>
+                                        <label for="bar_open_other_{{ $barRvcId }}" class="block text-[11px] font-bold text-gray-600 mb-1">Açık Diğer</label>
+                                        <input type="text" id="bar_open_other_{{ $barRvcId }}" name="bar_open_other_{{ $barRvcId }}"
+                                               value="{{ old('bar_open_other_' . $barRvcId, \App\Support\KitchenFilter::openCodeList($barRvcId, 'other', 'bar_open')) }}"
+                                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400"
+                                               placeholder="{{ \App\Support\KitchenFilter::OPEN_DEFAULTS['other'] }}">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         @endforeach
-                        <p class="text-xs text-gray-400">İşaretiniz kaldırılan satırlar HAZIRLANAN alanındaki kartlarda gösterilmez; GELEN SİPARİŞLER kolonu filtresizdir. QR siparişlerindeki içecekler "İçecek" tick'ine bağlıdır. Tick'ler mutfak ekranından bağımsızdır.</p>
+                        <p class="text-xs text-gray-400">İşaretiniz kaldırılan satırlar HAZIRLANAN alanındaki kartlarda gösterilmez; GELEN SİPARİŞLER kolonu filtresizdir. QR siparişlerindeki içecekler "İçecek" tick'ine bağlıdır. Family ve açık sipariş kodları da yalnız HAZIRLANAN alanını etkiler. Tüm bar ayarları mutfak ekranından bağımsızdır.</p>
                     </div>
                     <button type="submit" class="py-2.5 px-5 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 transition text-sm">
                         <i class="fas fa-save mr-2"></i>Bar Ayarlarini Kaydet
@@ -603,6 +638,54 @@
                         <i class="fas fa-save mr-2"></i>Check Kapanma Ayarlarini Kaydet
                     </button>
                 </form>
+
+                <hr class="border-gray-100 mb-6">
+                <div class="mb-3 flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center shrink-0">
+                        <i class="fas fa-arrows-rotate text-sky-600"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-gray-800">MSSQL Otomatik Fiyat Senkronu</h3>
+                </div>
+                <p class="text-xs text-gray-400 mb-4">Belirlenen sıklıkta veya saatte çalışır; yalnızca <strong>ürün kodu eşleşen</strong> kayıtların <strong>fiyatı</strong> güncellenir. Yeni ürün oluşturulmaz, ürün adları değiştirilmez. Sunucu cron'u dakikada bir zamanı kontrol eder.</p>
+                <form action="{{ route('admin.settings.update') }}?tab=sistem" method="POST">
+                    <input type="hidden" name="_sync_only" value="1">
+                    @csrf
+                    @method('PUT')
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label for="auto_price_sync_mode" class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-toggle-on mr-1 text-sky-500"></i>Çalışma Modu</label>
+                            <select name="auto_price_sync_mode" id="auto_price_sync_mode" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-sky-400 text-sm">
+                                <option value="off" @selected(old('auto_price_sync_mode', $settings['auto_price_sync_mode']) === 'off')>Kapalı</option>
+                                <option value="interval" @selected(old('auto_price_sync_mode', $settings['auto_price_sync_mode']) === 'interval')>Her N dakikada bir</option>
+                                <option value="daily" @selected(old('auto_price_sync_mode', $settings['auto_price_sync_mode']) === 'daily')>Her gün belirlenen saatte</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="auto_price_sync_interval" class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-stopwatch mr-1 text-sky-500"></i>Sıklık (dakika)</label>
+                            <input type="number" name="auto_price_sync_interval" id="auto_price_sync_interval" min="5" max="1440"
+                                   value="{{ old('auto_price_sync_interval', $settings['auto_price_sync_interval']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-sky-400 text-sm">
+                            <p class="text-xs text-gray-400 mt-1">Yalnızca "Her N dakikada bir" modunda kullanılır (5-1440).</p>
+                        </div>
+                        <div>
+                            <label for="auto_price_sync_time" class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-clock mr-1 text-sky-500"></i>Saat</label>
+                            <input type="time" name="auto_price_sync_time" id="auto_price_sync_time"
+                                   value="{{ old('auto_price_sync_time', $settings['auto_price_sync_time']) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-sky-400 text-sm">
+                            <p class="text-xs text-gray-400 mt-1">Yalnızca "Her gün belirlenen saatte" modunda kullanılır.</p>
+                        </div>
+                    </div>
+                    @if(!empty($settings['auto_price_sync_last_run']) || !empty($settings['auto_price_sync_last_stats']))
+                    <div class="bg-sky-50 border border-sky-200 rounded-lg p-3 mb-4 text-xs text-sky-800">
+                        <i class="fas fa-circle-info mr-1"></i>
+                        <strong>Son çalışma:</strong> {{ $settings['auto_price_sync_last_run'] ?: '—' }}
+                        @if(!empty($settings['auto_price_sync_last_stats']))<span class="ml-1">· {{ $settings['auto_price_sync_last_stats'] }}</span>@endif
+                    </div>
+                    @endif
+                    <button type="submit" class="py-2.5 px-5 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-700 transition text-sm">
+                        <i class="fas fa-save mr-2"></i>Fiyat Senkronu Ayarlarını Kaydet
+                    </button>
+                </form>
                 @endif
 
                 @if($activeTab === 'subdomain')
@@ -799,21 +882,10 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label for="sc_recall_window" class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="fas fa-rotate-left mr-1"></i>RECALL Geri Çağırma Süresi (saniye)
-                            </label>
-                            <input type="number" name="sc_recall_window" id="sc_recall_window" min="5" max="600"
-                                   value="{{ old('sc_recall_window', $settings['kitchen_sc_recall_window']) }}"
-                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-400">
-                            <p class="text-xs text-gray-400 mt-1">Bu süre geçtikten sonra son yapılan Hazır işlemi geri çağrılamaz.</p>
-                        </div>
-                        <div class="flex items-end">
-                            <button type="button" id="kbd-reset" class="py-2 px-4 border border-gray-300 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">
-                                <i class="fas fa-arrow-rotate-left mr-1"></i>Tuşları Varsayılana Döndür
-                            </button>
-                        </div>
+                    <div class="mb-4">
+                        <button type="button" id="kbd-reset" class="py-2 px-4 border border-gray-300 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">
+                            <i class="fas fa-arrow-rotate-left mr-1"></i>Tuşları Varsayılana Döndür
+                        </button>
                     </div>
                     <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 mb-4 text-xs text-slate-600">
                         <i class="fas fa-info-circle mr-1"></i>

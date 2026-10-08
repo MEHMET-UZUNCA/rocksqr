@@ -1,5 +1,15 @@
 
 
+## v1.0.93 - 2026-10-08
+
+### RECALL alanı kaldırıldı + MSSQL otomatik fiyat senkronu + Bar HAZIRLANAN filtreleri
+- **RECALL alanı kaldırıldı**: "Diğer Ayarlar" sekmesindeki "RECALL Geri Çağırma Süresi (saniye)" alanı silindi. KDS geri alma penceresi artık ekran ayarlarındaki geri alma süresine bağlı: Mutfak (KPOS) → `ready_undo_seconds`, Ana Mutfak (AKDS) → `ana_ready_undo_seconds`.
+- **MSSQL Otomatik Fiyat Senkronu (Sistem sekmesi)**: çalışma modu Kapalı / Her N dakikada bir (5-1440) / Her gün belirlenen saatte. Yeni `sync:mssql-prices` komutu Kernel zamanlayıcısına eklendi; sunucu cron'una `schedule:run` (dakikada bir) görevi kuruldu. Yalnızca ürün kodu (mssql_id) eşleşen yerel ürünlerin **yalnız fiyatı** güncellenir; yeni ürün oluşturulmaz, ürün adları değişmez. Son çalışma zamanı + istatistik (toplam / güncellenen / aynı / eşleşmeyen) Sistem sekmesinde gösterilir; hata durumunda istatistikte hata metni görünür ve bir dakika sonra yeniden denenir.
+- **Bar HAZIRLANAN filtreleri (mutfaktan bağımsız ayrı set)**: Bar Ekran Ayarları'na RVC bazlı "Hariç Tutulacak Family Grupları" (`bar_fg_hide_44`) ve "Açık Sipariş Kodları" (`bar_open_food_44` / `bar_open_drink_44` / `bar_open_other_44`; varsayılan 1998001 / 2998001,3998001 / 4998001) alanları eklendi. Seçilen family grupları bar HAZIRLANAN kartlarından gizlenir; açık sipariş satırlarında satır adı + POS fişinden çözülen içerik gösterilir (mutfak paritesi). GELEN (sol) kolonu ve bar yerleşimi değişmedi.
+- benioku.txt güncellendi: sunucu cron notu, yeni ayar anahtarları, AKDS ekran ayarları.
+
+---
+
 ## v1.0.92 - 2026-10-08
 
 ### Admin panel elden geçirme + Satış Raporu
