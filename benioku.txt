@@ -1,9 +1,9 @@
 RocksQR - Sistem Detayları
-Versiyon: v1.0.96 (2026-10-08)
-Güncelleme: 2026-10-08 — Mutfak batch kartlarında condiment/mesaj eşleştirme
-            düzeltildi (1. kartın mesajı 2. kartta görünüyordu; KPOS + AKDS);
-            bar ekranı saati üst-ortaya taşındı; bar alt SON şeridi artık
-            check içeriklerini kayar biçimde gösteriyor
+Versiyon: v1.0.97 (2026-10-08)
+Güncelleme: 2026-10-08 — Geri alma işlemleri (Symphony kartı geri al, hesabı
+            geri al, ürünü servisten düşür) kds_events tablosuna kayıt altına
+            alındı; admin panelinden yapılan ayar değişiklikleri
+            settings_audit_logs tablosuna yazılıyor
 =====================================
 
 Laravel 12, MySQL, Tailwind CSS ile geliştirildi.

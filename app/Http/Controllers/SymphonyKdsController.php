@@ -88,10 +88,21 @@ class SymphonyKdsController extends Controller
             return response()->json(['success' => false, 'message' => 'Geri alma süresi doldu.'], 422);
         }
         try {
-            DB::table('kitchen_item_logs')
+            $logRows = DB::table('kitchen_item_logs')
                 ->where('group_key', 'Q' . $order->id)
                 ->where('completed_at', '>=', now()->subSeconds($undoWindowSeconds))
-                ->delete();
+                ->get();
+            if ($logRows->isNotEmpty()) {
+                DB::table('kitchen_item_logs')->whereIn('id', $logRows->pluck('id')->all())->delete();
+                self::logKdsEvent(
+                    'undo_qr',
+                    ['order_id' => $order->id, 'logs' => array_map(fn($r) => (array) $r, $logRows->all())],
+                    'Q' . $order->id,
+                    null,
+                    $order->table_no,
+                    null
+                );
+            }
         } catch (\Throwable) {
         }
         $order->update([
@@ -287,12 +298,29 @@ class SymphonyKdsController extends Controller
         $served  = json_decode($row->served_item_keys ?? '[]', true) ?: [];
         $remove  = array_flip(array_filter($validated['item_keys'], fn($k) => $k !== ''));
         $remaining = array_values(array_filter($served, fn($k) => !isset($remove[$k])));
+        $removedKeys = array_values(array_filter($served, fn($k) => isset($remove[$k])));
 
         if (empty($remaining)) {
             DB::table('kitchen_pos_completions')->where('group_key', $validated['group_key'])->delete();
+            self::logKdsEvent(
+                'unserve',
+                ['completion' => (array) $row, 'removed_keys' => $removedKeys],
+                $validated['group_key'],
+                $row->check_number,
+                $row->table_no,
+                (int) ($row->rvc_id ?? 0)
+            );
         } else {
             DB::table('kitchen_pos_completions')->where('group_key', $validated['group_key'])
                 ->update(['served_item_keys' => json_encode($remaining)]);
+            self::logKdsEvent(
+                'unserve',
+                ['removed_keys' => $removedKeys, 'remaining_keys' => $remaining],
+                $validated['group_key'],
+                $row->check_number,
+                $row->table_no,
+                (int) ($row->rvc_id ?? 0)
+            );
         }
         return response()->json(['success' => true]);
     }
@@ -319,14 +347,30 @@ class SymphonyKdsController extends Controller
             ], 422);
         }
 
-        DB::table('kitchen_pos_completions')->where('group_key', $validated['group_key'])->delete();
+        $logRows = [];
         try {
-            DB::table('kitchen_item_logs')
+            $logRows = DB::table('kitchen_item_logs')
                 ->where('group_key', $validated['group_key'])
                 ->where('completed_at', '>=', now()->subSeconds($undoWindowSeconds))
-                ->delete();
+                ->get()
+                ->all();
         } catch (\Throwable) {
         }
+        DB::table('kitchen_pos_completions')->where('group_key', $validated['group_key'])->delete();
+        try {
+            if ($logRows !== []) {
+                DB::table('kitchen_item_logs')->whereIn('id', array_map(fn($r) => $r->id, $logRows))->delete();
+            }
+        } catch (\Throwable) {
+        }
+        self::logKdsEvent(
+            'uncomplete',
+            ['completion' => (array) $row, 'logs' => array_map(fn($r) => (array) $r, $logRows)],
+            $validated['group_key'],
+            $row->check_number,
+            $row->table_no,
+            (int) ($row->rvc_id ?? 0)
+        );
         return response()->json(['success' => true]);
     }
 
@@ -1365,6 +1409,25 @@ class SymphonyKdsController extends Controller
     // ──────────────────────────────────────────────
     // Yardımcı
     // ──────────────────────────────────────────────
+
+    // Geri alma (undo / uncomplete / unserve) olaylarini kalici kayit altina alir;
+    // silinen kayitlarin anlik goruntusu removed_json icinde tutulur. Ekran akisini
+    // asla bozmaz — kayit yazilamazsa sessizce gecilir.
+    private static function logKdsEvent(string $event, array $removed, ?string $groupKey = null, ?string $checkNumber = null, ?string $tableNo = null, ?int $rvcId = null): void
+    {
+        try {
+            DB::table('kds_events')->insert([
+                'event'        => $event,
+                'group_key'    => $groupKey,
+                'check_number' => $checkNumber,
+                'table_no'     => $tableNo,
+                'rvc_id'       => $rvcId,
+                'removed_json' => json_encode($removed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'created_at'   => now(),
+            ]);
+        } catch (\Throwable) {
+        }
+    }
 
     private function newCheck($checkNum, string $tableNo, $rvc, int $rvcId, string $waiterFull, string $status): array
     {

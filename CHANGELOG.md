@@ -1,5 +1,13 @@
 
 
+## v1.0.97 - 2026-10-08
+
+### Geri alma olayları + ayar denetim kaydı (kds_events + settings_audit_logs)
+- **kds_events tablosu (yeni)**: Mutfak ekranlarındaki geri alma işlemleri — Symphony kartı geri al (`undo_qr`), hesabı tamamlanmadan geri al (`uncomplete`), ürünü servisten düşür (`unserve`) — artık silinen kayıtların anlık görüntüsüyle kalıcı olarak kaydedilir: hangi grup anahtarı / check / masa / RVC, ne zaman ve hangi kayıtların silindiği. Ekran akışı etkilenmez; kayıt yazılamazsa sessizce geçilir.
+- **settings_audit_logs tablosu (yeni)**: Admin panelinden yapılan ayar değişiklikleri kalıcı denetim kaydına yazılır (kim / ne zaman / hangi anahtar / eski → yeni değer). Oturumsuz bağlamlarda (cron, gece ekran temizliği) kayıt tutulmaz.
+
+---
+
 ## v1.0.96 - 2026-10-08
 
 ### Mutfak batch kartlarında condiment/mesaj eşleştirme düzeltmesi + bar saati ve SON şeridi
