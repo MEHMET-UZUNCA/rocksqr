@@ -1,9 +1,9 @@
 RocksQR - Sistem Detayları
-Versiyon: v1.0.95 (2026-10-08)
-Güncelleme: 2026-10-08 — Hazırlanan ürün bar (BDS) ekranındaki mavi sipariş
-            kartından anında düşer (yalnız KPOS onayıyla); aynı adisyona
-            sonradan giren ürünler her iki mutfak ekranında YENİ kart açar —
-            aynı check no, küçük "EK" rozeti, en üstte
+Versiyon: v1.0.96 (2026-10-08)
+Güncelleme: 2026-10-08 — Mutfak batch kartlarında condiment/mesaj eşleştirme
+            düzeltildi (1. kartın mesajı 2. kartta görünüyordu; KPOS + AKDS);
+            bar ekranı saati üst-ortaya taşındı; bar alt SON şeridi artık
+            check içeriklerini kayar biçimde gösteriyor
 =====================================
 
 Laravel 12, MySQL, Tailwind CSS ile geliştirildi.

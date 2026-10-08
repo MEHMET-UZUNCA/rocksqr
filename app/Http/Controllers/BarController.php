@@ -257,9 +257,16 @@ class BarController extends Controller
             $itemName    = trim((string) ($row->name ?? ''));
             $qty         = (int) ($row->qty ?? 1);
 
-            $itemsArr = $row->kind === 'check'
-                ? [['id' => null, 'name' => 'Adisyon #' . ($row->check_number ?: '-'), 'quantity' => 1]]
-                : [['id' => null, 'name' => $itemName !== '' ? $itemName : 'Mutfak mesajı', 'quantity' => max(1, $qty)]];
+            // Kayıtlı içerik listesi ("1x A · 1x B") varsa gerçek ürün satırlarına çöz;
+            // boşsa tür bazlı yer tutucu (eski davranış).
+            $parsedItems = $itemName !== '' ? $this->namesToItems($itemName) : [];
+            if (!empty($parsedItems)) {
+                $itemsArr = $parsedItems;
+            } elseif ($row->kind === 'check') {
+                $itemsArr = [['id' => null, 'name' => 'Adisyon #' . ($row->check_number ?: '-'), 'quantity' => 1]];
+            } else {
+                $itemsArr = [['id' => null, 'name' => 'Mutfak mesajı', 'quantity' => max(1, $qty)]];
+            }
 
             $completedOrders[] = [
                 'id'              => 0,

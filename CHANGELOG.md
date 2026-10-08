@@ -1,5 +1,14 @@
 
 
+## v1.0.96 - 2026-10-08
+
+### Mutfak batch kartlarında condiment/mesaj eşleştirme düzeltmesi + bar saati ve SON şeridi
+- **Batch kart condiment/mesaj eşleştirme (KPOS + AKDS)**: Birleşik satırın sonradan giren unit'leri artık taban karta sızmaz; batch evreni görünür tüm unit'lerin ilk görülme zamanlarından kurulur ve her unit yalnız kendi batch kartında görünür. Mesajlar kendi unit zamanına göre ait olduğu batch kartına atanır (zaman yoksa mesajın POS konumundan geriye doğru eşleştirme). Böylece 1. kartın condiment/mesajı 2. (EK) kartta görünmez.
+- **Bar saati üst-ortaya taşındı**: Saat + tarih, GELEN SİPARİŞLER ve HAZIRLANAN SİPARİŞLER başlıkları arasında ortalanmış olarak gösterilir.
+- **Bar alt SON şeridi**: "Adisyon #..." yer tutucusu yerine her tamamlanan checkin gerçek ürün içerikleri (1x Ürün · 1x Ürün) tek sıra kayar şeritte gösterilir.
+
+---
+
 ## v1.0.95 - 2026-10-08
 
 ### Mavi karttan hazır ürün düşme + ek siparişte yeni kart (KPOS + AKDS)

@@ -63,11 +63,12 @@
 </head>
 <body class="bg-gray-900 font-poppins text-white h-screen flex flex-col" style="overflow:hidden">
     <header class="bg-primary px-1 py-1 shrink-0">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 items-center min-w-0">
+        <div class="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-2 items-center min-w-0">
             <div class="flex items-center gap-2 min-w-0">
                 <span class="font-extrabold text-base xl:text-lg text-orange-400 tracking-wide leading-none whitespace-nowrap"><i class="fas fa-inbox mr-1.5"></i>GELEN SİPARİŞLER</span>
                 <span id="incoming-count" class="text-sm font-bold bg-orange-900/60 border border-orange-700 text-orange-200 rounded px-1.5 shrink-0">0</span>
-                <div class="w-px self-stretch bg-gray-400/40 shrink-0"></div>
+            </div>
+            <div class="flex items-center justify-center gap-2 min-w-0">
                 <span id="clock" class="text-gold font-extrabold text-xl xl:text-2xl tabular-nums leading-none whitespace-nowrap"></span>
                 <span id="clock-date" class="text-gray-300 text-xl xl:text-2xl font-normal leading-none whitespace-nowrap"></span>
             </div>

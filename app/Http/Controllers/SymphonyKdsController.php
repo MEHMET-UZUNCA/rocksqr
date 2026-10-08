@@ -828,11 +828,18 @@ class SymphonyKdsController extends Controller
             $newChecks = [];
             foreach ($checks as $k => $chk) {
                 $rowTimes = [];
+                // Batch evreni = görünür tüm unit'lerin zamanları (satır MIN'i değil):
+                // birleşik satırın sonradan giren unit'i ve kendi zamanı ayrı batch açar,
+                // aksi halde klon dağıtımında '?? 0' ile taban karta sızar.
+                $timeSet = [];
                 foreach ($chk['items'] as $i => $it) {
                     $t = null;
                     foreach (($it['unit_ids'] ?? []) as $uid) {
                         $ts = (string) ($existingLocalTimes[$uid] ?? '');
-                        if ($ts !== '' && ($t === null || $ts < $t)) $t = $ts;
+                        if ($ts !== '') {
+                            $timeSet[$ts] = true;
+                            if ($t === null || $ts < $t) $t = $ts;
+                        }
                     }
                     $rowTimes[$i] = $t;
                 }
@@ -841,13 +848,13 @@ class SymphonyKdsController extends Controller
                 $fill = null;
                 foreach (array_reverse($rowTimes, true) as $i => $t) { if ($t !== null) $fill = $t; elseif ($fill !== null) $rowTimes[$i] = $fill; }
 
-                $times = array_values(array_unique(array_filter($rowTimes, fn ($t) => $t !== null)));
+                $times = array_keys($timeSet);
+                sort($times);
                 if (count($times) < 2) {
                     $chk['group_key'] = (string) $k;
                     $newChecks[$k] = $chk;
                     continue;
                 }
-                sort($times);
                 $batchIdxOf = array_flip($times);
 
                 // Satırları batch'lere dağıt; birleşik satır birden çok batch'e
@@ -897,22 +904,30 @@ class SymphonyKdsController extends Controller
                 }
                 ksort($parts);
 
-                // Mesajlar: takip eden ilk ürünün batch'i; yoksa kendi unit zamanı;
-                // yoksa son batch. Konum batch içi sıraya çevrilir (blade serpiştirmesi).
+                // Mesajlar: önce kendi unit zamanı (kesin kanıt); yoksa pos-1'deki
+                // görünür satırın batch'i (mesaj, pos'taki üründen önce, onu takip
+                // eden satırdan sonra serpiştirilir); yoksa pos'taki satır; yoksa
+                // son batch. Konum batch içi sıraya çevrilir (blade serpiştirmesi).
                 $msgsByBatch = [];
+                $mCount = count($chk['items']);
                 foreach ($chk['messages'] as $m) {
                     $mPos = (int) ($m['pos'] ?? PHP_INT_MAX);
                     $mb = null;
-                    for ($oi = $mPos, $n = count($chk['items']); $oi < $n; $oi++) {
-                        if (($rowTimes[$oi] ?? null) !== null) { $mb = $batchIdxOf[$rowTimes[$oi]]; break; }
+                    $mt = null;
+                    foreach (($m['unit_ids'] ?? []) as $uid) {
+                        $ts = (string) ($existingLocalTimes[$uid] ?? '');
+                        if ($ts !== '' && ($mt === null || $ts < $mt)) $mt = $ts;
+                    }
+                    if ($mt !== null && isset($batchIdxOf[$mt])) $mb = $batchIdxOf[$mt];
+                    if ($mb === null) {
+                        for ($oi = min($mPos, $mCount) - 1; $oi >= 0; $oi--) {
+                            if (($rowTimes[$oi] ?? null) !== null) { $mb = $batchIdxOf[$rowTimes[$oi]]; break; }
+                        }
                     }
                     if ($mb === null) {
-                        $mt = null;
-                        foreach (($m['unit_ids'] ?? []) as $uid) {
-                            $ts = (string) ($existingLocalTimes[$uid] ?? '');
-                            if ($ts !== '' && ($mt === null || $ts < $mt)) $mt = $ts;
+                        for ($oi = $mPos; $oi < $mCount; $oi++) {
+                            if (($rowTimes[$oi] ?? null) !== null) { $mb = $batchIdxOf[$rowTimes[$oi]]; break; }
                         }
-                        if ($mt !== null && isset($batchIdxOf[$mt])) $mb = $batchIdxOf[$mt];
                     }
                     if ($mb === null) $mb = max(array_keys($parts));
                     $newPos = 0;
