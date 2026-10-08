@@ -31,7 +31,7 @@
         @keyframes pulse-qr { 0%,100% { border-color: #a855f7; box-shadow: 0 0 0 0 rgba(168,85,247,0.4);} 50% { border-color: #d946ef; box-shadow: 0 0 0 6px rgba(168,85,247,0);} }
         .qr-card { animation: pulse-qr 2s ease-in-out infinite; }
         @keyframes kpos-chip-marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        #kpos-ticker-inner { display: flex; align-items: stretch; gap: 4px; flex-wrap: nowrap; }
+        #kpos-ticker-inner { display: flex; align-items: flex-start; gap: 4px; flex-wrap: nowrap; }
         .kpos-chip-text { display: inline-block; white-space: nowrap; will-change: transform; line-height: 1.2; }
         #kpos-completed-bar ::-webkit-scrollbar { display: none; }
         @keyframes iade-blink { 0%,100% { background-color: rgba(239,68,68,0.10); } 50% { background-color: rgba(239,68,68,0.35); } }
@@ -452,6 +452,12 @@
                 .filter(it => !it.is_returned)
                 .map(it => `${it.qty}x ${it.name}`)
                 .join(' · ');
+            // Aynı liste + açıklama notları: çip içeriği (items_list) olarak sunucuya kalıcı yazılır
+            const itemsListWNotes = (order.items || [])
+                .filter(it => !it.is_returned)
+                .map(it => `${it.qty}x ${it.name}` + (it.note ? ` (${it.note})` : ''))
+                .join(' · ')
+                .substring(0, 1000);
 
             const unservedCount = (order.items || []).filter(it => !it.is_returned && !it.served).length;
 
@@ -495,8 +501,10 @@
                               data-item-last="${isLast ? '1' : '0'}"
                               data-item-start="${escapeHtml(startTime)}"
                               data-item-names="${escapeHtml(itemNamesList)}"
+                              data-item-namesw="${escapeHtml(itemsListWNotes)}"
                               data-item-self="${escapeHtml(it.name)}"
                               data-item-self-qty="${it.qty}"
+                              data-item-self-note="${escapeHtml(it.note || '')}"
                               data-item-rvc="${escapeHtml(String(order.rvc_id || 0))}"
                               data-item-ready="1"
                               onclick="serveItem(this)"
@@ -585,6 +593,7 @@
                             data-complete-items="${escapeHtml(JSON.stringify(allUnitIds))}"
                             data-complete-start="${escapeHtml(startTime)}"
                             data-complete-names="${escapeHtml(itemNamesList)}"
+                            data-complete-namesw="${escapeHtml(itemsListWNotes)}"
                             data-complete-rvc="${escapeHtml(String(order.rvc_id || 0))}"
                             onclick="completeOrderFromBtn(this)"
                             class="w-full py-0.5 bg-emerald-600 hover:bg-emerald-700 rounded text-[11px] font-bold text-white">
@@ -756,14 +765,16 @@
             const itemKeys = JSON.parse(btn.dataset.completeItems || '[]');
             const startTime = btn.dataset.completeStart || null;
             const itemNames = btn.dataset.completeNames || '';
-            completeOrder(btn.dataset.completeKind, btn.dataset.completeGk, btn.dataset.completeCn, btn.dataset.completeTno, itemKeys, startTime, itemNames, '', '', btn.dataset.completeRvc || '0');
+            completeOrder(btn.dataset.completeKind, btn.dataset.completeGk, btn.dataset.completeCn, btn.dataset.completeTno, itemKeys, startTime, itemNames, '', '', btn.dataset.completeRvc || '0', btn.dataset.completeNamesw || '');
         }
 
-        function completeOrder(kind, groupKey, checkNumber, tableNo, itemKeys, startTime, itemNames, selfName, selfQty, rvcId) {
+        function completeOrder(kind, groupKey, checkNumber, tableNo, itemKeys, startTime, itemNames, selfName, selfQty, rvcId, namesWNotes) {
             if (itemNames) localStorage.setItem('kpos_items_' + groupKey, itemNames);
             // kind=item: onaylanan urunun kendi adi/adedi bar hazir kartina yazilmak üzere gider;
             // kind=check: tüm grup listesi (feed kaybolduğunda yedek içerik). 250: DB varchar sınırı.
             const nm = ((kind === 'check' ? itemNames : selfName) || '').substring(0, 250);
+            // items_list: çip içeriği (notlar dahil, kalıcı). check → tam liste; item → tek ürün satırı (sunucu biriktirir).
+            const il = (namesWNotes || '').substring(0, 1000);
             postJson('/kitchen-pos/complete', {
                 kind, group_key: groupKey, check_number: checkNumber, table_no: tableNo,
                 item_keys: itemKeys || [],
@@ -771,6 +782,7 @@
                 name: nm || null,
                 qty: kind === 'item' ? (parseInt(selfQty, 10) || null) : null,
                 rvc_id: parseInt(rvcId, 10) || 0,
+                items_list: il || null,
             }).then(() => {
                 kbdPushRecall({ type: kind === 'item' ? 'item' : 'check', gk: groupKey, keys: itemKeys || [] });
                 clearStartTime(groupKey);
@@ -787,9 +799,14 @@
         function serveItem(btn) {
             // Son bekleyen ürünse hesabı tamamen tamamla (kind=check → bar hazır düşer)
             const kind = btn.dataset.itemLast === '1' ? 'check' : 'item';
+            const selfNote = btn.dataset.itemSelfNote || '';
+            // items_list: check → kartın tam listesi; item → yalnız bu ürünün satırı (sunucuda birikir)
+            const namesW = kind === 'check'
+                ? (btn.dataset.itemNamesw || '')
+                : `1x ${btn.dataset.itemSelf || ''}` + (selfNote ? ` (${selfNote})` : '');
             completeOrder(kind, btn.dataset.itemGk, btn.dataset.itemCn || '', btn.dataset.itemTno || '',
                 JSON.parse(btn.dataset.itemUnits || '[]'), btn.dataset.itemStart || null, btn.dataset.itemNames || '',
-                btn.dataset.itemSelf || '', btn.dataset.itemSelfQty || '', btn.dataset.itemRvc || '0');
+                btn.dataset.itemSelf || '', btn.dataset.itemSelfQty || '', btn.dataset.itemRvc || '0', namesW);
         }
 
         function unserveItem(btn) {
@@ -941,7 +958,7 @@
                     titleHtml  = `<span class="font-bold text-blue-200 text-xs">${tableLabel}</span> ${badgeHtml} <span class="text-blue-300 text-[10px]">${chkLabel}</span>`;
                     const storedItems = localStorage.getItem('kpos_items_' + (order.group_key || ''));
                     const prep = fmtPrep(order.prep_seconds);
-                    contentText = storedItems || (prep ? `Hazırlık: ${prep}` : chkLabel);
+                    contentText = order.items_list || storedItems || (prep ? `Hazırlık: ${prep}` : chkLabel);
                     const gk = escapeHtml(order.group_key || '');
                     undoFn = `uncomplete('${gk}')`;
                 } else if (order.is_item) {
@@ -974,11 +991,11 @@
                 return `<div class="flex-shrink-0 border ${borderCls} rounded-lg overflow-hidden max-w-[240px]">
                     <div class="${accentCls} px-1.5" style="padding-top:4px;padding-bottom:0">
                         <div class="flex items-center gap-1 leading-none flex-wrap" style="margin-bottom:2px">${titleHtml}</div>
-                        <div class="overflow-hidden">
+                        <div class="overflow-hidden" style="line-height:0">
                             <span class="kpos-chip-text text-[10px] text-gray-300" style="line-height:1.2">${escapeHtml(contentText)}</span>
                         </div>
                     </div>
-                    <div class="px-1.5" style="padding-top:2px;padding-bottom:3px">
+                    <div class="px-1.5" style="padding-top:2px;padding-bottom:3px;line-height:0">
                         <button onclick="${undoFn}"
                             class="w-full bg-amber-500 hover:bg-amber-600 active:bg-amber-700 rounded text-black font-bold text-[10px] transition" style="padding:1px 0;line-height:1.4">
                             <i class="fas fa-undo mr-0.5"></i>Geri Al

@@ -132,6 +132,7 @@ class SymphonyKdsController extends Controller
             'item_keys'     => 'nullable|array',
             'item_keys.*'   => 'string|max:128',
             'first_seen_at' => 'nullable|string|max:64',
+            'items_list'    => 'nullable|string|max:1000',
         ]);
 
         $existing = DB::table('kitchen_pos_completions')->where('group_key', $validated['group_key'])->first();
@@ -181,6 +182,15 @@ class SymphonyKdsController extends Controller
             $outName = mb_substr($prev !== '' ? $prev . ' · ' . $entry : $entry, 0, 250);
         }
 
+        // items_list: mutfak tamamlama çipi içeriği (ürün adları + açıklama notları).
+        // check → kart listesi aynen; item → tek ürün satırı kümülatif birikir.
+        $outItemsList = mb_substr(trim((string) ($validated['items_list'] ?? '')), 0, 1000);
+        if ($validated['kind'] === 'item' && $outItemsList !== '') {
+            $prevList = trim((string) ($existing->items_list ?? ''));
+            $outItemsList = mb_substr($prevList !== '' ? $prevList . ' · ' . $outItemsList : $outItemsList, 0, 1000);
+        }
+        $outItemsList = $outItemsList !== '' ? $outItemsList : null;
+
         DB::table('kitchen_pos_completions')->updateOrInsert(
             ['group_key' => $validated['group_key']],
             [
@@ -189,6 +199,7 @@ class SymphonyKdsController extends Controller
                 'check_number'     => $validated['check_number'] ?? null,
                 'table_no'         => $validated['table_no'] ?? null,
                 'name'             => $outName,
+                'items_list'       => $outItemsList,
                 'note'             => $validated['note'] ?? null,
                 'qty'              => $validated['qty'] ?? 1,
                 'completed_at'     => $completedAt,
@@ -1197,6 +1208,7 @@ class SymphonyKdsController extends Controller
                     'group_key'    => $r->group_key,
                     'table_no'     => $r->table_no,
                     'check_number' => $r->check_number,
+                    'items_list'   => $r->items_list ?? null,
                     'prep_seconds' => $r->prep_seconds,
                     'completed_at' => $r->completed_at,
                 ])->all();
@@ -1226,7 +1238,7 @@ class SymphonyKdsController extends Controller
                                 $servedQty += (int) ($item['unit_qtys'][$uid] ?? 1);
                             }
                         }
-                        if ($servedQty > 0) $names[] = $item['name'] . ' x' . $servedQty;
+                        if ($servedQty > 0) $names[] = $item['name'] . ' x' . $servedQty . (!empty($item['note']) ? ' (' . $item['note'] . ')' : '');
                     }
                 }
                 if (empty($names) && !empty($r->name)) {
@@ -1235,13 +1247,14 @@ class SymphonyKdsController extends Controller
                         ? $r->name
                         : (($r->qty > 1 ? 'x' . $r->qty . ' ' : '') . $r->name);
                 }
-                if (empty($names)) continue;
+                if (empty($names) && ($r->items_list ?? '') === '') continue;
                 $itemsOut[] = [
                     'is_item'      => true,
                     'group_key'    => $r->group_key,
                     'table_no'     => $r->table_no,
                     'check_number' => $r->check_number,
-                    'items_list'   => implode(' · ', $names),
+                    // Kalıcı içerik (notlar dahil) varsa o; yoksa canlı feed'den çözülen liste
+                    'items_list'   => ($r->items_list ?? '') !== '' ? $r->items_list : implode(' · ', $names),
                     'completed_at' => $r->completed_at,
                 ];
             }
