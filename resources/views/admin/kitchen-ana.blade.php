@@ -425,7 +425,7 @@
             if (order.source === 'qr') {
                 return buildQrOrderCard(order);
             }
-            const groupKey = order.check_number ? String(order.check_number) : ('T' + (order.table_no || ''));
+            const groupKey = order.group_key || (order.check_number ? String(order.check_number) : ('T' + (order.table_no || '')));
             const startTime = getStartTime(groupKey, order.order_time, order.age_seconds);
             const elapsed = elapsedSince(startTime);
             const minTotal = elapsed ? Math.floor(elapsed / 60) : 0;
@@ -434,7 +434,7 @@
             const isAddition = !!order.is_addition;
             const isReopened = !!order.is_reopened;
             const isClosed = String(order.status || '').toUpperCase() === 'C';
-            const borderClass = isAddition ? 'border-orange-500' : (isReopened ? 'border-yellow-600' : (isNew ? 'new-order border-gold' : 'border-blue-500'));
+            const borderClass = isReopened ? 'border-yellow-600' : (isNew ? 'new-order border-gold' : 'border-blue-500');
 
             // Tüm unit_ids'leri düzleştir → served_item_keys fingerprint.
             // Mesaj satırları dahil: yalnız mesajlı (ürünsüz) hesapta parmak izi boş kalırsa
@@ -563,7 +563,7 @@
                         <span class="text-xl font-bold text-gold">TBL ${escapeHtml(order.table_no || '-')}${order._seqTotal > 1 ? ` <span class="text-orange-300">#${order._seq}/${order._seqTotal}</span>` : ''}</span>
                         <div class="flex items-center gap-1">
                             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-700 text-blue-100"><i class="fas fa-server mr-0.5"></i>SYM</span>
-                            ${isAddition ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-600 text-white animate-pulse"><i class="fas fa-plus-circle mr-0.5"></i>EK</span>` : ''}
+                            ${isAddition ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-600 text-white"><i class="fas fa-plus-circle mr-0.5"></i>EK</span>` : ''}
                             ${isReopened ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-700 text-yellow-100"><i class="fas fa-rotate-right mr-0.5"></i>YENİDEN</span>` : ''}
                             ${isClosed ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-600 text-white"><i class="fas fa-lock mr-0.5"></i>KAPANDI</span>` : ''}
                         </div>
@@ -898,7 +898,7 @@
             renderCompletedBar(allCompleted, completedLimit);
 
             // Yeni sipariş sesi
-            const ids = orders.map(o => o.source === 'qr' ? ('Q' + o.qr_order_id) : (o.check_number || ('T' + o.table_no)));
+            const ids = orders.map(o => o.source === 'qr' ? ('Q' + o.qr_order_id) : (o.group_key || o.check_number || ('T' + o.table_no)));
             // Tüm mesaj id'lerini topla (hem checksiz, hem hesap içi)
             const msgKeys = [];
             (messages || []).forEach(m => msgKeys.push('CL-' + (m.item_id || (m.table_no + '-' + (m.name || '')))));

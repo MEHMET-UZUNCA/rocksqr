@@ -68,8 +68,32 @@ class BarController extends Controller
     public function barSymphonyDelivered(Request $request)
     {
         $validated = $request->validate(['group_key' => 'required|string|max:64']);
+
+        // Kart adisyon bazli tek karttir; grup anahtari batch'li olabilir (#2 gibi).
+        // Check varsa o adisyonun tum bekleyen onaylari birlikte teslim edilir.
+        $checkNumber = DB::table('kitchen_pos_completions')
+            ->where('group_key', $validated['group_key'])
+            ->value('check_number');
+        $checkNumber = $checkNumber !== null ? trim((string) $checkNumber) : '';
+
+        if ($checkNumber !== '') {
+            DB::table('kitchen_pos_completions')
+                ->where('check_number', $checkNumber)
+                ->whereNull('delivered_at')
+                ->update(['delivered_at' => now()]);
+            try {
+                DB::table('kitchen_item_logs')
+                    ->where('check_number', $checkNumber)
+                    ->whereNull('delivered_at')
+                    ->update(['delivered_at' => now()]);
+            } catch (\Throwable) {
+            }
+            return response()->json(['success' => true]);
+        }
+
         DB::table('kitchen_pos_completions')
             ->where('group_key', $validated['group_key'])
+            ->whereNull('delivered_at')
             ->update(['delivered_at' => now()]);
         try {
             DB::table('kitchen_item_logs')
@@ -113,47 +137,85 @@ class BarController extends Controller
             ->all();
 
         // Symphony KDS onayları — delivered_at IS NULL olanlar bar "servise götür" şeridinde.
-        // kind=item satırları kısmi (ürün bazlı) onaylardır: tek ürün onaylandığında da
-        // bara gerçek ürün adıyla düşer. kind=check kartları canlı feed'den çözülür;
-        // feed'de yoksa db_items (onay anında persist edilen ürün listesi) yedek içerik olur.
-        $symphonyReady = DB::table('kitchen_pos_completions')
+        // Kart adisyon bazlı TEK karttır: batch (#2 gibi) grup anahtarları ve kısmi
+        // (kind=item) onaylar aynı check altında tek kartta toplanır; içerik en güncel
+        // onaydan gelir. kind=check kartları canlı feed'den çözülür; feed'de yoksa
+        // db_items (onay anında persist edilen ürün listesi) yedek içerik olur.
+        $symphonyRows = DB::table('kitchen_pos_completions')
             ->where($kposScope)
             ->whereNull('delivered_at')
             ->whereIn('kind', ['check', 'checkless_msg', 'item'])
             ->orderByDesc('completed_at')
-            ->limit($readyLimit)
+            ->limit($readyLimit * 4)
             ->get();
 
-        foreach ($symphonyReady as $row) {
-            $completedAt       = \Carbon\Carbon::parse($row->completed_at);
+        $symphonyBuckets = [];
+        foreach ($symphonyRows as $row) {
+            $checkNo = $row->check_number !== null ? trim((string) $row->check_number) : '';
+            $bKey    = $checkNo !== '' ? 'C' . $checkNo : 'G' . $row->group_key;
+            $symphonyBuckets[$bKey][] = $row;
+        }
+
+        foreach ($symphonyBuckets as $rows) {
+            $latest            = $rows[0]; // orderByDesc: en güncel onay
+            $completedAt       = \Carbon\Carbon::parse($latest->completed_at);
             $readySinceSeconds = (int) $completedAt->diffInSeconds(now());
-            $undoRemaining     = max(0, $undoWindowSeconds - $readySinceSeconds);
-            $itemName          = trim((string) ($row->name ?? ''));
-            $qty               = (int) ($row->qty ?? 1);
-
-            if ($row->kind === 'item') {
-                $itemsArr = [['id' => null, 'name' => $itemName !== '' ? $itemName : 'Mutfak ürünü', 'quantity' => max(1, $qty)]];
-                $dbItems  = null;
-            } else {
-                $itemsArr = [['id' => null, 'name' => 'Adisyon #' . ($row->check_number ?: '-'), 'quantity' => 1]];
-                $dbItems  = $row->kind === 'check' && $itemName !== '' ? $this->namesToItems($itemName) : null;
+            $undoRemaining     = 0;
+            $servedKeys        = [];
+            $checkRow          = null;
+            foreach ($rows as $row) {
+                $undoRemaining = max($undoRemaining, max(0, $undoWindowSeconds - (int) \Carbon\Carbon::parse($row->completed_at)->diffInSeconds(now())));
+                $servedKeys    = array_merge($servedKeys, json_decode((string) ($row->served_item_keys ?? '[]'), true) ?: []);
+                if ($checkRow === null && $row->kind === 'check') {
+                    $checkRow = $row;
+                }
             }
+            $servedCount = count(array_unique($servedKeys));
 
-            $servedCount = count(json_decode((string) ($row->served_item_keys ?? '[]'), true) ?: []);
+            if ($checkRow !== null) {
+                $itemsArr  = [['id' => null, 'name' => 'Adisyon #' . ($checkRow->check_number ?: '-'), 'quantity' => 1]];
+                $checkName = trim((string) ($checkRow->name ?? ''));
+                $dbItems   = $checkName !== '' ? $this->namesToItems($checkName) : null;
+                $cardKind  = 'check';
+                $orderNote = null;
+            } else {
+                // Kısmi (kind=item) onayların kümülatif adları zamana göre birleştirilir
+                $merged = [];
+                foreach (array_reverse($rows) as $row) {
+                    $nm = trim((string) ($row->name ?? ''));
+                    if ($nm === '') {
+                        continue;
+                    }
+                    foreach (SymphonyKdsController::parseQtyNameParts($nm, max(1, (int) ($row->qty ?? 1))) as [$n, $q]) {
+                        $merged[$n] = ($merged[$n] ?? 0) + $q;
+                    }
+                }
+                $itemsArr = [];
+                foreach ($merged as $n => $q) {
+                    $itemsArr[] = ['id' => null, 'name' => $n, 'quantity' => max(1, $q)];
+                }
+                if ($itemsArr === []) {
+                    $itemsArr = [['id' => null, 'name' => 'Mutfak ürünü', 'quantity' => 1]];
+                }
+                $dbItems   = null;
+                $cardKind  = (string) $latest->kind;
+                $latestNote = trim((string) ($latest->note ?? ''));
+                $orderNote = $latestNote !== '' ? $latestNote : null;
+            }
 
             $readyOrders[] = [
                 'id'                  => 0,
                 'source'              => 'symphony',
-                'group_key'           => $row->group_key,
-                'kind'                => $row->kind,
-                'table_no'            => $row->table_no,
+                'group_key'           => $latest->group_key,
+                'kind'                => $cardKind,
+                'table_no'            => $latest->table_no,
                 'items'               => $itemsArr,
                 'db_items'            => $dbItems,
                 'waiter_name'         => null,
                 'served_count'        => $servedCount,
-                'total_units'         => $row->kind === 'item' ? null : $servedCount,
+                'total_units'         => $servedCount,
                 'total_price'         => 0,
-                'order_note'          => $itemName !== '' && $row->kind !== 'check' ? trim((string) ($row->note ?? '')) : null,
+                'order_note'          => $orderNote,
                 'status'              => 'ready',
                 'bar_status'          => 'approved',
                 'kitchen_status'      => 'ready',
@@ -490,6 +552,68 @@ class BarController extends Controller
             }
             unset($g);
 
+            // Mavi karttan hazır düşme: mutfak (KPOS) onayları ürün adı+adet eşleşmesiyle
+            // canlı feed satırlarından sırayla düşülür. delivered_at filtresi YOKTUR —
+            // garsona teslim edilmiş ürün de servis edilmiş sayılır, mavi karta geri dönmez.
+            // Mesaj/MARS ve iade satırları eşleşmeye girmez; tüm ürünleri düşen kart komple kaybolur.
+            $visibleChecks = [];
+            foreach ($groups as $g) {
+                $cn = trim((string) ($g['check_number'] ?? ''));
+                if ($cn !== '') $visibleChecks[$cn] = true;
+            }
+            if ($visibleChecks !== []) {
+                $tallyRvcIds = array_keys(SymphonyKdsController::parseRvcFilter((string) Setting::get('mssql_kds_rvc_filter', '')));
+                $tallyRows = DB::table('kitchen_pos_completions')
+                    ->whereIn('check_number', array_keys($visibleChecks))
+                    ->whereIn('kind', ['check', 'item'])
+                    ->when($tallyRvcIds !== [], fn ($q) => $q->where(fn ($w) => $w->whereIn('rvc_id', $tallyRvcIds)->orWhere('rvc_id', 0)))
+                    ->get(['check_number', 'name', 'qty']);
+
+                $servedTally = [];
+                foreach ($tallyRows as $tr) {
+                    $cn = trim((string) $tr->check_number);
+                    $nm = trim((string) ($tr->name ?? ''));
+                    if ($nm === '') continue;
+                    foreach (SymphonyKdsController::parseQtyNameParts($nm, max(1, (int) ($tr->qty ?? 1))) as [$n, $q]) {
+                        $servedTally[$cn][$n] = ($servedTally[$cn][$n] ?? 0) + $q;
+                    }
+                }
+
+                foreach ($groups as $gKey => $gVal) {
+                    $cn = trim((string) ($gVal['check_number'] ?? ''));
+                    if ($cn === '' || empty($servedTally[$cn])) continue;
+                    $remaining    = $servedTally[$cn];
+                    $hadProduct   = false;
+                    $keptProduct  = false;
+                    $newItems     = [];
+                    foreach ($gVal['items'] as $it) {
+                        $fc   = (int) ($it['fc'] ?? 0);
+                        $nm   = trim((string) ($it['name'] ?? ''));
+                        if (!empty($it['is_returned']) || $fc === 98 || $fc === 99 || $nm === '') {
+                            $newItems[] = $it;
+                            continue;
+                        }
+                        $hadProduct = true;
+                        $need = max(1, (int) ($it['qty'] ?? 1));
+                        $take = min($remaining[$nm] ?? 0, $need);
+                        if ($take > 0) {
+                            $remaining[$nm] = ($remaining[$nm] ?? 0) - $take;
+                        }
+                        if ($take >= $need) {
+                            continue; // satır tamamen servis edildi
+                        }
+                        $it['qty']  = $need - $take;
+                        $keptProduct = true;
+                        $newItems[] = $it;
+                    }
+                    if ($hadProduct && !$keptProduct) {
+                        unset($groups[$gKey]); // tüm ürünler servis edildi: kart (mesajlarla) düşer
+                    } elseif ($hadProduct) {
+                        $groups[$gKey]['items'] = array_values($newItems);
+                    }
+                }
+            }
+
             uasort($groups, fn($a, $b) => strcmp((string) $a['order_time'], (string) $b['order_time']));
 
             $out = [];
@@ -541,15 +665,12 @@ class BarController extends Controller
     }
 
     // "Adana Kebap x2 · Lahmacun x3" biçimindeki persist edilmiş liste → kart ürün satırları
+    // "2x Adana · Lahmacun x3" biçimindeki persist edilmiş liste → kart ürün satırları
     private function namesToItems(?string $names): array
     {
         $out = [];
-        foreach (array_filter(array_map('trim', explode('·', (string) $names)), fn ($p) => $p !== '') as $part) {
-            if (preg_match('/^(.+?)\s*x(\d+)$/u', $part, $m)) {
-                $out[] = ['id' => null, 'name' => trim($m[1]), 'quantity' => max(1, (int) $m[2])];
-            } else {
-                $out[] = ['id' => null, 'name' => $part, 'quantity' => 1];
-            }
+        foreach (SymphonyKdsController::parseQtyNameParts((string) $names, 1) as [$nm, $q]) {
+            $out[] = ['id' => null, 'name' => $nm, 'quantity' => max(1, $q)];
         }
         return $out;
     }

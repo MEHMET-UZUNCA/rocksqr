@@ -1,8 +1,9 @@
 RocksQR - Sistem Detayları
-Versiyon: v1.0.94 (2026-10-08)
-Güncelleme: 2026-10-08 — İade edilen ürünün açıklama notu, mesaj satırları ve
-            alt ürün satırları da iade görünümü aldı (kırmızı + üstü çizili +
-            yanıp sönen) — Mutfak (KPOS) ve Ana Mutfak (AKDS) ekranları
+Versiyon: v1.0.95 (2026-10-08)
+Güncelleme: 2026-10-08 — Hazırlanan ürün bar (BDS) ekranındaki mavi sipariş
+            kartından anında düşer (yalnız KPOS onayıyla); aynı adisyona
+            sonradan giren ürünler her iki mutfak ekranında YENİ kart açar —
+            aynı check no, küçük "EK" rozeti, en üstte
 =====================================
 
 Laravel 12, MySQL, Tailwind CSS ile geliştirildi.
@@ -48,6 +49,13 @@ MSSQL otomatik fiyat senkronu).
    bar yeşil şeride düşer.
 5. Bar "Servis Edildi" der → kart kalkar.
 
+Mavi kart ek davranışı (bar GELEN kolonu):
+  - Mutfak (KPOS) bir ürünü "Hazır" işaretlediğinde o ürün/adet mavi
+    Symphony kartından anında düşer; hesabın tüm ürünleri hazırlanınca
+    mavi kart bar ekranından tamamen kalkar.
+  - Düşme yalnız Mutfak (KPOS) onaylarıyla çalışır; Ana Mutfak (AKDS)
+    onayları bar mavi kartını etkilemez.
+
 -- Sipariş Akışı C: Ana Mutfak KDS (AKDS) — çoklu gelir merkezi görüntüleme --
 
 Ana Mutfak ekranı, Symphony POS'un farklı gelir merkezlerinde (RVC) açılan
@@ -84,16 +92,17 @@ Ekranda her sipariş kartında:
 
 5 saniyede bir otomatik yenileme; yeni sipariş geldiğinde ses uyarısı.
 
--- Sipariş Akışı D: Onaylanan check'e ek sipariş eklenmesi --
+-- Sipariş Akışı D: Aynı adisyona sonradan ek sipariş (yeni kart) --
 
 1. Mutfak/Ana Mutfak ekranlarında check kartı "Onayla → Servis" ile kapatılır.
-2. Garson aynı adisyona yeni ürün ekler (Symphony POS’tan).
-3. Sistem item_time > completed_at filtresiyle yalnızca yeni ürünleri tespit eder.
-4. Aynı kart SADECE ek ürünlerle yeniden açılır:
-   - Turuncu kenarlık (normal kart’tan ayırt edici)
-   - Başlıkta turuncu yanıp sönen “EK SİPARİŞ” badge’i
-5. Mutfak ek ürünleri hazırlayınca tekrar "Onayla → Servis" yapar → kart kapanır.
-6. Sonraki ek sipariş yeniden aynı şekilde gelir.
+2. Garson aynı adisyona yeni ürün ekler (Symphony POS'tan).
+3. Mutfak ekranlarında bu ek ürünler için YENİ bir kart açılır:
+   - Aynı check numarası / masa / garson bilgisi
+   - Yalnızca ek ürünleri taşır (eski kart geri gelmez)
+   - Kart başlığında küçük turuncu "EK" rozeti
+   - En yeni sipariş en üstte görünür → ek kart listenin başında belirir
+4. Mutfak ek ürünleri hazırlayınca yeni kartı "Onayla → Servis" ile kapatır.
+5. Sonraki ek sipariş yine ayrı bir kart olarak en üstte açılır.
 
 Bu akış hem KDS (/kitchen-pos) hem Ana Mutfak (/kitchen-ana) ekranlarında geçerlidir.
 

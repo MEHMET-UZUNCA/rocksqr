@@ -130,9 +130,16 @@ class SymphonyKdsController extends Controller
             array_filter($validated['item_keys'] ?? [], fn($k) => $k !== '')
         )));
 
-        // Hazırlık süresi: önce kitchen_item_times'dan first_seen_at bul
+        // Hazırlık süresi: önce bu onaydaki ürünlerin (batch) ilk görülme anı;
+        // batch'li kartlarda check geneli yerine kartın kendi ürünleri esastır.
         $firstSeenAt = null;
-        if (!empty($validated['check_number'])) {
+        if (!empty($newKeys)) {
+            $dbFirst = DB::table('kitchen_item_times')
+                ->whereIn('unit_id', $newKeys)
+                ->min('first_seen_at');
+            if ($dbFirst) $firstSeenAt = $dbFirst;
+        }
+        if (!$firstSeenAt && !empty($validated['check_number'])) {
             $dbFirst = DB::table('kitchen_item_times')
                 ->where('check_number', $validated['check_number'])
                 ->min('first_seen_at');
@@ -154,6 +161,15 @@ class SymphonyKdsController extends Controller
 
         $completedAt = now();
 
+        // kind=item: kısmi onay adı kümülatif birikir ("1x A · 1x B") — bar mavi kartı
+        // her onayı tek tek düşebilsin; tam onay (kind=check) kart listesiyle üzerine yazar.
+        $outName = $validated['name'] ?? null;
+        if ($validated['kind'] === 'item') {
+            $entry = max(1, (int) ($validated['qty'] ?? 1)) . 'x ' . trim((string) ($validated['name'] ?? 'Ürün'));
+            $prev  = trim((string) ($existing->name ?? ''));
+            $outName = mb_substr($prev !== '' ? $prev . ' · ' . $entry : $entry, 0, 250);
+        }
+
         DB::table('kitchen_pos_completions')->updateOrInsert(
             ['group_key' => $validated['group_key']],
             [
@@ -161,7 +177,7 @@ class SymphonyKdsController extends Controller
                 'rvc_id'           => (int) ($validated['rvc_id'] ?? 0),
                 'check_number'     => $validated['check_number'] ?? null,
                 'table_no'         => $validated['table_no'] ?? null,
-                'name'             => $validated['name'] ?? null,
+                'name'             => $outName,
                 'note'             => $validated['note'] ?? null,
                 'qty'              => $validated['qty'] ?? 1,
                 'completed_at'     => $completedAt,
@@ -228,6 +244,28 @@ class SymphonyKdsController extends Controller
                 $out[] = [trim($m[1]), max(1, (int) $m[2])];
             } else {
                 $out[] = [$part, 1];
+            }
+        }
+        return $out;
+    }
+
+    // "2x Ad · Y x1" karışık biçimli listeyi [isim, adet] çiftlerine ayır.
+    // Önce "Nx Ad" öneki, sonra "Ad xN" soneki denenir; ikisi de yoksa adet
+    // $fallbackQty (bar'da satırın kendi qty'si) kabul edilir.
+    public static function parseQtyNameParts(string $list, int $fallbackQty = 1): array
+    {
+        $out = [];
+        foreach (explode(' · ', $list) as $part) {
+            $part = trim($part);
+            if ($part === '') {
+                continue;
+            }
+            if (preg_match('/^(\d+)\s*x\s+(.+)$/u', $part, $m) && trim($m[2]) !== '') {
+                $out[] = [trim($m[2]), max(1, (int) $m[1])];
+            } elseif (preg_match('/^(.*?)\s+x(\d+)$/u', $part, $m) && trim($m[1]) !== '') {
+                $out[] = [trim($m[1]), max(1, (int) $m[2])];
+            } else {
+                $out[] = [$part, max(1, $fallbackQty)];
             }
         }
         return $out;
@@ -782,6 +820,128 @@ class SymphonyKdsController extends Controller
             }
             unset($chk);
 
+            // ── Batch bölme: aynı check'e sonradan giren ürünler ayrı kart olur ──
+            // Batch sınırı = unit'lerin ilk görülme anı; tek poll'da ilk kez görülen
+            // tüm unit'ler aynı damgayı alır → doğal sınır (ilk kurulumda hepsi tek batch).
+            // Kart anahtarı: ilk batch taban anahtar kalır (süreklilik), sonrakiler 'K#N'.
+            // Unitsiz satırlar (komple iade) komşusundan batch devralır, kendileri açmaz.
+            $newChecks = [];
+            foreach ($checks as $k => $chk) {
+                $rowTimes = [];
+                foreach ($chk['items'] as $i => $it) {
+                    $t = null;
+                    foreach (($it['unit_ids'] ?? []) as $uid) {
+                        $ts = (string) ($existingLocalTimes[$uid] ?? '');
+                        if ($ts !== '' && ($t === null || $ts < $t)) $t = $ts;
+                    }
+                    $rowTimes[$i] = $t;
+                }
+                $fill = null;
+                foreach ($rowTimes as $i => $t) { if ($t !== null) $fill = $t; elseif ($fill !== null) $rowTimes[$i] = $fill; }
+                $fill = null;
+                foreach (array_reverse($rowTimes, true) as $i => $t) { if ($t !== null) $fill = $t; elseif ($fill !== null) $rowTimes[$i] = $fill; }
+
+                $times = array_values(array_unique(array_filter($rowTimes, fn ($t) => $t !== null)));
+                if (count($times) < 2) {
+                    $chk['group_key'] = (string) $k;
+                    $newChecks[$k] = $chk;
+                    continue;
+                }
+                sort($times);
+                $batchIdxOf = array_flip($times);
+
+                // Satırları batch'lere dağıt; birleşik satır birden çok batch'e
+                // dağıldıysa unit'leri bölüşen klonlara ayırılır.
+                $parts = [];
+                foreach ($chk['items'] as $i => $it) {
+                    $units = $it['unit_ids'] ?? [];
+                    if (empty($units)) {
+                        $parts[$batchIdxOf[$rowTimes[$i]] ?? 0][] = ['i' => $i, 'item' => $it];
+                        continue;
+                    }
+                    $byBatch = [];
+                    foreach ($units as $uid) {
+                        $byBatch[$batchIdxOf[(string) ($existingLocalTimes[$uid] ?? '')] ?? 0][] = $uid;
+                    }
+                    if (count($byBatch) === 1) {
+                        $parts[array_key_first($byBatch)][] = ['i' => $i, 'item' => $it];
+                        continue;
+                    }
+                    foreach ($byBatch as $b => $bUnits) {
+                        $clone = $it;
+                        $clone['unit_ids']  = array_values($bUnits);
+                        $clone['unit_qtys'] = array_intersect_key($it['unit_qtys'] ?? [], array_flip($bUnits));
+                        $sum = 0;
+                        foreach ($bUnits as $uid) $sum += (int) ($clone['unit_qtys'][$uid] ?? 1);
+                        $clone['qty'] = max(1, $sum);
+                        if (!empty($it['sub_items'])) {
+                            $clone['sub_items'] = array_values(array_filter($it['sub_items'], function ($s) use ($b, $batchIdxOf, $existingLocalTimes) {
+                                $su = (string) ($s['unit_ids'][0] ?? '');
+                                return ($batchIdxOf[(string) ($existingLocalTimes[$su] ?? '')] ?? 0) === $b;
+                            }));
+                        }
+                        $minTs = null;
+                        foreach ($bUnits as $uid) {
+                            $ts = (string) ($existingLocalTimes[$uid] ?? '');
+                            if ($ts !== '' && ($minTs === null || $ts < $minTs)) $minTs = $ts;
+                        }
+                        if ($minTs !== null) {
+                            try {
+                                $c = \Carbon\Carbon::parse($minTs, config('app.timezone'));
+                                $clone['item_time']   = $c->toIso8601String();
+                                $clone['age_seconds'] = max(0, (int) $c->diffInSeconds(now()));
+                            } catch (\Exception) {}
+                        }
+                        $parts[$b][] = ['i' => $i, 'item' => $clone];
+                    }
+                }
+                ksort($parts);
+
+                // Mesajlar: takip eden ilk ürünün batch'i; yoksa kendi unit zamanı;
+                // yoksa son batch. Konum batch içi sıraya çevrilir (blade serpiştirmesi).
+                $msgsByBatch = [];
+                foreach ($chk['messages'] as $m) {
+                    $mPos = (int) ($m['pos'] ?? PHP_INT_MAX);
+                    $mb = null;
+                    for ($oi = $mPos, $n = count($chk['items']); $oi < $n; $oi++) {
+                        if (($rowTimes[$oi] ?? null) !== null) { $mb = $batchIdxOf[$rowTimes[$oi]]; break; }
+                    }
+                    if ($mb === null) {
+                        $mt = null;
+                        foreach (($m['unit_ids'] ?? []) as $uid) {
+                            $ts = (string) ($existingLocalTimes[$uid] ?? '');
+                            if ($ts !== '' && ($mt === null || $ts < $mt)) $mt = $ts;
+                        }
+                        if ($mt !== null && isset($batchIdxOf[$mt])) $mb = $batchIdxOf[$mt];
+                    }
+                    if ($mb === null) $mb = max(array_keys($parts));
+                    $newPos = 0;
+                    foreach (($parts[$mb] ?? []) as $p) { if ($p['i'] < $mPos) $newPos++; }
+                    $m['pos'] = $newPos;
+                    $msgsByBatch[$mb][] = $m;
+                }
+
+                foreach ($parts as $b => $pItems) {
+                    $nk = $b === 0 ? $k : ($k . '#' . ($b + 1));
+                    $card = $chk;
+                    $card['items']     = array_map(fn ($p) => $p['item'], $pItems);
+                    $card['messages']  = $msgsByBatch[$b] ?? [];
+                    $card['group_key'] = (string) $nk;
+                    if ($b > 0) $card['is_addition'] = true;
+                    $earliest = null;
+                    foreach ($card['items'] as $pi) {
+                        $t = (string) ($pi['item_time'] ?? '');
+                        if ($t !== '' && ($earliest === null || $t < $earliest)) $earliest = $t;
+                    }
+                    if ($earliest !== null) {
+                        $card['order_time'] = $earliest;
+                        try { $card['age_seconds'] = max(0, (int) \Carbon\Carbon::parse($earliest)->diffInSeconds(now())); } catch (\Exception) {}
+                    }
+                    $newChecks[$nk] = $card;
+                }
+            }
+            $checks = $newChecks;
+
             // Onaylanan checksiz mesajları filtrele
             $completedMsgKeys = DB::table('kitchen_pos_completions')
                 ->where('kind', 'checkless_msg')
@@ -801,18 +961,30 @@ class SymphonyKdsController extends Controller
                 ));
             }
 
-            // Tamamlanmış Symphony hesaplarını filtrele (ek sipariş tespiti)
+            // Tamamlanmış Symphony hesaplarını filtrele (ek sipariş tespiti).
+            // Batch'li kartlarda served anahtarları taban check başına birleşik uygulanır
+            // (unit_id'ler küresel tekil → çapraz düşme olmaz); boş-served dalı yalnız
+            // kart anahtarıyla birebir eşleşen satır için geçerlidir.
             $completedCheckRows = DB::table('kitchen_pos_completions')
                 ->where('kind', 'check')
                 ->select('group_key', 'served_item_keys')
-                ->get()
-                ->keyBy('group_key');
+                ->get();
+            $unionByBase = [];
+            $emptyExact  = [];
+            foreach ($completedCheckRows as $r) {
+                $base = preg_replace('/#\d+$/', '', (string) $r->group_key);
+                $keys = json_decode($r->served_item_keys ?? '[]', true) ?: [];
+                foreach ($keys as $kk) $unionByBase[$base][(string) $kk] = true;
+                if (empty($keys)) $emptyExact[(string) $r->group_key] = true;
+            }
 
-            if ($completedCheckRows->isNotEmpty()) {
+            if ($unionByBase !== []) {
                 foreach ($checks as $k => $chk) {
-                    if (!$completedCheckRows->has($k)) continue;
-                    $servedKeys = json_decode($completedCheckRows[$k]->served_item_keys ?? '[]', true) ?: [];
+                    $base = preg_replace('/#\d+$/', '', (string) $k);
+                    if (!isset($unionByBase[$base])) continue;
+                    $servedKeys = array_keys($unionByBase[$base]);
                     if (empty($servedKeys)) {
+                        if (!isset($emptyExact[(string) $k])) continue;
                         // Yalnız mesaj satırlı (ürünsüz) hesap: "Komple Hazır" sonrası kart ekranda kalmasın
                         if (empty($chk['items'])) {
                             unset($checks[$k]);
@@ -823,9 +995,16 @@ class SymphonyKdsController extends Controller
                     }
                     $servedSet = array_flip($servedKeys);
                     $newItems  = [];
+                    $dropped   = false;
                     foreach ($chk['items'] as $item) {
                         if (!empty($item['unit_ids'])) {
                             $newUnitIds = array_values(array_filter($item['unit_ids'], fn($uid) => !isset($servedSet[$uid])));
+                            if (count($newUnitIds) === count($item['unit_ids'])) {
+                                // Bu satırdan düşen yok (başka batch'in onayı): satıra dokunma
+                                $newItems[] = $item;
+                                continue;
+                            }
+                            $dropped = true;
                             if (!empty($newUnitIds)) {
                                 $item['unit_ids'] = $newUnitIds;
                                 // Birleştirilmiş satırda kalan adet: unit başına gerçek adet toplamı
@@ -841,15 +1020,18 @@ class SymphonyKdsController extends Controller
                                 ? (string) $item['item_id']
                                 : (string) $item['name'];
                             if (!isset($servedSet[$fk])) $newItems[] = $item;
+                            else $dropped = true;
                         }
                     }
                     if (empty($newItems)) {
                         unset($checks[$k]);
-                    } else {
+                    } elseif ($dropped) {
                         $checks[$k]['items']      = $newItems;
                         $checks[$k]['is_addition']= true;
                         $earliest = collect($newItems)->filter(fn($i) => !empty($i['item_time']))->min('item_time');
                         if ($earliest) $checks[$k]['order_time'] = $earliest;
+                    } else {
+                        $checks[$k]['items'] = $newItems;
                     }
                 }
             }
@@ -955,7 +1137,10 @@ class SymphonyKdsController extends Controller
                     }
                 }
                 if (empty($names) && !empty($r->name)) {
-                    $names[] = ($r->qty > 1 ? 'x' . $r->qty . ' ' : '') . $r->name;
+                    // Kümülatif ad ("1x A · 1x B") zaten adetli → aynen göster
+                    $names[] = preg_match('/^\d+\s*x\s/u', $r->name)
+                        ? $r->name
+                        : (($r->qty > 1 ? 'x' . $r->qty . ' ' : '') . $r->name);
                 }
                 if (empty($names)) continue;
                 $itemsOut[] = [

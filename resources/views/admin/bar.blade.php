@@ -547,11 +547,11 @@
             const waiterLine = symMatch && symMatch.waiter_name
                 ? `<div class="text-[9px] text-gray-400 truncate mt-0.5 mb-1"><i class="fas fa-user mr-0.5 text-gray-500"></i>${escapeHtml(symMatch.waiter_name)}</div>`
                 : '';
-            // Onay sayacı: hazır adet / toplam adet (toplam feed'den çıkarılamazsa hazır sayısı)
+            // Onay sayacı: hazır adet / toplam adet — feed kalanı (kısmi onayda düşülmüş hali) + hazır toplamı
             const feedTotal = symMatch && Array.isArray(symMatch.items)
                 ? symMatch.items.reduce((a, i) => a + (i.qty || i.quantity || 1), 0) : 0;
             const servedCount = order.served_count || 0;
-            const totalCount = feedTotal > servedCount ? feedTotal : (order.total_units || servedCount);
+            const totalCount = servedCount + feedTotal;
             const counterChip = isSymphony && order.kind !== 'checkless_msg' && servedCount > 0
                 ? `<span class="px-1 rounded text-[8px] font-bold bg-emerald-700 text-emerald-100 shrink-0">${servedCount}/${totalCount}</span>`
                 : '';

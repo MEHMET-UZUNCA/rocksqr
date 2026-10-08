@@ -1,5 +1,15 @@
 
 
+## v1.0.95 - 2026-10-08
+
+### Mavi karttan hazır ürün düşme + ek siparişte yeni kart (KPOS + AKDS)
+- **Mavi kart (bar GELEN kolonu)**: Mutfak (KPOS) bir ürünü "Hazır" işaretlediğinde o ürün adediyle birlikte bar ekranındaki mavi Symphony kartından anında düşer; hesabın tüm ürünleri hazırlanınca mavi kart bar ekranından tamamen kalkar (mesaj satırları da kartla birlikte düşer). Kısmi onayda satır adedi hazır işaretlenen miktar kadar azalır. Düşme yalnız KPOS onaylarıyla çalışır; Ana Mutfak (AKDS) onayları bar mavi kartını etkilemez. Yalnız mesaj içeren hesaplar etkilenmez.
+- **Aynı adisyona ek sipariş → yeni kart**: Sonradan giren ürünler mevcut kartın içine yazılmaz; her iki mutfak ekranında ayrı bir YENİ kart olarak en üstte açılır — aynı check numarası / masa / garson bilgisi, yalnız ek ürünler, başlıkta küçük turuncu "EK" rozeti. Eski "turuncu kenarlık + yanıp sönen EK SİPARİŞ" görünümü kaldırıldı.
+- **Sıralama**: En yeni sipariş en üstte; ek kart açıldığında eski kart kendi sırasında kalır.
+- **Bar yeşil kart sayacı**: Hazır adet / toplam adet sayacı, kısmi onaylarda da doğru toplamı gösterir (hazır toplamı + feed kalanı).
+
+---
+
 ## v1.0.94 - 2026-10-08
 
 ### İade ürünün açıklama ve mesaj satırları da iade görünümü alır (KPOS + AKDS)
