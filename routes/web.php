@@ -74,6 +74,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // Reports
     Route::get('reports/kitchen', [AdminReportController::class, 'kitchen'])->name('reports.kitchen');
     Route::get('reports/durations', [AdminReportController::class, 'durations'])->name('reports.durations');
+    Route::get('reports/sales', [AdminReportController::class, 'sales'])->name('reports.sales');
 
     // Settings
     Route::get('settings', [SettingsController::class, 'index'])->name('settings');

@@ -1,5 +1,17 @@
 
 
+## v1.0.92 - 2026-10-08
+
+### Admin panel elden geçirme + Satış Raporu
+- **Dashboard yeniden düzenlendi**: 8 istatistik kartı — Bugün Sipariş, Günlük Satış, Aylık Satış, Bekleyen Çağrılar / Yeni Siparişler, Bugün Tamamlanan, Bugün Ort. Hazırlık, Toplam Ürün. Toplam sipariş/tutar kartları kaldırıldı; Günlük ve Aylık Satış artık iptal edilen siparişleri hariç tutar. "Bugün Tamamlanan" = QR (kitchen_ready_at) + Symphony (kitchen_pos_completions) toplamı; "Bugün Ort. Hazırlık" = kitchen_item_logs ortalama hazırlık süresi.
+- **Hızlı Erişim 8 buton**: Bar, Symphony Mutfak, Ana Mutfak, Raporlar, Kategoriler, Ürünler, Masa QR, Ayarlar — "Yeni Kategori/Ürün Ekle" kısayolları kaldırıldı (her buton farklı hedefe gider).
+- **Dashboard listeleri son 30 günle sınırlandı**: "En Çok Satılanlar" ve "En Çok Çağrılan Masalar" yalnızca son 30 günü tarar (iptal siparişler hariç) — sorgu yükü azaldı.
+- **Yeni: Satış Raporu sayfası** (`/admin/reports/sales`): dönem özeti (sipariş, ciro, ort. sepet, iptal adedi), günlük ciro grafiği, saatlik yoğunluk (00–23), en çok satılan 30 ürün (adet + ciro, sipariş anı fiyatıyla), konum (masa/oda) bazlı ciro, garson çağrıları (toplam, ort. karşılama süresi, en çok çağrılan 10 masa). Rapor sayfaları artık 3 sekmeli: Mutfak Hazırlık · Süre Raporu · Satış Raporu; varsayılan dönem son 30 gün.
+- **Sipariş içeriği görünürlüğü**: Mutfak Hazırlık raporunda "En Yavaş Tamamlanan 50 Hesap" ve "Bugün En Uzun Süren" tablolarına **İçerik** kolonu eklendi (kitchen_item_logs üzerinden ürün dökümü) — gecikmenin hangi siparişte/hangi ürünlerle yaşandığı görülebilir.
+- **Süre Raporu'na "En Geç Hazırlanan Ürünler" paneli eklendi**: ortalama hazırlık süresine göre en yavaş 20 ürün + en uzun kaydın hesap/masa bilgisi.
+
+---
+
 ## v1.0.91 - 2026-10-08
 
 ### Check kapanma ayarı Sistem sekmesine taşındı + Bar (BDS) desteği

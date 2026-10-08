@@ -45,6 +45,7 @@ function locLabel($tableNo, $roomNo): string {
             <div class="flex rounded-lg overflow-hidden border border-gray-200 text-sm">
                 <a href="{{ route('admin.reports.kitchen') }}" class="px-3 py-1.5 bg-white text-gray-600 hover:bg-gray-50 transition">Mutfak Hazırlık</a>
                 <span class="px-3 py-1.5 bg-amber-100 text-amber-800 font-bold">Süre Raporu</span>
+                <a href="{{ route('admin.reports.sales') }}" class="px-3 py-1.5 bg-white text-gray-600 hover:bg-gray-50 transition">Satış Raporu</a>
             </div>
             <form method="GET" action="{{ route('admin.reports.durations') }}" class="flex items-center gap-2">
                 <label class="text-sm text-gray-600 font-medium">Dönem:</label>
@@ -185,6 +186,53 @@ function locLabel($tableNo, $roomNo): string {
                 </div>
             @endif
         </div>
+    </div>
+
+    {{-- En geç hazırlanan ürünler --}}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+        <h3 class="font-bold text-gray-800 mb-2"><i class="fas fa-triangle-exclamation mr-2 text-red-500"></i>En Geç Hazırlanan Ürünler</h3>
+        <p class="text-xs text-gray-400 mb-3">Ortalama hazırlık süresine göre en yavaş 20 ürün — en uzun kaydın hesabıyla birlikte</p>
+        @if($slowProducts->isEmpty())
+            <p class="text-gray-400 text-sm text-center py-8">Bu dönemde hazırlık süresi kaydedilmiş ürün yok.</p>
+        @else
+            <div class="overflow-x-auto max-h-96 overflow-y-auto border border-gray-100 rounded-lg">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 border-b sticky top-0">
+                        <tr class="text-xs text-gray-500 uppercase">
+                            <th class="px-3 py-2 text-left">Ürün</th>
+                            <th class="px-3 py-2 text-right">Onay / Adet</th>
+                            <th class="px-3 py-2 text-right">Ort. Hazırlık</th>
+                            <th class="px-3 py-2 text-right">En Uzun</th>
+                            <th class="px-3 py-2 text-left">En Uzun Kayıt</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                    @foreach($slowProducts as $p)
+                        @php $ref = $slowRefs[$p->name] ?? null; @endphp
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-3 py-1.5 text-gray-700 text-xs font-medium">{{ $p->name }}</td>
+                            <td class="px-3 py-1.5 text-right text-xs text-gray-500 whitespace-nowrap">{{ (int) $p->confirmations }}x · {{ (int) $p->pieces }} adet</td>
+                            <td class="px-3 py-1.5 text-right">{!! durBadge($p->avg_seconds !== null ? (int) $p->avg_seconds : null) !!}</td>
+                            <td class="px-3 py-1.5 text-right">{!! durBadge($p->max_seconds !== null ? (int) $p->max_seconds : null) !!}</td>
+                            <td class="px-3 py-1.5 text-xs text-gray-500 whitespace-nowrap">
+                                @if($ref)
+                                    {{ $ref->check_number ? 'Chk #'.$ref->check_number : $ref->group_key }}
+                                    @if($ref->table_no) · Masa {{ $ref->table_no }} @endif
+                                    @if($ref->room_no) · Oda {{ $ref->room_no }} @endif
+                                    <span class="text-gray-400">· {{ \Carbon\Carbon::parse($ref->completed_at)->format('d.m H:i') }}</span>
+                                @else
+                                    —
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-3 pt-2 border-t border-gray-100 text-xs text-gray-400">
+                <i class="fas fa-circle-info mr-1"></i>"En Uzun Kayıt", ürünün tek seferde en uzun hazırlandığı hesabı gösterir — gecikmenin hangi siparişte yaşandığını buradan görebilirsiniz.
+            </div>
+        @endif
     </div>
 
     {{-- Günlük ortalama QR teslim süresi --}}

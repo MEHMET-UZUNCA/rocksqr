@@ -31,6 +31,7 @@ function prepBadge(?int $s): string {
             <div class="flex rounded-lg overflow-hidden border border-gray-200 text-sm">
                 <span class="px-3 py-1.5 bg-amber-100 text-amber-800 font-bold">Mutfak Hazırlık</span>
                 <a href="{{ route('admin.reports.durations') }}" class="px-3 py-1.5 bg-white text-gray-600 hover:bg-gray-50 transition">Süre Raporu</a>
+                <a href="{{ route('admin.reports.sales') }}" class="px-3 py-1.5 bg-white text-gray-600 hover:bg-gray-50 transition">Satış Raporu</a>
             </div>
             <form method="GET" action="{{ route('admin.reports.kitchen') }}" class="flex items-center gap-2">
                 <label class="text-sm text-gray-600 font-medium">Dönem:</label>
@@ -106,6 +107,13 @@ function prepBadge(?int $s): string {
                     ->orderByDesc('prep_seconds')
                     ->limit(10)
                     ->get();
+                $todayKeys = $todaySlowest->pluck('group_key')->filter()->unique()->values()->all();
+                $todayContents = $todayKeys === [] ? [] : \Illuminate\Support\Facades\DB::table('kitchen_item_logs')
+                    ->whereIn('group_key', $todayKeys)
+                    ->selectRaw('group_key, GROUP_CONCAT(CONCAT(name, IF(qty > 1, CONCAT(" x", qty), "")) ORDER BY id SEPARATOR ", ") AS items_list')
+                    ->groupBy('group_key')
+                    ->pluck('items_list', 'group_key')
+                    ->all();
             @endphp
             @if($todaySlowest->isEmpty())
                 <p class="text-gray-400 text-sm text-center py-8">Bugün henüz veri yok.</p>
@@ -115,6 +123,7 @@ function prepBadge(?int $s): string {
                         <thead><tr class="text-xs text-gray-500 border-b">
                             <th class="py-1 text-left">Hesap</th>
                             <th class="py-1 text-left">Masa</th>
+                            <th class="py-1 text-left">İçerik</th>
                             <th class="py-1 text-right">Süre</th>
                             <th class="py-1 text-right">Tamamlandı</th>
                         </tr></thead>
@@ -123,6 +132,7 @@ function prepBadge(?int $s): string {
                             <tr class="hover:bg-gray-50">
                                 <td class="py-1.5 font-mono text-xs text-sky-700">{{ $row->check_number ? 'Chk #'.$row->check_number : $row->group_key }}</td>
                                 <td class="py-1.5 text-gray-700">{{ $row->table_no ? 'Masa '.$row->table_no : '—' }}</td>
+                                <td class="py-1.5 text-xs text-gray-500"><div class="max-w-xs truncate" title="{{ $todayContents[$row->group_key] ?? '' }}">{{ $todayContents[$row->group_key] ?? '—' }}</div></td>
                                 <td class="py-1.5 text-right">{!! prepBadge($row->prep_seconds) !!}</td>
                                 <td class="py-1.5 text-right text-gray-500 text-xs">{{ \Carbon\Carbon::parse($row->completed_at)->format('H:i:s') }}</td>
                             </tr>
@@ -151,6 +161,7 @@ function prepBadge(?int $s): string {
                             <th class="px-3 py-2 text-left">Hesap No</th>
                             <th class="px-3 py-2 text-left">Masa</th>
                             <th class="px-3 py-2 text-left">Tür</th>
+                            <th class="px-3 py-2 text-left">İçerik</th>
                             <th class="px-3 py-2 text-right">Hazırlık Süresi</th>
                             <th class="px-3 py-2 text-right">İlk Görüldü</th>
                             <th class="px-3 py-2 text-right">Tamamlandı</th>
@@ -167,6 +178,7 @@ function prepBadge(?int $s): string {
                                     {{ $row->kind === 'check' ? 'Hesap' : 'Mesaj' }}
                                 </span>
                             </td>
+                            <td class="px-3 py-2 text-xs text-gray-500"><div class="max-w-sm truncate" title="{{ $slowContents[$row->group_key] ?? '' }}">{{ $slowContents[$row->group_key] ?? '—' }}</div></td>
                             <td class="px-3 py-2 text-right">{!! prepBadge($row->prep_seconds) !!}</td>
                             <td class="px-3 py-2 text-right text-xs text-gray-500">
                                 {{ $row->first_seen_at ? \Carbon\Carbon::parse($row->first_seen_at)->format('d.m H:i') : '—' }}

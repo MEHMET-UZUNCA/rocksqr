@@ -1,10 +1,9 @@
 RocksQR - Sistem Detayları
-Versiyon: v1.0.54 (2026-04-27)
-Güncelleme: 2026-10-07 — A-Z kod denetimi: ölü kod ve kalıntı ayar temizliği,
-            bar hazır şeridi limiti admin ayarı (bar_ready_display), garson
-            çağrısı sorgu limiti; Symphony KDS/BDS gerçek zamanlı akış
-            (CheckPostingDB), yazılım tarafı RVC filtresi, iade gösterimi,
-            kapanan hesap davranışı
+Versiyon: v1.0.92 (2026-10-08)
+Güncelleme: 2026-10-08 — Admin panel elden geçirme: dashboard 8 kart + 8 hızlı
+            erişim, raporlara 3. sekme Satış Raporu (ciro, saatlik yoğunluk,
+            garson çağrıları), En Geç Hazırlanan Ürünler paneli ve sipariş
+            içeriği kolonları, dashboard listeleri son 30 gün
 =====================================
 
 Laravel 12, MySQL, Tailwind CSS ile geliştirildi.
@@ -218,6 +217,9 @@ Admin Paneli:
   - MSSQL Sync: lokal product code'lu ürünleri Symphony'de arar →
     Değişti / Güncel / MSSQL'de Yok badge'leri
   - Garson çağrısı yönetimi
+  - Raporlar (3 sekme): Mutfak Hazırlık (Symphony süreleri + sipariş içerikleri),
+    Süre Raporu (aşama süreleri, en geç hazırlanan ürünler), Satış Raporu
+    (ciro, günlük/saatlik yoğunluk, ürün ve konum kırılımı, garson çağrıları)
   - QR kod yönetimi: toplu üretim, A4 baskı, ZIP indirme, arşiv
 
 Teknik:
