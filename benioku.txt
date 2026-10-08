@@ -1,12 +1,9 @@
 RocksQR - Sistem Detayları
-Versiyon: v1.0.98 (2026-10-08)
-Güncelleme: 2026-10-08 — Garson çağrısı modalına oda numarası alanı eklendi;
-            oda numarasının siparişte ve garson çağrısında zorunlu olup
-            olmadığı Sistem sekmesindeki "Zorunlu Alanlar" bölümünden
-            ayarlanır (varsayılan: siparişte zorunlu, garson çağrısında
-            isteğe bağlı); bar garson/QR sayaçları bilgisayar saat
-            kaymasından bağımsız çalışıyor; SON şeridinde ürün adları
-            kırpılmadan kayar şeritte gösteriliyor
+Versiyon: v1.0.99 (2026-10-08)
+Güncelleme: 2026-10-08 — Ana Mutfak (AKDS) ekranındaki garson çağrı kartları
+            ve ilgili altyapı kaldırıldı (çağrılar bar ekranında ve QR
+            akışında sürer); admin Ekran sekmesindeki "Garson Çagrilari:
+            Görüntülenecek Adet" ayarı kaldırıldı
 =====================================
 
 Laravel 12, MySQL, Tailwind CSS ile geliştirildi.
