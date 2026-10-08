@@ -541,7 +541,7 @@
                 @if(!empty($roomList))
                 <!-- Room number -->
                 <div id="room-block">
-                    <label class="block text-[0.68rem] font-semibold uppercase tracking-widest text-muted mb-1.5">Oda Numaranız@if(!$roomRequiredOrder) (isteğe bağlı)@endif</label>
+                    <label class="block text-[0.68rem] font-semibold uppercase tracking-widest text-muted mb-1.5">Oda Numaranız{{ $roomRequiredOrder ? '' : ' (isteğe bağlı)' }}</label>
                     <div id="room-saved" class="hidden items-center justify-between field-input !py-2.5">
                         <span class="flex items-center gap-2 text-sm font-semibold">
                             <i class="fas fa-door-open text-bronze"></i>
@@ -596,7 +596,7 @@
                       class="field-input resize-none mb-3"></textarea>
             @if(!empty($roomList))
             <div id="waiter-room-block" class="mb-3">
-                <label class="block text-[0.68rem] font-semibold uppercase tracking-widest text-muted mb-1.5">Oda Numaranız@if(!$roomRequiredWaiter) (isteğe bağlı)@endif</label>
+                <label class="block text-[0.68rem] font-semibold uppercase tracking-widest text-muted mb-1.5">Oda Numaranız{{ $roomRequiredWaiter ? '' : ' (isteğe bağlı)' }}</label>
                 <div id="waiter-room-saved" class="hidden items-center justify-between field-input !py-2.5">
                     <span class="flex items-center gap-2 text-sm font-semibold">
                         <i class="fas fa-door-open text-bronze"></i>
