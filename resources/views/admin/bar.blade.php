@@ -54,10 +54,10 @@
             font-size: min(3.5vw, 64px);
             transform: rotate(-45deg);
         }
-        /* SON şeridi: tek sıra kayan yazı (içerik sığmazsa) — çift grup kesintisiz döngü */
-        @keyframes strip-marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        /* SON şeridi: tek sıra kayan yazı — içerik sığsa da her zaman akar, her döngüde tam bir grup boyu kayar */
+        @keyframes strip-marquee { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-100% / var(--strip-copies, 2))); } }
         .strip-mask { overflow: hidden; flex: 1; min-width: 0; }
-        .strip-ticker { display: flex; align-items: center; animation: strip-marquee 45s linear infinite; }
+        .strip-ticker { display: flex; align-items: center; width: max-content; animation: strip-marquee 45s linear infinite; }
         .strip-group { display: flex; align-items: center; gap: 4px; padding-right: 4px; flex: 0 0 auto; }
         /* Çip içi kayan yazı: içerik kırpılmaz, tümü görünene dek akar */
         @keyframes bar-chip-marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
@@ -765,7 +765,6 @@
                     _lastCompletedKey = 'empty';
                     ticker.innerHTML = `<div class="strip-group"><span class="text-gray-500 text-xs">Henüz tamamlanan yok.</span></div>`;
                     ticker.style.animation = 'none';
-                    ticker.style.width = '';
                 }
                 return;
             }
@@ -808,19 +807,8 @@
             if (chips === _lastCompletedKey) return; // içerik aynıysa DOM'a dokunma — marquee baştan başlamasın
             _lastCompletedKey = chips;
 
-            ticker.innerHTML = `<div class="strip-group">${chips}</div><div class="strip-group">${chips}</div>`;
-
-            const mask = ticker.parentElement;
-            const firstGroup = ticker.firstElementChild;
-            const groupWidth = firstGroup ? Math.ceil(firstGroup.getBoundingClientRect().width) : 0;
-            if (!groupWidth || groupWidth <= mask.clientWidth) {
-                ticker.style.animation = 'none'; // sığıyor — kaydırmaya gerek yok
-                ticker.style.width = '';
-            } else {
-                ticker.style.width = (groupWidth * 2) + 'px';
-                ticker.style.animation = '';
-                ticker.style.animationDuration = Math.max(30, Math.round(groupWidth / 60)) + 's';
-            }
+            ticker.innerHTML = `<div class="strip-group">${chips}</div>`;
+            fitStripTicker(ticker);
 
             // Çip içi kayar yazı: pencereye sığmayan içerik çift metinle akar, tamamı görünür
             requestAnimationFrame(() => {
@@ -835,6 +823,20 @@
                     span.style.animation = `bar-chip-marquee ${dur}s linear infinite`;
                 });
             });
+        }
+
+        // Şerit her zaman akar: maske genişliğini dolduracak kadar grup kopyası — her döngüde tam bir grup boyu kayar
+        function fitStripTicker(ticker) {
+            const firstGroup = ticker.firstElementChild;
+            if (!firstGroup) return;
+            const groupWidth = Math.ceil(firstGroup.getBoundingClientRect().width);
+            if (!groupWidth) return;
+            const copies = Math.max(2, Math.ceil((ticker.parentElement.clientWidth * 1.25) / groupWidth) + 1);
+            while (ticker.children.length < copies) ticker.appendChild(firstGroup.cloneNode(true));
+            while (ticker.children.length > copies) ticker.lastElementChild.remove();
+            ticker.style.setProperty('--strip-copies', copies);
+            ticker.style.animation = '';
+            ticker.style.animationDuration = Math.max(30, Math.round(groupWidth / 60)) + 's';
         }
 
         function renderWaiterCalls(calls) {
