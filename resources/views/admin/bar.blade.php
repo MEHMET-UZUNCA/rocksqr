@@ -604,6 +604,11 @@
 
             const gk = isSymphony ? symGroupKey(order) : null;
             const startTime = isSymphony ? getStartTime(gk, order.order_time) : (order.order_time || '');
+            // QR: sunucu baz saniyesi + tarayici capasi (PC saat kaymasindan bagimsiz sayar);
+            // Symphony: mutfak ile paylasilan localStorage capasi — dokunma.
+            const elapsedAttrs = isSymphony
+                ? `data-order-time="${startTime.replace(/['"<>&]/g, '')}"`
+                : `data-base-secs="${totalSecs}" data-anchor-ms="${Date.now()}"`;
 
             // Sag kolon (Hazirlanan) gizli kategorileri satirdan da eler; Gelen kolonu filtresiz.
             // Mesaj satirlari (mg=99) ayri kutuya alinmaz; POS'taki satir konumunda sari satir olarak basilir.
@@ -681,7 +686,7 @@
                     </div>
                     <div class="flex items-center justify-between gap-1 mt-0.5">
                         <span class="text-[9px] text-gray-400 truncate">${chkLabel}</span>
-                        <span class="bar-elapsed px-1 py-0.5 rounded text-[10px] font-bold ${timeBg} shrink-0" data-order-time="${startTime.replace(/['"<>&]/g, '')}" data-is-symphony="${isSymphony ? '1' : '0'}">${timeStr}</span>
+                        <span class="bar-elapsed px-1 py-0.5 rounded text-[10px] font-bold ${timeBg} shrink-0" ${elapsedAttrs} data-is-symphony="${isSymphony ? '1' : '0'}">${timeStr}</span>
                     </div>
                     ${waiterLine}
                 </div>
@@ -775,22 +780,22 @@
                 const tableLabel = order.table_no ? 'TBL ' + escapeHtml(order.table_no) : (order.room_no ? 'RM ' + escapeHtml(order.room_no) : 'Pkt');
                 const isCancelled = order.status === 'cancelled' || order.bar_status === 'cancelled';
                 if (isCancelled) {
-                    return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-red-900 rounded px-1 py-0.5 text-xs text-red-400 max-w-[210px] shrink-0">
+                    return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-red-900 rounded px-1 py-0.5 text-xs text-red-400 shrink-0">
                         <i class="fas fa-ban text-red-600 shrink-0"></i>
-                        <span class="font-bold shrink-0">${tableLabel}</span>${srcBadge}<span class="text-gray-400 truncate line-through">${escapeHtml(summary) || '—'}</span>
+                        <span class="font-bold shrink-0 whitespace-nowrap">${tableLabel}</span>${srcBadge}<span class="text-gray-400 line-through whitespace-nowrap">${escapeHtml(summary) || '—'}</span>
                     </span>`;
                 }
-                return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-emerald-900 rounded px-1 py-0.5 text-xs text-emerald-300 max-w-[210px] shrink-0">
+                return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-emerald-900 rounded px-1 py-0.5 text-xs text-emerald-300 shrink-0">
                     <i class="fas fa-check text-emerald-600 shrink-0"></i>
-                    <span class="font-bold shrink-0">${tableLabel}</span>${srcBadge}<span class="text-gray-400 truncate">${escapeHtml(summary) || '—'}</span>
+                    <span class="font-bold shrink-0 whitespace-nowrap">${tableLabel}</span>${srcBadge}<span class="text-gray-400 whitespace-nowrap">${escapeHtml(summary) || '—'}</span>
                 </span>`;
             });
 
             const callChips = (attendedCalls || []).map(call => {
                 const tableLabel = [call.table_no ? 'M' + call.table_no : '', call.room_no ? 'ROOM' + call.room_no : ''].filter(Boolean).join(' ') || 'Gen';
-                return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-green-900 rounded px-1 py-0.5 text-xs text-green-300 max-w-[170px] shrink-0">
+                return `<span class="inline-flex items-center gap-1 bg-gray-800 border border-green-900 rounded px-1 py-0.5 text-xs text-green-300 shrink-0">
                     <i class="fas fa-bell-slash text-green-600 shrink-0"></i>
-                    <span class="font-bold shrink-0">${escapeHtml(tableLabel)}</span><span class="text-gray-400 truncate">${escapeHtml(call.note) || 'Çağrı'}</span>
+                    <span class="font-bold shrink-0 whitespace-nowrap">${escapeHtml(tableLabel)}</span><span class="text-gray-400 whitespace-nowrap">${escapeHtml(call.note) || 'Çağrı'}</span>
                 </span>`;
             });
 
@@ -829,7 +834,7 @@
                 const callLabel = [call.table_no ? 'Masa ' + call.table_no : '', call.room_no ? 'ROOM ' + call.room_no : ''].filter(Boolean).join(' ') || 'Genel';
                 return `<div class="bg-red-950 rounded-lg p-1 border border-red-800">
                     <div class="font-bold text-red-200 text-[12px] flex items-center gap-1"><i class="fas fa-bell text-red-400 waiter-alert text-[10px] shrink-0"></i><span class="truncate">${escapeHtml(callLabel)}</span></div>
-                    <div class="mt-0.5"><span class="waiter-elapsed px-1 py-0.5 rounded text-[10px] ${timeBg} text-white font-bold" data-order-time="${(call.order_time || '').replace(/['"<>&]/g, '')}">${timeStr}</span></div>
+                    <div class="mt-0.5"><span class="waiter-elapsed px-1 py-0.5 rounded text-[10px] ${timeBg} text-white font-bold" data-base-secs="${call.seconds_ago}" data-anchor-ms="${Date.now()}">${timeStr}</span></div>
                     ${call.note ? `<p class="text-red-300 text-[10px] mt-0.5 truncate">${escapeHtml(call.note)}</p>` : ''}
                     <button onclick="attendWaiterCall(${call.id})" class="mt-1 w-full py-0.5 bg-green-700 hover:bg-green-600 rounded text-[10px] font-bold transition"><i class="fas fa-check mr-0.5"></i>İlgilendi</button>
                 </div>`;
@@ -952,12 +957,21 @@
         // Her saniye tum elapsed sayaclarini guncelle (flicker olmadan)
         setInterval(function tickElapsed() {
             // Aktif siparis sayaci
-            document.querySelectorAll('.bar-elapsed[data-order-time]').forEach(function(span) {
-                const iso = span.dataset.orderTime;
-                if (!iso) return;
-                const d = new Date(iso.replace(' ', 'T'));
-                if (isNaN(d.getTime())) return;
-                const totalSecs = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000));
+            document.querySelectorAll('.bar-elapsed').forEach(function(span) {
+                let totalSecs;
+                if (span.dataset.baseSecs != null && span.dataset.anchorMs != null) {
+                    // QR: sunucu baz saniyesi + tarayici capasindan gecen sure — saat kaymasindan bagimsiz
+                    const base = parseInt(span.dataset.baseSecs, 10);
+                    const anchor = parseInt(span.dataset.anchorMs, 10);
+                    if (isNaN(base) || isNaN(anchor)) return;
+                    totalSecs = Math.max(0, base + Math.floor((Date.now() - anchor) / 1000));
+                } else {
+                    const iso = span.dataset.orderTime;
+                    if (!iso) return;
+                    const d = new Date(iso.replace(' ', 'T'));
+                    if (isNaN(d.getTime())) return;
+                    totalSecs = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000));
+                }
                 const h = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
                 const m = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
                 const s = String(totalSecs % 60).padStart(2, '0');
@@ -985,12 +999,11 @@
                 span.classList.add(newBg);
             });
             // Garson cagri sayaci
-            document.querySelectorAll('.waiter-elapsed[data-order-time]').forEach(function(span) {
-                const iso = span.dataset.orderTime;
-                if (!iso) return;
-                const d = new Date(iso.replace(' ', 'T'));
-                if (isNaN(d.getTime())) return;
-                const totalSecs = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000));
+            document.querySelectorAll('.waiter-elapsed[data-base-secs]').forEach(function(span) {
+                const base = parseInt(span.dataset.baseSecs, 10);
+                const anchor = parseInt(span.dataset.anchorMs, 10);
+                if (isNaN(base) || isNaN(anchor)) return;
+                const totalSecs = Math.max(0, base + Math.floor((Date.now() - anchor) / 1000));
                 const h = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
                 const m = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
                 const s = String(totalSecs % 60).padStart(2, '0');

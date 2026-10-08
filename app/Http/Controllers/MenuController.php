@@ -25,8 +25,10 @@ class MenuController extends Controller
 
         $tableNo = null;
         $roomList = $this->roomList();
+        $roomRequiredOrder  = Setting::get('room_required_order', '1') === '1';
+        $roomRequiredWaiter = Setting::get('room_required_waiter', '0') === '1';
 
-        return view('customer.menu', compact('categories', 'tableNo', 'roomList'));
+        return view('customer.menu', compact('categories', 'tableNo', 'roomList', 'roomRequiredOrder', 'roomRequiredWaiter'));
     }
 
     public function show(int $tableNo)
@@ -41,8 +43,10 @@ class MenuController extends Controller
             ->get();
 
         $roomList = $this->roomList();
+        $roomRequiredOrder  = Setting::get('room_required_order', '1') === '1';
+        $roomRequiredWaiter = Setting::get('room_required_waiter', '0') === '1';
 
-        return view('customer.menu', compact('categories', 'tableNo', 'roomList'));
+        return view('customer.menu', compact('categories', 'tableNo', 'roomList', 'roomRequiredOrder', 'roomRequiredWaiter'));
     }
 
     public function placeOrder(Request $request, int $tableNo)
@@ -74,11 +78,10 @@ class MenuController extends Controller
 
         $validated = $request->validate([
             'note'    => 'nullable|string|max:200',
-            'room_no' => empty($roomList)
-                ? ['nullable', 'string', 'max:16']
-                : ['nullable', 'string', 'max:16', Rule::in($roomList)],
+            'room_no' => $this->roomRule($roomList, Setting::get('room_required_waiter', '0') === '1'),
         ], [
-            'room_no.in' => 'Oda numarası hatalı, lütfen kontrol edin.',
+            'room_no.required' => 'Lütfen oda numaranızı girin.',
+            'room_no.in'       => 'Oda numarası hatalı, lütfen kontrol edin.',
         ]);
 
         WaiterCall::create([
@@ -97,11 +100,10 @@ class MenuController extends Controller
 
         $validated = $request->validate([
             'note'    => 'nullable|string|max:200',
-            'room_no' => empty($roomList)
-                ? ['nullable', 'string', 'max:16']
-                : ['nullable', 'string', 'max:16', Rule::in($roomList)],
+            'room_no' => $this->roomRule($roomList, Setting::get('room_required_waiter', '0') === '1'),
         ], [
-            'room_no.in' => 'Oda numarası hatalı, lütfen kontrol edin.',
+            'room_no.required' => 'Lütfen oda numaranızı girin.',
+            'room_no.in'       => 'Oda numarası hatalı, lütfen kontrol edin.',
         ]);
 
         WaiterCall::create([
@@ -132,10 +134,8 @@ class MenuController extends Controller
             'order_note'       => 'nullable|string|max:500',
         ];
 
-        // Oda listesi admin panelinde tanimliysa oda numarasi zorunlu ve listede olmali.
-        $rules['room_no'] = empty($roomList)
-            ? ['nullable', 'string', 'max:16']
-            : ['required', 'string', 'max:16', Rule::in($roomList)];
+        // Oda listesi tanimliysa ve Zorunlu Alanlar ayarinda isaretliyse oda numarasi zorunlu ve listede olmali.
+        $rules['room_no'] = $this->roomRule($roomList, Setting::get('room_required_order', '1') === '1');
 
         $validated = $request->validate($rules, [
             'items.*.quantity.max' => 'En fazla sipariş limitine ulaşıldı.',
@@ -183,6 +183,18 @@ class MenuController extends Controller
         ]);
 
         return redirect()->route('order.success', ['order' => $order->id]);
+    }
+
+    // Oda listesi bos ise oda sorulmaz; liste varsa ayara gore zorunlu ya da istege bagli olur.
+    private function roomRule(array $roomList, bool $required): array
+    {
+        if (empty($roomList)) {
+            return ['nullable', 'string', 'max:16'];
+        }
+
+        return $required
+            ? ['required', 'string', 'max:16', Rule::in($roomList)]
+            : ['nullable', 'string', 'max:16', Rule::in($roomList)];
     }
 
     private function roomList(): array

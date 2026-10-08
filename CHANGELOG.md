@@ -1,5 +1,15 @@
 
 
+## v1.0.98 - 2026-10-08
+
+### QR garson çağrısında oda numarası + bar sayaç ve SON şeridi düzeltmeleri
+- **QR garson çağrısı oda numarası sorar**: Garson çağrı modalına, sepettekiyle aynı oda numarası alanı eklendi (kayıtlı oda varsa "Oda X / Değiştir" görünümü, yoksa giriş alanı). Sepet ve garson modalı aynı oda seçimini paylaşır.
+- **Zorunlu Alanlar ayarı (Sistem sekmesi)**: Oda numarasının siparişte ve garson çağrısında zorunlu olup olmadığı admin panelinden ayrı ayrı seçilebilir. Varsayılan: siparişte zorunlu, garson çağrısında isteğe bağlı. Zorunlu olmayan akışta oda numarası yine sorulur ama "(isteğe bağlı)" etiketiyle boş bırakılabilir. Sunucu boş değeri kabul eder; listede olmayan bir değer her durumda reddedilir. Ayar yalnızca Oda Numaraları sekmesinde liste tanımlıysa geçerlidir.
+- **Bar garson çağrı sayacı**: Sayaç artık sunucudan gelen başlangıç süresi + tarayıcı çapasıyla ilerletilir; bar PC'sinin saat kaymasından bağımsız olarak doğru sayar (eski yöntemde saat kayması olan bilgisayarda sayaç kayıyordu). Aynı düzeltme QR sipariş kartı sayacına da uygulandı; Symphony kartları ve hazır sayacı değişmedi.
+- **Bar SON şeridi tam içerik**: Son tamamlanan çiplerindeki 210px/170px genişlik sınırı ve kırpma kaldırıldı; ürün adları ve notlar kısaltılmadan tek sıra kayar şeritte gösterilir.
+
+---
+
 ## v1.0.97 - 2026-10-08
 
 ### Geri alma olayları + ayar denetim kaydı (kds_events + settings_audit_logs)

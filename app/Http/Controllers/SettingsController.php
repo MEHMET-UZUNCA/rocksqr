@@ -52,6 +52,9 @@ class SettingsController extends Controller
             'subdomain_ana'     => Setting::get('subdomain_ana', ''),
             // Oda servisinde sipariş alınabilecek oda numaraları
             'room_numbers' => Setting::get('room_numbers', ''),
+            // Zorunlu Alanlar (Sistem sekmesi): oda numarası siparişte / garson çağrısında zorunlu mu
+            'room_required_order'  => Setting::get('room_required_order', '1') === '1',
+            'room_required_waiter' => Setting::get('room_required_waiter', '0') === '1',
             // Sayaç renk eşikleri (dakika cinsinden)
             // Aktif sipariş sayacı (QR)
             'timer_qr_yellow'  => (int) Setting::get('timer_qr_yellow', 5),
@@ -211,6 +214,11 @@ class SettingsController extends Controller
             return back()->with('success', empty($rooms)
                 ? 'Oda numarası listesi temizlendi.'
                 : count($rooms) . ' oda numarası güncellendi.');
+        } elseif ($request->has('_required_fields_only')) {
+            Setting::set('room_required_order', $request->boolean('room_required_order') ? '1' : '0');
+            Setting::set('room_required_waiter', $request->boolean('room_required_waiter') ? '1' : '0');
+
+            return back()->with('success', 'Zorunlu alan ayarları güncellendi.');
         } elseif ($request->has('_clear_times_only')) {
             $timeRule = ['required', 'regex:/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/'];
             $request->validate([

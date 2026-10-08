@@ -541,7 +541,7 @@
                 @if(!empty($roomList))
                 <!-- Room number -->
                 <div id="room-block">
-                    <label class="block text-[0.68rem] font-semibold uppercase tracking-widest text-muted mb-1.5">Oda Numaranız</label>
+                    <label class="block text-[0.68rem] font-semibold uppercase tracking-widest text-muted mb-1.5">Oda Numaranız@if(!$roomRequiredOrder) (isteğe bağlı)@endif</label>
                     <div id="room-saved" class="hidden items-center justify-between field-input !py-2.5">
                         <span class="flex items-center gap-2 text-sm font-semibold">
                             <i class="fas fa-door-open text-bronze"></i>
@@ -594,6 +594,28 @@
             <textarea id="waiter-note" placeholder="Not eklemek ister misiniz? (isteğe bağlı)"
                       rows="3"
                       class="field-input resize-none mb-3"></textarea>
+            @if(!empty($roomList))
+            <div id="waiter-room-block" class="mb-3">
+                <label class="block text-[0.68rem] font-semibold uppercase tracking-widest text-muted mb-1.5">Oda Numaranız@if(!$roomRequiredWaiter) (isteğe bağlı)@endif</label>
+                <div id="waiter-room-saved" class="hidden items-center justify-between field-input !py-2.5">
+                    <span class="flex items-center gap-2 text-sm font-semibold">
+                        <i class="fas fa-door-open text-bronze"></i>
+                        Oda <span id="waiter-room-saved-no"></span>
+                    </span>
+                    <button type="button" onclick="changeRoom('waiter')"
+                            class="text-xs font-semibold text-bronze underline underline-offset-2 hover:text-bronze-dark">Değiştir</button>
+                </div>
+                <div id="waiter-room-input-wrap" class="hidden relative">
+                    <i class="fas fa-door-open absolute left-3.5 top-1/2 -translate-y-1/2 text-sm" style="color:#B8AB9C;"></i>
+                    <input id="waiter-room-no" type="text" inputmode="numeric" maxlength="16" placeholder="Örn: 101" autocomplete="off"
+                           class="field-input !pl-10">
+                </div>
+                <p id="waiter-room-error" class="hidden mt-1.5 text-xs font-medium items-center gap-1.5" style="color:#C0392B;">
+                    <i class="fas fa-circle-exclamation"></i>
+                    Oda numarası hatalı, lütfen kontrol edin.
+                </p>
+            </div>
+            @endif
             <div class="flex gap-2.5">
                 <button onclick="closeWaiterModal()" class="flex-1 py-2.5 btn-ghost text-xs">İptal</button>
                 <button onclick="submitWaiterCall()" id="waiter-submit"
@@ -609,6 +631,7 @@
         let clickLock = false;
         const MAX_QTY = {{ \App\Http\Controllers\MenuController::MAX_ITEM_QUANTITY }};
         const ROOM_LIST = @js($roomList);
+        const ROOM_REQ = { cart: @js($roomRequiredOrder), waiter: @js($roomRequiredWaiter) };
         const ROOM_KEY = 'rocksqr_room_no';
         let savedRoom = localStorage.getItem(ROOM_KEY) || '';
 
@@ -737,44 +760,83 @@
             document.body.style.overflow = '';
         }
 
-        /* ---- Room number ---- */
+        /* ---- Room number (sepet + garson modali ayni oda durumunu paylasir) ---- */
+        const ROOM_UI = {
+            cart:   { saved: 'room-saved',        savedNo: 'room-saved-no',        wrap: 'room-input-wrap',        input: 'room-no',        error: 'room-error' },
+            waiter: { saved: 'waiter-room-saved', savedNo: 'waiter-room-saved-no', wrap: 'waiter-room-input-wrap', input: 'waiter-room-no', error: 'waiter-room-error' }
+        };
+
         function initRoomUI() {
-            const block = document.getElementById('room-block');
-            if (!block) return;
-            const saved = document.getElementById('room-saved');
-            const wrap = document.getElementById('room-input-wrap');
-            if (savedRoom && ROOM_LIST.includes(savedRoom)) {
-                document.getElementById('room-saved-no').textContent = savedRoom;
-                saved.classList.remove('hidden');
-                saved.classList.add('flex');
-                wrap.classList.add('hidden');
-            } else {
-                savedRoom = '';
-                saved.classList.add('hidden');
-                saved.classList.remove('flex');
-                wrap.classList.remove('hidden');
-            }
+            const valid = !!savedRoom && ROOM_LIST.includes(savedRoom);
+            if (!valid) savedRoom = '';
+            Object.values(ROOM_UI).forEach(ui => {
+                const saved = document.getElementById(ui.saved);
+                if (!saved) return;
+                const wrap = document.getElementById(ui.wrap);
+                if (valid) {
+                    document.getElementById(ui.savedNo).textContent = savedRoom;
+                    saved.classList.remove('hidden');
+                    saved.classList.add('flex');
+                    wrap.classList.add('hidden');
+                } else {
+                    saved.classList.add('hidden');
+                    saved.classList.remove('flex');
+                    wrap.classList.remove('hidden');
+                }
+            });
         }
 
-        function changeRoom() {
+        function changeRoom(which) {
             savedRoom = '';
             localStorage.removeItem(ROOM_KEY);
             initRoomUI();
-            setRoomError(false);
-            const input = document.getElementById('room-no');
+            setRoomError(false, 'cart');
+            setRoomError(false, 'waiter');
+            const input = document.getElementById((ROOM_UI[which] || ROOM_UI.cart).input);
             if (input) input.focus();
         }
 
-        function setRoomError(show) {
-            const err = document.getElementById('room-error');
+        function setRoomError(show, which) {
+            const ui = ROOM_UI[which] || ROOM_UI.cart;
+            const err = document.getElementById(ui.error);
             if (!err) return false;
             err.classList.toggle('hidden', !show);
             err.classList.toggle('flex', show);
-            const input = document.getElementById('room-no');
-            const saved = document.getElementById('room-saved');
+            const input = document.getElementById(ui.input);
+            const saved = document.getElementById(ui.saved);
             if (input) input.classList.toggle('field-error', show && !input.closest('.hidden'));
             if (saved) saved.classList.toggle('field-error', show && saved.classList.contains('flex'));
             return show;
+        }
+
+        // Oda secimini dogrula; zorunlu akista hatali/boş girişi engeller, opsiyonel akista boş gecmeye izin verir
+        function resolveRoom(which) {
+            if (ROOM_LIST.length === 0) return { ok: true, room: '' };
+            const ctx = ROOM_UI[which] ? which : 'cart';
+            if (savedRoom && ROOM_LIST.includes(savedRoom)) return { ok: true, room: savedRoom };
+            const input = document.getElementById(ROOM_UI[ctx].input);
+            const room = (input ? input.value : '').trim();
+            if (ROOM_LIST.includes(room)) return { ok: true, room };
+            // Zorunlu degilse gecersiz/boş oda engellemez; oda bilgisi olmadan devam edilir
+            if (!ROOM_REQ[ctx]) return { ok: true, room: '' };
+            setRoomError(true, ctx);
+            if (input) {
+                input.focus();
+                input.animate(
+                    [{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }],
+                    { duration: 250, iterations: 2 }
+                );
+            }
+            return { ok: false, room: '' };
+        }
+
+        // Gecerli oda secildiginde kaydet ve tum oda bolumlerini guncelle
+        function saveRoom(room) {
+            savedRoom = room;
+            localStorage.setItem(ROOM_KEY, room);
+            setRoomError(false, 'cart');
+            setRoomError(false, 'waiter');
+            initRoomUI();
         }
 
         /* ---- Checkout ---- */
@@ -784,29 +846,10 @@
                 return;
             }
 
-            let room = '';
-            if (ROOM_LIST.length > 0) {
-                if (savedRoom && ROOM_LIST.includes(savedRoom)) {
-                    room = savedRoom;
-                } else {
-                    const input = document.getElementById('room-no');
-                    room = (input ? input.value : '').trim();
-                    if (!ROOM_LIST.includes(room)) {
-                        setRoomError(true);
-                        if (input) {
-                            input.focus();
-                            input.style.transform = 'translateX(0)';
-                            input.animate(
-                                [{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }],
-                                { duration: 250, iterations: 2 }
-                            );
-                        }
-                        return;
-                    }
-                }
-            }
-
-            if (room) localStorage.setItem(ROOM_KEY, room);
+            const rr = resolveRoom('cart');
+            if (!rr.ok) return;
+            const room = rr.room;
+            if (room) saveRoom(room);
 
             const btn = document.getElementById('checkout-btn');
             btn.disabled = true;
@@ -839,6 +882,8 @@
 
         /* ---- Waiter ---- */
         function showWaiterNote() {
+            initRoomUI();
+            setRoomError(false, 'waiter');
             document.getElementById('waiter-modal').style.display = 'flex';
         }
         function closeWaiterModal() {
@@ -846,6 +891,9 @@
             document.getElementById('waiter-note').value = '';
         }
         function submitWaiterCall() {
+            const rr = resolveRoom('waiter');
+            if (!rr.ok) return;
+            if (rr.room) saveRoom(rr.room);
             const btn = document.getElementById('waiter-submit');
             const original = btn.innerHTML;
             btn.disabled = true;
@@ -859,7 +907,7 @@
             fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                body: JSON.stringify({ note, room_no: localStorage.getItem(ROOM_KEY) || '' })
+                body: JSON.stringify({ note, room_no: rr.room })
             })
             .then(r => {
                 if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -893,14 +941,15 @@
         document.addEventListener('DOMContentLoaded', () => {
             initRoomUI();
             syncNavOffset();
-            const roomInput = document.getElementById('room-no');
-            if (roomInput) {
-                roomInput.addEventListener('input', () => {
-                    roomInput.classList.remove('field-error');
-                    const err = document.getElementById('room-error');
+            Object.values(ROOM_UI).forEach(ui => {
+                const input = document.getElementById(ui.input);
+                if (!input) return;
+                input.addEventListener('input', () => {
+                    input.classList.remove('field-error');
+                    const err = document.getElementById(ui.error);
                     if (err) { err.classList.add('hidden'); err.classList.remove('flex'); }
                 });
-            }
+            });
         });
     </script>
 </body>

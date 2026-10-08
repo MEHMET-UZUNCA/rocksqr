@@ -1,9 +1,12 @@
 RocksQR - Sistem Detayları
-Versiyon: v1.0.97 (2026-10-08)
-Güncelleme: 2026-10-08 — Geri alma işlemleri (Symphony kartı geri al, hesabı
-            geri al, ürünü servisten düşür) kds_events tablosuna kayıt altına
-            alındı; admin panelinden yapılan ayar değişiklikleri
-            settings_audit_logs tablosuna yazılıyor
+Versiyon: v1.0.98 (2026-10-08)
+Güncelleme: 2026-10-08 — Garson çağrısı modalına oda numarası alanı eklendi;
+            oda numarasının siparişte ve garson çağrısında zorunlu olup
+            olmadığı Sistem sekmesindeki "Zorunlu Alanlar" bölümünden
+            ayarlanır (varsayılan: siparişte zorunlu, garson çağrısında
+            isteğe bağlı); bar garson/QR sayaçları bilgisayar saat
+            kaymasından bağımsız çalışıyor; SON şeridinde ürün adları
+            kırpılmadan kayar şeritte gösteriliyor
 =====================================
 
 Laravel 12, MySQL, Tailwind CSS ile geliştirildi.
@@ -223,6 +226,14 @@ Check Kapanma Davranışı (Sistem sekmesi — her ekran için ayrı anahtar):
   - bar_check_close_wait      : Bar (BDS) — kapanan hesap silinsin ('1') / KAPANDI rozetiyle bekle ('0')
   - kitchen_check_close_wait  : Mutfak (KPOS) — aynı davranış (ayrı anahtar)
   - ana_check_close_wait      : Ana Mutfak (AKDS) — aynı davranış (ayrı anahtar)
+
+Zorunlu Alanlar (Sistem sekmesi — oda numarası zorunluluğu):
+  - room_required_order       : Siparişte oda numarası zorunlu mu (varsayılan '1' = evet)
+  - room_required_waiter      : Garson çağrısında oda numarası zorunlu mu (varsayılan '0' = hayır)
+  Yalnızca Oda Numaraları sekmesinde liste tanımlıysa geçerlidir. Zorunlu
+  olmayan akışta oda numarası yine sorulur ama "(isteğe bağlı)" etiketiyle
+  boş bırakılabilir; sunucu boş değeri kabul eder, listede olmayan değeri
+  her durumda reddeder.
 
 MSSQL Otomatik Fiyat Senkronu (Sistem sekmesi):
   - auto_price_sync_mode     : off | interval | daily (Kapalı / her N dakikada / günlük saat)

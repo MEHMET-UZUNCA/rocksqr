@@ -641,6 +641,35 @@
 
                 <hr class="border-gray-100 mb-6">
                 <div class="mb-3 flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center shrink-0">
+                        <i class="fas fa-clipboard-check text-teal-600"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-gray-800">Zorunlu Alanlar</h3>
+                </div>
+                <p class="text-xs text-gray-400 mb-4">Oda numarasının hangi akışlarda zorunlu olacağını seçin. Yalnızca <strong>Oda Numaraları</strong> sekmesinde liste tanımlıysa geçerlidir. İşareti kaldırılan akışta oda numarası yine sorulur ama boş bırakılabilir.</p>
+                <form action="{{ route('admin.settings.update') }}?tab=sistem" method="POST">
+                    <input type="hidden" name="_required_fields_only" value="1">
+                    @csrf
+                    @method('PUT')
+                    <div class="rounded-lg border border-gray-200 overflow-hidden mb-4 divide-y divide-gray-100">
+                        <label class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50">
+                            <input type="checkbox" name="room_required_order" value="1" class="rounded"
+                                   @checked(old('room_required_order', $settings['room_required_order']))>
+                            <span class="text-sm font-medium text-gray-700"><i class="fas fa-utensils mr-1.5 text-orange-500"></i>Siparişte oda numarası zorunlu olsun</span>
+                        </label>
+                        <label class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50">
+                            <input type="checkbox" name="room_required_waiter" value="1" class="rounded"
+                                   @checked(old('room_required_waiter', $settings['room_required_waiter']))>
+                            <span class="text-sm font-medium text-gray-700"><i class="fas fa-bell mr-1.5 text-red-500"></i>Garson çağrısında oda numarası zorunlu olsun</span>
+                        </label>
+                    </div>
+                    <button type="submit" class="py-2.5 px-5 bg-teal-600 text-white font-bold rounded-lg hover:bg-teal-700 transition text-sm">
+                        <i class="fas fa-save mr-2"></i>Zorunlu Alan Ayarlarini Kaydet
+                    </button>
+                </form>
+
+                <hr class="border-gray-100 mb-6">
+                <div class="mb-3 flex items-center gap-2">
                     <div class="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center shrink-0">
                         <i class="fas fa-arrows-rotate text-sky-600"></i>
                     </div>
