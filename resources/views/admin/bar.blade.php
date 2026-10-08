@@ -666,7 +666,7 @@
                             <div class="flex-1 py-0.5 bg-gray-700 text-gray-400 rounded text-[9px] font-bold flex items-center justify-center gap-1">
                                 <i class="fas fa-hourglass-half animate-pulse"></i> POS bekleniyor
                             </div>
-                            <button onclick="cancelOrder(${order.id})" class="px-1 py-0.5 bg-red-700 hover:bg-red-600 text-white rounded text-[9px] font-bold transition" title="Siparişi iptal et">
+                            <button onclick="cancelOrder(${order.id})" class="px-1.5 py-0.5 bg-red-700 hover:bg-red-600 text-white rounded text-[12px] leading-none font-bold transition" title="Siparişi iptal et">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>`;
