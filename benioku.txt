@@ -217,7 +217,6 @@ Kitchen Ekran Ayarları:
 Ana Mutfak (AKDS) Ekran Ayarları:
   - ana_screen_title         : Ana Mutfak ekranı üst başlığı
   - ana_completed_display    : Tamamlanan sipariş listesi max adet (1-100)
-  - ana_waiter_call_display  : Garson çağrıları listesi max adet (1-200)
   - ana_ready_undo_seconds   : Geri alma butonu aktif kalma süresi (5-600 sn)
   Ana Mutfak filtreleri de kitchen_fg_hide_{rvc} / kitchen_open_{tür}_{rvc}
   anahtarlarını kullanır (AKDS RVC'leri: 43, 45, 46, 63).

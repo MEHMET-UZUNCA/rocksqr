@@ -1227,22 +1227,6 @@ class SymphonyKdsController extends Controller
             }
             unset($chk);
 
-            // Ana mutfak ekrani bekleyen garson cagrilarini da gorur (adet ayri ayarlanir)
-            $waiterCalls = [];
-            if ($screen === 'ana') {
-                $waiterCalls = \App\Models\WaiterCall::where('status', 'pending')
-                    ->orderBy('created_at', 'desc')
-                    ->limit((int) Setting::get('ana_waiter_call_display', 10))
-                    ->get()
-                    ->map(fn ($call) => [
-                        'table_no'    => $call->table_no,
-                        'room_no'     => $call->room_no,
-                        'note'        => $call->note,
-                        'order_time'  => $call->created_at->toIso8601String(),
-                        'seconds_ago' => (int) $call->created_at->diffInSeconds(now()),
-                    ])->all();
-            }
-
             return response()->json([
                 'success'         => true,
                 'orders'          => array_values($checks),
@@ -1253,7 +1237,6 @@ class SymphonyKdsController extends Controller
                 'completed_items' => $itemsOut,
                 'completed_limit' => $completedLimit,
                 'completed_today' => $completedTodayCount,
-                'waiter_calls'    => $waiterCalls,
                 'fetched_at'      => now()->format('H:i:s'),
                 'server_now' => \App\Support\Clock::nowIso(),
                 'count'           => count($checks),
@@ -1269,7 +1252,6 @@ class SymphonyKdsController extends Controller
                 'completed_msgs'  => [],
                 'completed_checks'=> [],
                 'completed_items' => [],
-                'waiter_calls'    => [],
             ]);
         }
     }

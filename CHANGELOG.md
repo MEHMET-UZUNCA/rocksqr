@@ -1,5 +1,14 @@
 
 
+## v1.0.99 - 2026-10-08
+
+### Mutfak alanından garson çağrıları kaldırıldı (Ana Mutfak KDS)
+- **Ana Mutfak (AKDS) ekranı artık bekleyen garson çağrısı kartı göstermez**: Mutfak alanında garson çağrılarına ihtiyaç olmadığından, Ana Mutfak ekranındaki kırmızı garson çağrı kartları ve ilgili altyapı tamamen kaldırıldı. Garson çağrıları bar ekranında görünmeye ve bar tarafından karşılanmaya devam eder; QR garson çağrısı akışı değişmedi.
+- **Admin paneli**: Ekran sekmesindeki "Ana Mutfak Ekran Ayarlari" bölümünden "Garson Çagrilari: Görüntülenecek Adet" alanı kaldırıldı; `ana_waiter_call_display` ayar anahtarı artık okunmaz/yazılmaz (DB'deki eski kayıt zararsız şekilde durur).
+- **/kitchen-ana/api**: Yanıttan `waiter_calls` anahtarı çıkarıldı; ekran poll ile otomatik güncellenir, kart kendiliğinden düşer.
+
+---
+
 ## v1.0.98 - 2026-10-08
 
 ### QR garson çağrısında oda numarası + bar sayaç ve SON şeridi düzeltmeleri

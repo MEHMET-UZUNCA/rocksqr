@@ -813,19 +813,9 @@
                 .catch(e => console.error(e));
         }
 
-        function buildWaiterCard(c) {
-            const callLabel = [c.table_no ? 'Masa ' + c.table_no : '', c.room_no ? 'ROOM ' + c.room_no : ''].filter(Boolean).join(' ') || 'Genel';
-            return `<div class="bg-red-950 rounded-lg p-2 border border-red-800">
-                <div class="font-bold text-red-200 text-sm flex items-center gap-1"><i class="fas fa-bell text-red-400 animate-pulse shrink-0"></i><span class="truncate">${escapeHtml(callLabel)}</span></div>
-                ${c.note ? `<p class="text-red-300 text-[11px] mt-0.5 truncate">${escapeHtml(c.note)}</p>` : ''}
-                <div class="mt-1"><span class="elapsed-counter px-2 py-0.5 rounded text-xs font-bold" data-order-time="${escapeHtml(c.order_time || '')}"></span></div>
-            </div>`;
-        }
-
         function render(data) {
             const orders = data.orders || [];
             const messages = data.messages || [];
-            const waiterCalls = data.waiter_calls || [];
             const completed = data.completed || [];
             const completedMsgs = data.completed_msgs || [];
             const completedChecks = data.completed_checks || [];
@@ -878,13 +868,13 @@
             // Hesaplar
             const grid = document.getElementById('orders-grid');
             const noOrders = document.getElementById('no-orders');
-            if (orders.length === 0 && messages.length === 0 && waiterCalls.length === 0) {
+            if (orders.length === 0 && messages.length === 0) {
                 grid.classList.add('hidden');
                 noOrders.classList.remove('hidden');
             } else {
                 noOrders.classList.add('hidden');
                 grid.classList.remove('hidden');
-                grid.innerHTML = waiterCalls.map(buildWaiterCard).join('') + orders.map(buildOrderCard).join('');
+                grid.innerHTML = orders.map(buildOrderCard).join('');
             }
 
             // Tamamlananlar → alt şerit (tek ürün onayları dahil)

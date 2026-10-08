@@ -478,12 +478,6 @@
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-bell mr-1"></i>Garson Çagrilari: Görüntülenecek Adet</label>
-                            <input type="number" min="1" max="200" name="ana_waiter_call_display" value="{{ old('ana_waiter_call_display', $settings['ana_waiter_call_display']) }}"
-                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400">
-                            <p class="text-xs text-gray-400 mt-1">Ana mutfak ekraninda bekleyen garson çagri karti adedi (1-200)</p>
-                        </div>
-                        <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-rotate-left mr-1"></i>Geri Alma Süresi (saniye)</label>
                             <input type="number" min="5" max="600" name="ana_ready_undo_seconds" value="{{ old('ana_ready_undo_seconds', $settings['ana_ready_undo_seconds']) }}"
                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400">
