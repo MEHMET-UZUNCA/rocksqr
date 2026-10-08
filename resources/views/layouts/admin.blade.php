@@ -80,18 +80,24 @@
                         </div>
                     </div>
 
-                    <a href="{{ route('admin.sync') }}"
-                       class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition {{ request()->routeIs('admin.sync') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
-                        <i class="fas fa-sync text-xs text-gold/80"></i>Sync
-                    </a>
-                    <a href="{{ route('admin.qr-codes.index') }}"
-                       class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition {{ request()->routeIs('admin.qr-codes.*') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
-                        <i class="fas fa-qrcode text-xs text-gold/80"></i>QR
-                    </a>
-                    <a href="{{ route('admin.mssql-settings') }}"
-                       class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition {{ request()->routeIs('admin.mssql-settings') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
-                        <i class="fas fa-server text-xs text-gold/80"></i>MSSQL
-                    </a>
+                    <div class="relative flex items-stretch" id="integration-menu-wrap">
+                        <button type="button" id="integration-menu-btn" aria-haspopup="true" aria-expanded="false"
+                                class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition cursor-pointer {{ request()->routeIs('admin.sync', 'admin.qr-codes.*', 'admin.mssql-settings*') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
+                            <i class="fas fa-plug text-xs text-gold/80"></i>Entegrasyon
+                            <i id="integration-menu-chevron" class="fas fa-chevron-down text-[10px] transition-transform duration-200"></i>
+                        </button>
+                        <div id="integration-menu" class="hidden absolute right-0 top-full w-52 bg-white text-gray-800 rounded-xl shadow-xl border border-gray-100 py-2 z-50">
+                            <a href="{{ route('admin.sync') }}" class="flex items-center gap-2.5 px-4 py-2.5 hover:bg-gold/10 hover:text-primary transition">
+                                <i class="fas fa-sync w-4 text-center text-sky-600"></i>Sync
+                            </a>
+                            <a href="{{ route('admin.qr-codes.index') }}" class="flex items-center gap-2.5 px-4 py-2.5 hover:bg-gold/10 hover:text-primary transition">
+                                <i class="fas fa-qrcode w-4 text-center text-emerald-600"></i>Masa QR
+                            </a>
+                            <a href="{{ route('admin.mssql-settings') }}" class="flex items-center gap-2.5 px-4 py-2.5 hover:bg-gold/10 hover:text-primary transition">
+                                <i class="fas fa-server w-4 text-center text-amber-600"></i>MSSQL
+                            </a>
+                        </div>
+                    </div>
                     <a href="{{ route('admin.reports.kitchen') }}"
                        class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition {{ request()->routeIs('admin.reports.*') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
                         <i class="fas fa-chart-line text-xs text-gold/80"></i>Raporlar
@@ -150,7 +156,7 @@
                 </div>
 
                 <div>
-                    <p class="text-[11px] uppercase tracking-[0.2em] text-gold/70 font-semibold mb-2 px-3">Yönetim</p>
+                    <p class="text-[11px] uppercase tracking-[0.2em] text-gold/70 font-semibold mb-2 px-3">Entegrasyon</p>
                     <div class="space-y-0.5">
                         <a href="{{ route('admin.sync') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
                             <i class="fas fa-sync w-5 text-center text-gold/80"></i>Sync
@@ -161,6 +167,12 @@
                         <a href="{{ route('admin.mssql-settings') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
                             <i class="fas fa-server w-5 text-center text-gold/80"></i>MSSQL
                         </a>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="text-[11px] uppercase tracking-[0.2em] text-gold/70 font-semibold mb-2 px-3">Yönetim</p>
+                    <div class="space-y-0.5">
                         <a href="{{ route('admin.reports.kitchen') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
                             <i class="fas fa-chart-line w-5 text-center text-gold/80"></i>Raporlar
                         </a>
@@ -214,34 +226,50 @@
 
     <script>
         (function () {
-            var wrap = document.getElementById('screen-menu-wrap');
-            var btn = document.getElementById('screen-menu-btn');
-            var menu = document.getElementById('screen-menu');
-            var chevron = document.getElementById('screen-menu-chevron');
-
-            function closeScreenMenu() {
-                if (!menu) return;
-                menu.classList.add('hidden');
-                chevron.classList.remove('rotate-180');
-                btn.setAttribute('aria-expanded', 'false');
+            function setupMenu(base) {
+                var wrap = document.getElementById(base + '-wrap');
+                var btn = document.getElementById(base + '-btn');
+                var menu = document.getElementById(base);
+                var chevron = document.getElementById(base + '-chevron');
+                if (!wrap || !btn || !menu || !chevron) return null;
+                return {
+                    wrap: wrap,
+                    close: function () {
+                        menu.classList.add('hidden');
+                        chevron.classList.remove('rotate-180');
+                        btn.setAttribute('aria-expanded', 'false');
+                    },
+                    toggle: function (e) {
+                        e.stopPropagation();
+                        var willOpen = menu.classList.contains('hidden');
+                        document.dispatchEvent(new CustomEvent('nav-dropdown-close'));
+                        if (willOpen) {
+                            menu.classList.remove('hidden');
+                            chevron.classList.add('rotate-180');
+                            btn.setAttribute('aria-expanded', 'true');
+                        }
+                    }
+                };
             }
 
-            if (wrap && btn && menu && chevron) {
-                btn.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    if (menu.classList.contains('hidden')) {
-                        menu.classList.remove('hidden');
-                        chevron.classList.add('rotate-180');
-                        btn.setAttribute('aria-expanded', 'true');
-                    } else {
-                        closeScreenMenu();
-                    }
+            var menus = [];
+            ['screen-menu', 'integration-menu'].forEach(function (base) {
+                var m = setupMenu(base);
+                if (m) {
+                    menus.push(m);
+                    document.getElementById(base + '-btn').addEventListener('click', m.toggle);
+                }
+            });
+
+            if (menus.length) {
+                document.addEventListener('nav-dropdown-close', function () {
+                    menus.forEach(function (m) { m.close(); });
                 });
                 document.addEventListener('click', function (e) {
-                    if (!wrap.contains(e.target)) closeScreenMenu();
+                    menus.forEach(function (m) { if (!m.wrap.contains(e.target)) m.close(); });
                 });
                 document.addEventListener('keydown', function (e) {
-                    if (e.key === 'Escape') closeScreenMenu();
+                    if (e.key === 'Escape') menus.forEach(function (m) { m.close(); });
                 });
             }
 

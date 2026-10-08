@@ -37,7 +37,6 @@ class SettingsController extends Controller
             'bar_screen_title' => Setting::get('bar_screen_title', 'KDS - Bar Ekrani'),
             'screen_clock_source' => \App\Support\Clock::source(),
             'kitchen_screen_title' => Setting::get('kitchen_screen_title', 'POOL Mutfak Ekrani'),
-            'waiter_call_display' => (int) Setting::get('waiter_call_display', 10),
             'kitchen_check_close_wait' => Setting::get('kitchen_check_close_wait', '1'),
             'ana_screen_title' => Setting::get('ana_screen_title', 'Ana Mutfak Ekrani'),
             'ana_completed_display' => (int) Setting::get('ana_completed_display', 6),
@@ -251,12 +250,10 @@ class SettingsController extends Controller
             $request->validate([
                 'kitchen_screen_title'       => 'nullable|string|max:255',
                 'kitchen_completed_display'  => 'required|integer|min:1|max:100',
-                'waiter_call_display'        => 'required|integer|min:1|max:200',
                 'ready_undo_seconds'         => 'required|integer|min:5|max:600',
             ]);
             Setting::set('kitchen_screen_title', $request->kitchen_screen_title ?: 'POOL Mutfak Ekrani');
             Setting::set('kitchen_completed_display', $request->kitchen_completed_display);
-            Setting::set('waiter_call_display', $request->waiter_call_display);
             Setting::set('ready_undo_seconds', $request->ready_undo_seconds);
             Setting::set('kitchen_check_close_wait', $request->boolean('kitchen_check_close_wait') ? '1' : '0');
             foreach (\App\Support\KitchenFilter::RVCS + \App\Support\KitchenFilter::ANA_RVCS as $kitchenRvcId => $_rvcName) {

@@ -515,6 +515,14 @@ class SymphonyKdsController extends Controller
 
                 $isMessage = ($lineKind === 'MESAJ');
                 $isMars    = ($lineKind === 'MARS');
+
+                // Kurs ayırıcı MARS nesneleri (9001100-9001105): trim sonrası adı boş kalan
+                // satırlar (ör. 9001101 '------------') boş 'Mars Mesajları' satırı ürettiğinden
+                // hiçbir ekrana (AKDS/KPOS) gönderilmez.
+                if ($isMars && preg_replace('/^[\s\-]+|[\s\-]+$/', '', $name) === '') {
+                    continue;
+                }
+
                 $isCombo   = ($lineKind === 'COMBO') || $isComboItem;
                 $hasCheck  = $checkNum !== null && (int) $checkNum > 0;
 

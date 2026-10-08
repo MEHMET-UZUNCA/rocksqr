@@ -36,6 +36,10 @@
                    class="flex items-center gap-2 px-5 py-3 text-sm font-medium transition border-b-2 -mb-px {{ $activeTab === 'ekran' ? 'border-blue-500 text-blue-700 bg-blue-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50' }}">
                     <i class="fas fa-tv text-xs"></i> Ekran Ayarları
                 </a>
+                <a href="{{ route('admin.settings') }}?tab=sistem"
+                   class="flex items-center gap-2 px-5 py-3 text-sm font-medium transition border-b-2 -mb-px {{ $activeTab === 'sistem' ? 'border-teal-500 text-teal-700 bg-teal-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50' }}">
+                    <i class="fas fa-gears text-xs"></i> Sistem
+                </a>
                 <a href="{{ route('admin.settings') }}?tab=subdomain"
                    class="flex items-center gap-2 px-5 py-3 text-sm font-medium transition border-b-2 -mb-px {{ $activeTab === 'subdomain' ? 'border-indigo-500 text-indigo-700 bg-indigo-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50' }}">
                     <i class="fas fa-globe text-xs"></i> Subdomain
@@ -110,21 +114,48 @@
                                placeholder="hotel, menu, qr, rocks">
                         <p class="text-xs text-gray-400 mt-1">Virgülle ayirin</p>
                     </div>
-                    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <h3 class="font-semibold text-blue-800 mb-2">
-                            <i class="fas fa-info-circle mr-1"></i>Ürün Benzersiz ID Bilgisi
-                        </h3>
-                        <p class="text-sm text-blue-700">
-                            Her ürünün veritabaninda benzersiz bir <code class="bg-blue-100 px-1 rounded">id</code> degeri vardir.
-                            <code class="bg-blue-100 px-1 rounded">mssql_id</code> alani harici sistem entegrasyonu icin kullanilabilir.
-                        </p>
-                    </div>
                     <button type="submit" class="w-full py-3 bg-primary text-white font-bold rounded-lg hover:bg-light-primary transition">
                         <i class="fas fa-save mr-2"></i>Genel Ayarlari Kaydet
                     </button>
                 </form>
 
                 <hr class="border-gray-100 my-8">
+
+                <div class="mb-2 flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center shrink-0">
+                        <i class="fas fa-clock text-sky-600"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-gray-800">Ekran Temizleme Saatleri</h3>
+                </div>
+                <form action="{{ route('admin.settings.update') }}?tab=genel" method="POST">
+                    <input type="hidden" name="_clear_times_only" value="1">
+                    @csrf
+                    @method('PUT')
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Bar Ekranı</label>
+                            <input type="time" name="screen_clear_time_bar" value="{{ old('screen_clear_time_bar', $settings['screen_clear_time_bar'] ?? '14:00') }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-400" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Mutfak KDS</label>
+                            <input type="time" name="screen_clear_time_kpos" value="{{ old('screen_clear_time_kpos', $settings['screen_clear_time_kpos'] ?? '14:00') }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-400" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Ana Mutfak (AKDS)</label>
+                            <input type="time" name="screen_clear_time_ana" value="{{ old('screen_clear_time_ana', $settings['screen_clear_time_ana'] ?? '14:00') }}"
+                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-400" required>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2">Her ekran kendi saatinde otomatik temizlenir; sadece ekrandaki bekleyenler kapatılır, kayıtlar ve rapor verileri korunur.</p>
+                    <button type="submit" class="mt-3 py-2.5 px-5 bg-sky-500 text-white font-bold rounded-lg hover:bg-sky-600 transition text-sm">
+                        <i class="fas fa-save mr-2"></i>Kaydet
+                    </button>
+                </form>
+                @endif
+
+                @if($activeTab === 'ekran')
 
                 <div class="mb-3 flex items-center gap-2">
                     <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
@@ -135,7 +166,7 @@
                         <p class="text-xs text-gray-400">Her ekranın tam ortasına ayrı logo/görsel basılır; görseli olmayan ekranda logo görünmez. PNG (şeffaf zemin önerilir), JPG veya WEBP; en fazla 8 MB. Değişiklik ekran açılışında uygulanır (F5).</p>
                     </div>
                 </div>
-                <form action="{{ route('admin.settings.update') }}?tab=genel" method="POST" enctype="multipart/form-data" class="mb-8">
+                <form action="{{ route('admin.settings.update') }}?tab=ekran" method="POST" enctype="multipart/form-data" class="mb-8">
                     <input type="hidden" name="_bg_only" value="1">
                     @csrf
                     @method('PUT')
@@ -181,43 +212,7 @@
                     </button>
                 </form>
 
-                <hr class="border-gray-100 my-8">
-
-                <div class="mb-2 flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center shrink-0">
-                        <i class="fas fa-clock text-sky-600"></i>
-                    </div>
-                    <h3 class="text-base font-bold text-gray-800">Ekran Temizleme Saatleri</h3>
-                </div>
-                <form action="{{ route('admin.settings.update') }}?tab=genel" method="POST">
-                    <input type="hidden" name="_clear_times_only" value="1">
-                    @csrf
-                    @method('PUT')
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">Bar Ekranı</label>
-                            <input type="time" name="screen_clear_time_bar" value="{{ old('screen_clear_time_bar', $settings['screen_clear_time_bar'] ?? '14:00') }}"
-                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-400" required>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">Mutfak KDS</label>
-                            <input type="time" name="screen_clear_time_kpos" value="{{ old('screen_clear_time_kpos', $settings['screen_clear_time_kpos'] ?? '14:00') }}"
-                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-400" required>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">Ana Mutfak (AKDS)</label>
-                            <input type="time" name="screen_clear_time_ana" value="{{ old('screen_clear_time_ana', $settings['screen_clear_time_ana'] ?? '14:00') }}"
-                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-sky-400" required>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-400 mt-2">Her ekran kendi saatinde otomatik temizlenir; sadece ekrandaki bekleyenler kapatılır, kayıtlar ve rapor verileri korunur.</p>
-                    <button type="submit" class="mt-3 py-2.5 px-5 bg-sky-500 text-white font-bold rounded-lg hover:bg-sky-600 transition text-sm">
-                        <i class="fas fa-save mr-2"></i>Kaydet
-                    </button>
-                </form>
-                @endif
-
-                @if($activeTab === 'ekran')
+                <hr class="border-gray-100 mb-6">
 
                 <div class="mb-2 flex items-center gap-2">
                     <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
@@ -299,11 +294,6 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-bell mr-1"></i>Garson Çagrilari: Görüntülenecek Adet</label>
-                            <input type="number" min="1" max="200" name="waiter_call_display" value="{{ old('waiter_call_display', $settings['waiter_call_display']) }}"
-                                   class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-orange-400">
-                        </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-rotate-left mr-1"></i>Geri Alma Süresi (saniye)</label>
                             <input type="number" min="5" max="600" name="ready_undo_seconds" value="{{ old('ready_undo_seconds', $settings['ready_undo_seconds']) }}"
@@ -487,16 +477,17 @@
                         <i class="fas fa-save mr-2"></i>Ana Mutfak Ayarlarini Kaydet
                     </button>
                 </form>
+                @endif
 
-                <hr class="border-gray-100 mb-6">
+                @if($activeTab === 'sistem')
 
-                <div class="mb-2 flex items-center gap-2">
+                <div class="mb-3 flex items-center gap-2">
                     <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
                         <i class="fas fa-clock text-emerald-600"></i>
                     </div>
                     <h3 class="text-base font-bold text-gray-800">Sunucu Saati</h3>
                 </div>
-                <form action="{{ route('admin.settings.update') }}?tab=ekran" method="POST" class="mb-8">
+                <form action="{{ route('admin.settings.update') }}?tab=sistem" method="POST" class="mb-8">
                     <input type="hidden" name="_clock_only" value="1">
                     @csrf
                     @method('PUT')
@@ -544,7 +535,7 @@
                         <p class="text-xs text-gray-400">Yesil (baslangic) → Sari → Turuncu → Kirmizi (dakika cinsinden)</p>
                     </div>
                 </div>
-                <form action="{{ route('admin.settings.update') }}?tab=ekran" method="POST">
+                <form action="{{ route('admin.settings.update') }}?tab=sistem" method="POST">
                     @csrf
                     @method('PUT')
                     <input type="hidden" name="_timer_only" value="1">
