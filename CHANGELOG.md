@@ -1,5 +1,16 @@
 
 
+## v1.0.91 - 2026-10-08
+
+### Check kapanma ayarı Sistem sekmesine taşındı + Bar (BDS) desteği
+- "Check kapanınca sipariş ekrandan silinsin" ayarı Ekran sekmesinden **Sistem** sekmesine taşındı; artık her ekran için ayrı tick: **Bar Ekranı (BDS)** → `bar_check_close_wait`, **Mutfak KPOS (Symphony)** → `kitchen_check_close_wait`, **Ana Mutfak (AKDS)** → `ana_check_close_wait`. Yeni kaydetme dalı `_checkclose_only`.
+- Ekran sekmesindeki kitchen/ana formlarından eski checkbox'lar kaldırıldı; bu formlardaki `Setting::set('...check_close_wait')` satırları da silindi (checkbox'lar formdan çıkınca her Ekran kaydında '0' yazılmasın diye).
+- **Bar (BDS) bekleme modu (yeni)**: işaretsizken POS'ta kapanan check bar ekranından düşmez; kart HAZIRLANAN şeridinde "KAPANDI" rozetiyle bekler. Otomatik "servis edildi" işaretleme (SON'a geçiş) yalnız sil modunda çalışır. Varsayılan '1' mevcut bar davranışını birebir korur.
+- `barApiSymphony` payload'ına `status` alanı eklendi; bar kartı imzasına (`orderSig`) status dahil edildi — check kapanınca kart rozetle yeniden render edilir.
+- benioku.txt: "Check Kapanma Davranışı" bloğu 3 anahtar (bar/kitchen/ana) olarak güncellendi.
+
+---
+
 ## v1.0.90 - 2026-10-07
 
 ### Check kapanma ters koşul düzeltmesi (repoya alındı)

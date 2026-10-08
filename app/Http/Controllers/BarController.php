@@ -298,6 +298,10 @@ class BarController extends Controller
             // RVC / Gelir Merkezi yazılım filtresi (sorgunun RVC kapsamı FULL kalır)
             $rvcFilterIds = SymphonyKdsController::parseRvcFilter((string) Setting::get('mssql_bds_rvc_filter', ''));
 
+            // Check kapanma davranışı: '1' (varsayılan) = kapanan hesap ekrandan hemen silinir,
+            // '0' = kart "KAPANDI" rozetiyle personel tamamlayana kadar ekranda bekler.
+            $barDeleteOnClose = Setting::get('bar_check_close_wait', '1') !== '0';
+
             $groups = [];
             $journalGuids = [];
             $closedCheckNums = [];
@@ -314,10 +318,11 @@ class BarController extends Controller
                     (string) $this->mssql->getField($row, ['WaiterSurname', 'waiter_surname'], '')
                 );
 
-                // v1.4: POS'ta kapanan checkler bar ekranda gösterilmez; aşağıda
-                // bar onay kayıtları "servis edildi" işaretlenir (SON şeridine düşer).
+                // POS'ta kapanan checkler sil modunda ekranda gösterilmez (aşağıda bar onay
+                // kayıtları "servis edildi" işaretlenir, SON şeridine düşer); bekleme modunda
+                // satırlar korunur, kart "KAPANDI" rozetiyle ekranda kalır.
                 $status = strtoupper((string) $this->mssql->getField($row, ['Status', 'CheckStatus', 'check_status'], ''));
-                if ($status === 'C') {
+                if ($status === 'C' && $barDeleteOnClose) {
                     if ($checkNum !== null && (string) $checkNum !== '') $closedCheckNums[(string) $checkNum] = true;
                     continue;
                 }
@@ -351,6 +356,7 @@ class BarController extends Controller
                         'check_number' => $checkNum,
                         'order_time'   => $orderTime,
                         'waiter_name'  => $waiterName,
+                        'status'       => $status,
                         'items'        => [],
                         'merge'        => [],
                     ];
@@ -502,6 +508,7 @@ class BarController extends Controller
                         ? \Carbon\Carbon::parse((string) $g['order_time'], 'Europe/Istanbul')->toIso8601String()
                         : null,
                     'seconds_ago'  => $secondsAgo,
+                    'status'       => $g['status'] ?? '',
                     'items'        => array_values($g['items']),
                 ];
             }

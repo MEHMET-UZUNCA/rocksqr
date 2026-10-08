@@ -301,15 +301,6 @@
                             <p class="text-xs text-gray-400 mt-1">Geri Al butonu bu süre çalisir</p>
                         </div>
                     </div>
-                    <div class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                        <label class="flex items-start gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
-                            <input type="checkbox" name="kitchen_check_close_wait" value="1" class="rounded mt-0.5"
-                                   @checked(old('kitchen_check_close_wait', $settings['kitchen_check_close_wait']))>
-                            <span><i class="fas fa-eraser mr-1"></i>Check kapanınca sipariş ekrandan silinsin
-                                <span class="block text-xs font-normal text-gray-400">İşaretsiz bırakılırsa POS'ta kapanan hesap, mutfak tamamlanana kadar "KAPANDI" rozetiyle ekranda bekler. Gece otomatik ekran temizliği her iki durumda da çalışır.</span>
-                            </span>
-                        </label>
-                    </div>
                     <div class="mb-4">
                         <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-filter mr-1"></i>Mutfak Ekrani Kategori Filtreleri</label>
                         @foreach (\App\Support\KitchenFilter::RVCS as $kitchenRvcId => $kitchenRvcName)
@@ -464,15 +455,6 @@
                             <p class="text-xs text-gray-400 mt-1">Ana mutfak onaylarinda Geri Al butonu bu süre çalisir</p>
                         </div>
                     </div>
-                    <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <label class="flex items-start gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
-                            <input type="checkbox" name="ana_check_close_wait" value="1" class="rounded mt-0.5"
-                                   @checked(old('ana_check_close_wait', $settings['ana_check_close_wait']))>
-                            <span><i class="fas fa-eraser mr-1"></i>Check kapanınca sipariş ekrandan silinsin
-                                <span class="block text-xs font-normal text-gray-400">İşaretsiz bırakılırsa POS'ta kapanan hesap, mutfak tamamlanana kadar "KAPANDI" rozetiyle ekranda bekler. Gece otomatik ekran temizliği her iki durumda da çalışır.</span>
-                            </span>
-                        </label>
-                    </div>
                     <button type="submit" class="py-2.5 px-5 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600 transition text-sm">
                         <i class="fas fa-save mr-2"></i>Ana Mutfak Ayarlarini Kaydet
                     </button>
@@ -585,6 +567,40 @@
                     </div>
                     <button type="submit" class="py-2.5 px-5 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition text-sm">
                         <i class="fas fa-save mr-2"></i>Sayac Esiklerini Kaydet
+                    </button>
+                </form>
+
+                <hr class="border-gray-100 mb-6">
+                <div class="mb-3 flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                        <i class="fas fa-eraser text-gray-600"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-gray-800">Check kapanınca sipariş ekrandan silinsin</h3>
+                </div>
+                <p class="text-xs text-gray-400 mb-4">İşaretsiz bırakılırsa POS'ta kapanan hesap ekranda "KAPANDI" rozetiyle bekler. Gece otomatik ekran temizliği her iki durumda da çalışır.</p>
+                <form action="{{ route('admin.settings.update') }}?tab=sistem" method="POST">
+                    <input type="hidden" name="_checkclose_only" value="1">
+                    @csrf
+                    @method('PUT')
+                    <div class="rounded-lg border border-gray-200 overflow-hidden mb-4 divide-y divide-gray-100">
+                        <label class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50">
+                            <input type="checkbox" name="bar_check_close_wait" value="1" class="rounded"
+                                   @checked(old('bar_check_close_wait', $settings['bar_check_close_wait']))>
+                            <span class="text-sm font-medium text-gray-700"><i class="fas fa-cocktail mr-1.5 text-amber-500"></i>Bar Ekranı (BDS)</span>
+                        </label>
+                        <label class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50">
+                            <input type="checkbox" name="kitchen_check_close_wait" value="1" class="rounded"
+                                   @checked(old('kitchen_check_close_wait', $settings['kitchen_check_close_wait']))>
+                            <span class="text-sm font-medium text-gray-700"><i class="fas fa-utensils mr-1.5 text-orange-500"></i>Mutfak KPOS (Symphony)</span>
+                        </label>
+                        <label class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50">
+                            <input type="checkbox" name="ana_check_close_wait" value="1" class="rounded"
+                                   @checked(old('ana_check_close_wait', $settings['ana_check_close_wait']))>
+                            <span class="text-sm font-medium text-gray-700"><i class="fas fa-fire-burner mr-1.5 text-teal-600"></i>Ana Mutfak (AKDS)</span>
+                        </label>
+                    </div>
+                    <button type="submit" class="py-2.5 px-5 bg-gray-700 text-white font-bold rounded-lg hover:bg-gray-800 transition text-sm">
+                        <i class="fas fa-save mr-2"></i>Check Kapanma Ayarlarini Kaydet
                     </button>
                 </form>
                 @endif

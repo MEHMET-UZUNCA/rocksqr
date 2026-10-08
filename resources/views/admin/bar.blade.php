@@ -502,7 +502,7 @@
 
         function orderSig(o) {
             const id = o.source === 'symphony' ? ('S:' + (o.group_key || o.check_number || o.table_no)) : ('Q:' + o.id);
-            return id + '|' + (o.bar_status || '') + (o.in_symphony ? '|S1' : '|S0') + '|' + (o.kitchen_status || '') + '|' + (o.items || []).length + '|' + (o.served_count || 0);
+            return id + '|' + (o.bar_status || '') + (o.in_symphony ? '|S1' : '|S0') + '|' + (o.kitchen_status || '') + '|' + (o.status || '') + '|' + (o.items || []).length + '|' + (o.served_count || 0);
         }
 
         function renderReadyCard(order) {
@@ -571,6 +571,7 @@
             const isSymphony = order.source === 'symphony';
             const isNew = !isSymphony && order.bar_status === 'new';
             const inSym = !isSymphony && order.in_symphony === true;
+            const isClosed = isSymphony && String(order.status || '').toUpperCase() === 'C';
 
             let borderClass, sourceBadge;
             if (isSymphony) {
@@ -664,7 +665,10 @@
                 <div class="px-1 py-0.5 bg-gray-750 border-b border-gray-700">
                     <div class="flex items-start justify-between gap-1">
                         <div class="min-w-0 leading-tight">${locLabel(order)}</div>
-                        ${sourceBadge}
+                        <div class="flex items-center gap-1 shrink-0">
+                            ${isClosed ? `<span class="px-1 py-0.5 rounded text-[8px] font-bold bg-gray-600 text-white"><i class="fas fa-lock mr-0.5"></i>KAPANDI</span>` : ''}
+                            ${sourceBadge}
+                        </div>
                     </div>
                     <div class="flex items-center justify-between gap-1 mt-0.5">
                         <span class="text-[9px] text-gray-400 truncate">${chkLabel}</span>

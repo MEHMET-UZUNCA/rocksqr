@@ -37,6 +37,7 @@ class SettingsController extends Controller
             'bar_screen_title' => Setting::get('bar_screen_title', 'KDS - Bar Ekrani'),
             'screen_clock_source' => \App\Support\Clock::source(),
             'kitchen_screen_title' => Setting::get('kitchen_screen_title', 'POOL Mutfak Ekrani'),
+            'bar_check_close_wait' => Setting::get('bar_check_close_wait', '1'),
             'kitchen_check_close_wait' => Setting::get('kitchen_check_close_wait', '1'),
             'ana_screen_title' => Setting::get('ana_screen_title', 'Ana Mutfak Ekrani'),
             'ana_completed_display' => (int) Setting::get('ana_completed_display', 6),
@@ -242,7 +243,6 @@ class SettingsController extends Controller
                 Setting::set('ana_completed_display', $request->ana_completed_display);
                 Setting::set('ana_waiter_call_display', $request->ana_waiter_call_display);
                 Setting::set('ana_ready_undo_seconds', $request->ana_ready_undo_seconds);
-                Setting::set('ana_check_close_wait', $request->boolean('ana_check_close_wait') ? '1' : '0');
                 return back()->with('success', 'Ana mutfak ekran ayarları güncellendi.');
             }
 
@@ -255,7 +255,6 @@ class SettingsController extends Controller
             Setting::set('kitchen_screen_title', $request->kitchen_screen_title ?: 'POOL Mutfak Ekrani');
             Setting::set('kitchen_completed_display', $request->kitchen_completed_display);
             Setting::set('ready_undo_seconds', $request->ready_undo_seconds);
-            Setting::set('kitchen_check_close_wait', $request->boolean('kitchen_check_close_wait') ? '1' : '0');
             foreach (\App\Support\KitchenFilter::RVCS + \App\Support\KitchenFilter::ANA_RVCS as $kitchenRvcId => $_rvcName) {
                 foreach (array_keys(\App\Support\KitchenFilter::GROUPS) as $kitchenMg) {
                     Setting::set(
@@ -332,6 +331,12 @@ class SettingsController extends Controller
             ]);
             Setting::set('screen_clock_source', $request->screen_clock_source);
             return back()->with('success', 'Ekran saati kaynağı güncellendi.');
+        } elseif ($request->has('_checkclose_only')) {
+            // Check kapanma davranışı: '1' = kapanan hesap ekrandan silinir, '0' = KAPANDI rozetiyle bekler
+            Setting::set('bar_check_close_wait', $request->boolean('bar_check_close_wait') ? '1' : '0');
+            Setting::set('kitchen_check_close_wait', $request->boolean('kitchen_check_close_wait') ? '1' : '0');
+            Setting::set('ana_check_close_wait', $request->boolean('ana_check_close_wait') ? '1' : '0');
+            return back()->with('success', 'Check kapanma davranışı güncellendi.');
         } elseif ($request->has('_kbd_only')) {
             $kbdKeys = ['home', 'end', 'card_prev', 'card_next', 'item_prev', 'item_next', 'ok', 'cancel', 'done1', 'done2', 'done3', 'done4', 'select_done', 'recall'];
             $rules = ['sc_recall_window' => 'required|integer|min:5|max:600'];

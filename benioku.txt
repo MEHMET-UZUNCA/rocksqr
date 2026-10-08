@@ -187,8 +187,11 @@ Kitchen Ekran Ayarları:
   - kitchen_completed_display : Tamamlanan sipariş listesi max adet (1-100)
   - waiter_call_display       : Garson çağrıları listesi max adet (1-200)
   - ready_undo_seconds        : Geri alma butonu aktif kalma süresi (5-600 sn)
-  - kitchen_check_close_wait  : Kapanan hesap silinsin ('1') / KAPANDI rozetiyle bekle ('0')
-  - ana_check_close_wait      : Ana mutfak için aynı ayar (ayrı anahtar)
+
+Check Kapanma Davranışı (Sistem sekmesi — her ekran için ayrı anahtar):
+  - bar_check_close_wait      : Bar (BDS) — kapanan hesap silinsin ('1') / KAPANDI rozetiyle bekle ('0')
+  - kitchen_check_close_wait  : Mutfak (KPOS) — aynı davranış (ayrı anahtar)
+  - ana_check_close_wait      : Ana Mutfak (AKDS) — aynı davranış (ayrı anahtar)
 
 Ekran Temizleme:
   - clear_time : Ekranda bekleyen kart temizleme saati (HH:MM)
