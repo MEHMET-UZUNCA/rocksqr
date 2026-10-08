@@ -1,5 +1,15 @@
 
 
+## v1.0.94 - 2026-10-08
+
+### İade ürünün açıklama ve mesaj satırları da iade görünümü alır (KPOS + AKDS)
+- **Ürün açıklaması (note)**: iade/iptal edilmiş ürünün açıklama satırı artık kırmızı + üstü çizili + yanıp sönen arka planla gösterilir (önceden sarı görünüyordu).
+- **MESAJ satırları**: POS'ta iade edilen ürünün altına serpiştirilmiş mesaj satırları (ürünle konum eşleşmesi üzerinden) üst ürün iade ise aynı iade görünümünü alır — kırmızı, üstü çizili, yanıp söner.
+- **Alt satırlar (condiment/combo)**: üst ürün iade edildiğinde alt satırlar da iade görünümünü devralır; "İade" rozeti yalnızca kendi iade bayrağı olan satırda görünür.
+- Her iki mutfak ekranına uygulandı: Mutfak (KPOS) + Ana Mutfak (AKDS). Bar (BDS) ekranı kapsam dışıdır.
+
+---
+
 ## v1.0.93 - 2026-10-08
 
 ### RECALL alanı kaldırıldı + MSSQL otomatik fiyat senkronu + Bar HAZIRLANAN filtreleri

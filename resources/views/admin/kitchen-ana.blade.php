@@ -455,12 +455,16 @@
 
             const unservedCount = (order.items || []).filter(it => !it.is_returned && !it.served).length;
 
-            // MESAJ satırları POS'taki satır konumuna (pos) göre ürünler arasına serpiştirilir
+            // MESAJ satırları POS'taki satır konumuna (pos) göre ürünler arasına serpiştirilir;
+            // hemen üstündeki ürün iade/iptal ise mesaj satırı da iade görünümü alır.
             const mesajItems = (order.messages || []).filter(m => m.line_kind !== 'MARS');
-            const msgsHtmlAt = p => mesajItems.filter(m => (m.pos ?? 0) === p).map(m => `
-                <div class="py-0.5 border-b border-gray-700">
-                    <div class="text-yellow-100 text-base leading-snug"><i class="fas fa-comment-dots mr-1 text-yellow-400"></i>${m.note ? escapeHtml(m.note) : escapeHtml(m.name)}</div>
-                </div>`).join('');
+            const msgsHtmlAt = p => mesajItems.filter(m => (m.pos ?? 0) === p).map(m => {
+                const ret = p > 0 && !!((order.items || [])[p - 1] || {}).is_returned;
+                return `
+                <div class="py-0.5 border-b border-gray-700${ret ? ' iade-blink' : ''}">
+                    <div class="${ret ? 'line-through text-red-400' : 'text-yellow-100'} text-base leading-snug"><i class="fas fa-comment-dots mr-1 ${ret ? 'text-red-400' : 'text-yellow-400'}"></i>${m.note ? escapeHtml(m.note) : escapeHtml(m.name)}</div>
+                </div>`;
+            }).join('');
 
             const itemsHtml = msgsHtmlAt(0) + (order.items || []).map((it, ri) => {
                 const isReturned  = !!it.is_returned;
@@ -502,13 +506,14 @@
                      </button>`);
 
                 const subHtml = (it.sub_items || []).map(sub => {
-                    const subRet   = !!sub.is_returned;
+                    // Üst ürün iade ise alt satırlar da iade görünümünü devralır (rozet yalnız kendi iadesinde).
+                    const subRet   = !!sub.is_returned || isReturned;
                     const subText  = subRet ? 'line-through text-red-400' : (isServed ? 'line-through text-gray-500' : 'text-gray-300');
-                    const subBadge = subRet ? `<span class="ml-1 px-1 py-0.5 rounded text-[9px] font-bold bg-red-700 text-white">İade</span>` : '';
+                    const subBadge = sub.is_returned ? `<span class="ml-1 px-1 py-0.5 rounded text-[9px] font-bold bg-red-700 text-white">İade</span>` : '';
                     return `<div class="flex items-center pl-4 py-0 text-sm${subRet ? ' iade-blink' : ''}">
                         <span class="text-amber-600 mr-1.5 select-none">└</span>
                         <span class="${subText} font-medium">${escapeHtml(sub.name)}${subBadge}</span>
-                        ${sub.note ? `<span class="text-yellow-300 ml-2 text-xs">— ${escapeHtml(sub.note)}</span>` : ''}
+                        ${sub.note ? `<span class="${subRet ? 'line-through text-red-400' : 'text-yellow-300'} ml-2 text-xs">— ${escapeHtml(sub.note)}</span>` : ''}
                     </div>`;
                 }).join('');
 
@@ -519,7 +524,7 @@
                             <div class="text-lg leading-tight ${textClass}${isReturned ? ' iade-blink' : ''}">
                                 <span class="${qtyColor} font-bold text-xl">${it.qty}x</span> <span class="font-semibold">${escapeHtml(it.name)}</span>${badge}
                             </div>
-                            ${it.note ? `<div class="text-sm text-yellow-300"><i class="fas fa-comment-dots mr-1"></i>${escapeHtml(it.note)}</div>` : ''}
+                            ${it.note ? `<div class="text-sm ${isReturned ? 'line-through text-red-400 iade-blink' : 'text-yellow-300'}"><i class="fas fa-comment-dots mr-1"></i>${escapeHtml(it.note)}</div>` : ''}
                         </div>
                         <div class="ml-2 flex-shrink-0 flex items-center gap-1.5">
                             <span class="text-xs text-gray-500 ${isServed ? 'line-through' : ''}">${formatTime(it.item_time)}</span>

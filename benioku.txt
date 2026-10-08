@@ -115,6 +115,11 @@ Mutfak ekranı (KDS):
   - İade edilen ürün satırı kırmızı ve üstü çizili gösterilir; yanında
     küçük kırmızı "İade" rozeti bulunur.
   - İade satırı yanıp söner (dikkat çekmesi için; otomatik gizlenmez).
+  - İade edilen ürünün açıklama notu da aynı stille (kırmızı, üstü çizili,
+    yanıp sönen) gösterilir.
+  - İade ürünün altına serpiştirilmiş mesaj satırları ve alt ürün satırları
+    (condiment/combo) da iade görünümünü devralır; "İade" rozeti yalnızca
+    kendi iade kaydı olan satırda görünür.
   - Ürünün net adedi esas alınır: normal + iade girişi birleşince kalan net
     adet sıfırsa satır iade olarak işaretlenir.
 
