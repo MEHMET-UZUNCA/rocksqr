@@ -1,307 +1,122 @@
-# QR Menu - Restaurant Management System
+# RocksQR
 
-A production-level Laravel 11 QR Menu and Restaurant Management System with customer ordering and admin panel for kitchen operations.
+QR menü, mutfak ve bar ekranları (KDS/BDS) ile Symphony POS entegrasyonunu
+tek çatı altında toplayan restoran/otel sipariş yönetim sistemi.
 
-## Features
+**Laravel 12 · PHP 8.2 · MySQL · Tailwind CSS**
 
-✨ **Customer Features**
-- QR Code menu with table number tracking
-- Browse items by categories
-- Product photos (optional)
-- Shopping cart system
-- Order placement with notes
-- "Call Waiter" functionality
-- Order confirmation screen
+- Müşteriler masadaki QR kodu ile sipariş verir, garson çağırır.
+- Garsonlar Symphony POS'a girdiği siparişler POS'un canlı işlem tablosundan
+  (CheckPostingDB) gerçek zamanlı okunur — adisyon açıldığı an ekranda görünür,
+  ödeme/kapanış beklemez.
+- Mutfak ve bar ekranları tarayıcı üzerinden 5 saniyelik polling ile çalışır.
 
-🔐 **Admin Features**
-- Category CRUD with sorting
-- Product CRUD with photo upload (with Product Code - MSSQL ID display)
-- Kitchen & Bar display screens (live orders with real-time updates via SSE)
-- **Symphony POS Kitchen Screen** (`/kitchen-pos`): live read-only board powered by the MSSQL KDS query (CheckNumber grouped, kitchen messages support, audio alert, complete/undo with 24h history)
-- Table number shown on kitchen order cards
-- Order status management (new → preparing → ready → completed)
-- Undo ready functionality with configurable time window
-- Waiter call management with admin notifications (call button is also available below the mobile cart)
-- MSSQL Symphony database product sync (bulk update & preview)
-  - Tabbed MSSQL Settings: separate connection + custom SQL for **Products (Symphony)** and **KDS (Kitchen)**
-  - **Query Preview** button runs the custom SELECT/WITH and shows the first 100 rows in a modal
-  - ProductCode (mssql_id) used as a stable key — re-sync updates existing products and inserts new ones (no deletes)
-  - Automatic deduplication for multi-price-level rows (RVC > Property > Enterprise)
-- Customizable kitchen & bar screen titles
-- Bar completed orders display limit configuration
-- Screen auto-clear at scheduled time each day
-- QR code generation & bulk table labeling (A4 print template, archive, ZIP download)
+Ayrıntılı çalışma senaryosu, ayar anahtarları ve MSSQL sorgu kuralları için
+[`benioku.txt`](benioku.txt) dosyasına bakın. Yazılım ön koşulları için
+[`SYSTEM_REQUIREMENTS.md`](SYSTEM_REQUIREMENTS.md) dosyasına bakın.
 
-🎨 **Design**
-- Luxury theme with dark (#1A1A2E) and gold (#D4A574) colors
-- Mobile-responsive design using Tailwind CSS
-- Fast and smooth user experience
+---
 
-## Tech Stack
+## Ekranlar
 
-- **Backend**: Laravel 11 with PHP 8.2+
-- **Database**: MySQL (qr_menu) - primary application database
-- **External Database**: MSSQL (Symphony Restaurant) - product sync via PDO
-- **Frontend**: Blade Templates, Tailwind CSS, Font Awesome 6.4.0
-- **Real-time**: Server-Sent Events (SSE) with fallback polling for kitchen/bar screens
-- **Auth**: Laravel Breeze (email/password authentication)
-- **QR Codes**: endroid/qr-code library
-- **Storage**: Laravel Storage (Local filesystem for product photos)
+| Ekran | Adres | Açıklama |
+|---|---|---|
+| Müşteri QR Menü | `/table/{masa}` | Masaya özgü mobil menü; sepet, oda numarası, garson çağrısı |
+| Bar (BDS) | `/bar` | QR + Symphony birleşik akış: gelen siparişler, POS onayı, hazırlananlar, SON şeridi, garson çağrıları |
+| Mutfak (KPOS) | `/kitchen-pos` | Symphony canlı akış; ürün bazlı "Hazır", tamamlama çipleri, geri alma, MBB-20 klavye kısayolları |
+| Ana Mutfak (AKDS) | `/kitchen-ana` | Çoklu gelir merkezini (RVC) tek ekranda birleştiren salt-görüntüleme KDS |
+| Admin Paneli | `/admin` | Kategori/ürün yönetimi, senkronizasyon, raporlar, ayarlar |
 
-## System Requirements
+### Ekran PIN kilidi
 
-- PHP 8.2+
-- MySQL 5.7+ (for application data)
-- MSSQL Server (optional, for Symphony integration)
-- Composer
-- Node.js 16+ (for frontend build tools)
-- PDO MySQL & PDO MSSQL extensions enabled (if using Symphony sync)
+Bar ve mutfak ekranları istenirse açılışta PIN ile kilitlenir
+(Admin → Ayarlar → Ekran PIN sekmesi). Yalnız ekran açılış sayfaları korunur;
+API uçları etkilenmez. Doğru PIN sonrası verilen çerez 30 gün geçerlidir,
+kiosk tarayıcı her açılışta PIN sormaz. Hatalı denemeler hız sınırına tabidir.
 
-## Installation
+---
 
-### 1. Clone and Setup
+## Sipariş Akışı (özet)
+
+1. Müşteri QR'dan sipariş verir → bar ekranında "POS BEKLENİYOR" kartı belirir.
+2. Garson aynı ürünleri Symphony POS'a girer → kart altın renge döner,
+   "Onayla (POS'ta var)" aktifleşir; çift giriş engeli masa eşleşmesiyle çalışır.
+3. Bar onaylar → mutfak ekranında ürünler tek tek "Hazır" işaretlenir
+   (istenirse "Komple Hazır").
+4. Tüm ürünler hazırlanınca kart bar ekranındaki yeşil
+   "SİPARİŞ HAZIR — SERVİSE GÖTÜR" şeridine düşer; "Servis Edildi" ile kapanır.
+5. Symphony'den ödenen/kapanan adisyonlar otomatik olarak SON şeridine iner.
+
+Garsonun doğrudan Symphony POS'a girdiği siparişler de aynı bar/mutfak
+ekranlarında canlı görünür. Aynı adisyona sonradan eklenen ürünler için
+mutfakta ayrı bir "EK" rozetli yeni kart açılır.
+
+Tam senaryo (AKDS çoklu RVC kurulumu, iade gösterimi, renk/süre eşikleri,
+kapanan hesap davranışları): [`benioku.txt`](benioku.txt)
+
+---
+
+## Kurulum
 
 ```bash
-cd rocksqr
+# 1) Bağımlılıklar
 composer install
-npm install
-```
+npm install && npm run build
 
-### 2. Environment Configuration
-
-```bash
+# 2) Yapılandırma
 cp .env.example .env
 php artisan key:generate
-```
+# .env içindeki DB_* değerlerini kendi MySQL sunucunuza göre düzenleyin
 
-Edit `.env` file with your database credentials:
-```env
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=qr_menu
-DB_USERNAME=root
-DB_PASSWORD=your_password
-```
-
-**Optional: MSSQL Symphony Integration**
-If using the MSSQL product sync or Symphony POS kitchen screen, configure via **Admin → MSSQL Settings** after database setup (no .env variables needed — settings are stored in the database). The Products and KDS tabs are independent and each has its own host/port/db/user/password and SQL query.
-
-### 3. Database Setup
-
-```bash
+# 3) Veritabanı ve depolama
 php artisan migrate
-php artisan db:seed
-```
-
-### 4. Storage Link
-
-```bash
 php artisan storage:link
 ```
 
-This creates a symlink so uploaded product photos are publicly accessible.
+MSSQL bağlantıları (Symphony) `.env` gerektirmez; kurulumdan sonra
+Admin → MSSQL Ayarları üzerinden yapılır.
 
-### 5. Build Frontend Assets
+### Cron (üretim)
 
-```bash
-npm run dev     # Development
-npm run build   # Production
-```
-
-### 6. Create Admin User (Laravel Breeze)
-
-```bash
-php artisan breeze:install blade
-php artisan migrate
-```
-
-Then create admin account through login page.
-
-### 7. Start Development Server
-
-```bash
-php artisan serve
-```
-
-Access:
-- Menu: `http://localhost:8000/menu/1` (replace 1 with table number 1-100)
-- Admin: `http://localhost:8000/login`
-
-## Project Structure
+Sunucuya dakikada bir zamanlayıcıyı tetikleyen cron kaydı ekleyin —
+gece ekran temizliği ve MSSQL otomatik fiyat senkronu bu yolla çalışır:
 
 ```
-├── app/
-│   ├── Http/
-│   │   └── Controllers/
-│   │       ├── MenuController.php       # Customer ordering
-│   │       ├── Admin/
-│   │       │   ├── CategoryController.php
-│   │       │   ├── ProductController.php
-│   │       │   ├── OrderController.php
-│   │       │   └── WaiterCallController.php
-│   ├── Models/
-│   │   ├── Category.php
-│   │   ├── Product.php
-│   │   ├── Order.php
-│   │   └── WaiterCall.php
-├── database/
-│   ├── migrations/        # Database schema
-│   └── seeders/
-├── resources/
-│   ├── views/
-│   │   ├── customer/      # Customer-facing views
-│   │   └── admin/         # Admin panel views
-│   └── css/app.css
-├── routes/
-│   └── web.php           # All routes defined here
-└── config/
-    └── database.php      # Database configuration
+* * * * * cd /proje/yolu && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-## Database Schema
+---
 
-### Categories Table
-- id, name, slug, description, sort_order, is_active, created_at, updated_at, deleted_at
+## Admin Paneli
 
-### Products Table
-- id, category_id, name, description, price, photo_path, sort_order, is_available, mssql_id, created_at, updated_at, deleted_at
+- **Kategoriler / Ürünler**: CRUD, sıralama (sürükle-bırak), toplu güncelleme/silme,
+  fotoğraf yükleme, Symphony ürün kodu (mssql_id) eşleştirme.
+- **Senkronizasyon**: MSSQL'den ürün çekme/aktarma, otomatik fiyat senkronu
+  (kapalı / her N dakikada / günlük saat).
+- **Raporlar** (3 sekmeli):
+  - *Mutfak Hazırlık*: Symphony süreleri, sipariş içerikleri, en yavaş hesaplar.
+  - *Süre Raporu*: aşama süreleri, ürüne/masaya göre kırılım, en geç hazırlanan ürünler.
+  - *Satış Raporu*: ciro, günlük/saatlik yoğunluk, ürün ve konum kırılımı,
+    garson çağrı istatistikleri.
+- **Masa QR**: toplu QR üretimi, A4 baskı, ZIP indirme, arşiv.
+- **Ayarlar**: ekran başlıkları/gösterim adetleri, sayaç renk eşikleri, ekran
+  arka plan logoları, ekran temizleme saatleri, PIN tanımları, saat kaynağı
+  seçimi, Zorunlu Alanlar (oda numarası), Oda Numaraları listesi.
+- **MSSQL Ayarları** (4 bağımsız sekme): Ürün (mssql_), Symphony Mutfak/KDS
+  (mssql_kds_), Symphony Bar/BDS (mssql_bds_), Ana Mutfak/AKDS (mssql_akds_)
+  — her sekme kendi bağlantısı, RVC filtresi ve özel SQL sorgusuyla yönetilir;
+  bağlantı testi ve sorgu önizleme içerir.
 
-### Orders Table
-- id, table_no, total_price, order_note, status (new/preparing/ready/completed), items_json, completed_at, created_at, updated_at
+---
 
-### Waiter Calls Table
-- id, table_no, status (pending/attended), note, attended_at, created_at, updated_at
+## Teknoloji
 
-## Usage Guide
+- Laravel 12 (PHP 8.2+), MySQL, Laravel Breeze kimlik doğrulama
+- Tailwind CSS, Font Awesome
+- Laravel Storage (fotoğraflar, QR arşivleri)
+- PDO SQLSRV + Microsoft ODBC Driver (Symphony MSSQL bağlantısı)
+- endroid/qr-code (QR üretimi), smalot/pdfparser (fiş çözümleme)
 
-### For Customers
+## Sürüm Geçmişi
 
-1. Scan QR code or visit `http://localhost/menu/{table_number}`
-2. Browse menu items by category
-3. Add items to cart
-4. Adjust quantities
-5. Add special notes (optional)
-6. Click "Place Order"
-7. View order confirmation
-8. Click "Call Waiter" if needed
-
-### For Admins
-
-1. Login at `/admin` (use Breeze auth)
-2. **Dashboard**: View system statistics
-3. **Categories**: Manage menu categories
-4. **Products**: Add/edit/delete products with photos
-5. **Orders**: View all orders, change status
-6. **Kitchen Screen**: Live view of pending orders at `/admin/orders/kitchen/screen`
-7. **Symphony POS Kitchen Screen**: Live MSSQL-driven view at `/kitchen-pos` (cross-linked with the local kitchen screen)
-8. **Waiter Calls**: View and mark waiter calls as attended
-9. **MSSQL Sync**: Pull products from Symphony via the configured custom query (Admin → MSSQL Settings → Products tab)
-
-## Kitchen Screen
-
-Access at: `http://localhost:8000/admin/orders/kitchen`
-
-- Auto-refreshes every 15 seconds
-- Shows NEW orders (red border) and PREPARING orders (yellow border)
-- Click status dropdown to update order status
-- Color-coded for quick visual identification
-
-## Photo Upload
-
-- Photos stored in `storage/app/public/products/`
-- Accessible via `storage/products/{filename}`
-- Max file size: 2MB
-- Supported formats: JPEG, PNG, JPG, GIF
-- Symlink created via `artisan storage:link`
-
-## MSSQL Symphony Integration
-
-All connection details are managed in the database via **Admin → MSSQL Settings** — no `.env` variables required.
-
-### Tabs
-- **Products (Symphony)**: connection + custom SELECT used by the product sync. Supports PascalCase aliases `ProductCode`, `ProductName`, `FamilyGroup`, `Price`, `PriceLevel`, `PriceLevelID`. `ProductCode` is stored on `products.mssql_id` and used as the upsert key.
-- **KDS (Kitchen)**: independent connection + custom SELECT used by the Symphony POS Kitchen Screen (`/kitchen-pos`). Expected columns include `CheckNumber`, `TableNumber`, `RvcName`, `MajGrp`, etc. Rows with `MajGrp = 99` are treated as kitchen messages; messages without a check number are surfaced as flash banners on top of the screen.
-
-Each tab has its own **Test Connection** and **Preview Query** (first 100 rows, SELECT/WITH only) buttons.
-
-## API Endpoints
-
-### Customer Routes
-- `GET /menu/{tableNo}` - View menu
-- `POST /order/{tableNo}` - Place order
-- `GET /order-success/{order}` - Order confirmation
-- `POST /waiter-call/{tableNo}` - Call waiter
-
-### Admin Routes
-- `GET /admin` - Dashboard
-- `GET/POST /admin/categories` - Category CRUD
-- `GET/POST /admin/products` - Product CRUD
-- `GET /admin/orders` - All orders
-- `GET /admin/orders/kitchen` - Kitchen screen
-- `POST /admin/orders/{order}/status` - Update order status
-- `GET /admin/waiter-calls` - Waiter calls
-- `POST /admin/waiter-calls/{call}/attended` - Mark attended
-- `GET /admin/mssql-settings` - MSSQL Symphony / KDS settings (tabs)
-- `GET /kitchen-pos` - Symphony POS Kitchen Screen
-
-## Production Checklist
-
-- [ ] Set `APP_DEBUG=false` in `.env`
-- [ ] Set strong `APP_KEY` (run `php artisan key:generate`)
-- [ ] Configure MySQL database with production credentials
-- [ ] Run `npm run build` for optimized assets
-- [ ] Set proper file permissions: `chmod -R 775 storage bootstrap/cache`
-- [ ] Configure MAIL settings for order notifications (optional)
-- [ ] Set up proper backups for database and uploads
-- [ ] Use HTTPS in production
-- [ ] Configure MSSQL Symphony / KDS connections from Admin → MSSQL Settings if using sync or `/kitchen-pos`
-- [ ] Run `php artisan config:cache` and `php artisan route:cache`
-
-## Troubleshooting
-
-### "Class 'App\Models\Category' not found"
-Run: `composer dump-autoload`
-
-### Photos not uploading
-Check storage permissions: `chmod -R 775 storage`
-Ensure symlink exists: `php artisan storage:link`
-
-### Database errors
-Verify `.env` database credentials
-Run migrations: `php artisan migrate:fresh --seed`
-
-### Frontend styles not loading
-Run: `npm run dev` or `npm run build`
-Clear cache: `php artisan cache:clear`
-
-## Performance Tips
-
-1. **Database**: Add indexes to frequently queried columns
-2. **Caching**: Enable Redis for session/cache storage
-3. **Images**: Optimize product photos before upload
-4. **CDN**: Serve static assets from CDN in production
-5. **Kitchen Screen**: Reduce refresh interval if server-sent events are implemented
-
-## Security Notes
-
-- Admin routes are protected by `auth` middleware
-- CSRF protection on all POST requests
-- SQL injection prevention via Eloquent ORM
-- File upload validation on both client and server
-- Input sanitization on all user inputs
-- Sessions expire after 120 minutes of inactivity
-
-## Support & Maintenance
-
-- Clear Laravel cache: `php artisan cache:clear`
-- Clear config cache: `php artisan config:clear`
-- View logs: `storage/logs/laravel.log`
-- Database reset: `php artisan migrate:fresh --seed`
-
-## License
-
-MIT License - feel free to use for commercial projects
-
-## Author
-
-QR Menu Development Team
+Değişikliklerin tam listesi için [`CHANGELOG.md`](CHANGELOG.md) dosyasına bakın.

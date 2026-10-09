@@ -1,5 +1,23 @@
 
 
+## v1.0.100 - 2026-10-09
+
+### Bar SON şeridi mutfak stili + mesaj çapası + gelir merkezi adı + garson çağrısı otomatik kapanma
+- **Bar SON şeridi mutfak (kitchen-pos) stiline çevrildi**: Tamamlananlar, dokunmatik kayan tek şerit + mini kart çipleri olarak gösterilir — SYM (mavi) / QR (turuncu) / İPT (kırmızı üstü çizikli) / ÇAĞRI çipleri, başlıkta Chk #, geri al butonu yok. BarController, Symphony'den tamamlananlara check_number taşır. Şeritteki çift kopya ve kaymama hatası giderildi: şerit her durumda akar, grup kopyaları maskeyi dolduracak kadar JS ile ölçeklenir, kayma yüzde tabanlıdır (yazı tipi yüklendikten sonra genişlik değişse de döngü kenarı kaymaz).
+- **SON şeridi ürün içerikleri kayan yazı**: Çip içi pencere + çift metin döngüsüyle ürün adları ve notlar kısaltılmadan gösterilir; genişlik sınırı ve kırpma kaldırıldı.
+- **SON şeridi çağrı çipleri kronolojik**: Çağrı çipleri sabit başta değil, onay (İlgilendi) / tamamlanma zamanına göre kronolojik sıraya girer — şerit doluyken yeni çip görünürlüğü garanti altına alındı; odalı çağrı çipleri "Gen" yerine ROOM numarası gösterir.
+- **Bar mesaj çapası**: MESAJ/MARS satırları DtlSeq ile kendinden önceki en yakın ANA ürün satırına bağlanır; çapa ürün mutfaktan servis edilince (mavi karttan hazır düşme) mesaj da karttan düşer. MODIFIER satırları çapa olamaz (isim bazlı servis düşmesine girmediklerinden mesajı asılı bırakır). _seq/_par çıktıya sızmaz.
+- **Bar hazırlanan check kartı**: Mutfak onaylı içerik (kitchen_pos_completions db_items) feed çözümlemesine önceliklidir — açık fiş çözümünden güvenilir, gerçek ürün listesi.
+- **Mutfak kartlarında gelir merkezi adı**: Chk numarasının yanına gelir merkezi adı eklendi (KPOS + AKDS). Bilinen gelir merkezleri sabit haritadan isim olarak çözülür (Pool Bar, Rocks Patisserie, Cafe Rocks, Minibar, Room Service, Sıralı Et); bilinmeyen RVC'de sayısal olmayan ham değer yazılır, boşsa ek yazılmaz. CHECKSİZ kartlar dahil.
+- **KDS tamamlama çipi sıkıştırıldı ve kalıcı içerik**: Çip 77→57px (line-height:0 + ticker flex-start); çip içeriği artık kalıcıdır — kitchen_pos_completions tablosuna items_list kolonu eklendi (ürün adları + açıklama notları; check tam liste / item kümülatif). ÜRÜN çipleri de kalıcı içeriği tercih eder; canlı feed yedeği notları da içerir.
+- **MBB-20 klavye gezinmesi**: SELECT PREVIOUS/NEXT yalnız hazırlanmamış ürün satırlarında yapılır (hazırlanmış ve iade satırları atlanır) — gezinme, vurgu ve DONE 1-4 aynı satır evrenini kullandığı için ürün hazırlanınca seçim bir sonraki hazırlanmamış ürüne kayar (KPOS + AKDS).
+- **Garson çağrısı otomatik kapanma işareti**: waiter_calls tablosuna auto_closed_at kolonu eklendi. Gece ekran temizliğinde (ScreenCleaner) yanıtsız kalan çağrılar otomatik kapanan olarak işaretlenir; Satış/Süre raporlarındaki çağrı istatistikleri otomatik kapananları dışarıda bırakır. Süre Raporu ibaresinde garson çağrısı sayısı gösterilir.
+- **AKDS 'TBL -' düzeltmesi**: Ana SQL sorgusuna dokunulmadan, CheckPostingDB toplu sorgusuyla eksik masa numaraları doldurulur (batch anahtarlı kartlar dahil).
+- **Carbon 3 geri alma süreleri**: diffInSeconds'in işaretli dönüşü nedeniyle çalışmayan geri alma süreleri KPOS + AKDS ekranlarında operand çevrimiyle düzeltildi.
+- **Bar QR kartı**: "POS bekleniyor" satırındaki iptal (X) butonu büyütüldü — ikon 9→12px, genişlik px-1→px-1.5, leading-none ile satır yüksekliği değişmeden dokunmatik kullanım kolaylaştı.
+
+---
+
 ## v1.0.99 - 2026-10-08
 
 ### Mutfak alanından garson çağrıları kaldırıldı (Ana Mutfak KDS)
@@ -119,6 +137,24 @@
 - Doğru PIN sonrası 30 gün geçerli APP_KEY şifreli çerez verilir — kiosk tarayıcı her açılışta PIN sormaz.
 - PIN POST'u `throttle:5,1` ile korunur (dakikada 5 deneme); CSRF korumalı.
 - Kilitlenme koruması: PIN atanmamış bir ekran için "PIN istensin" açılamaz — önce PIN atanmalıdır.
+
+---
+
+## Ara Dönem Özeti - 2026-05 → 2026-10 (v1.0.88 ile v1.0.89 arası)
+
+Bu dönemde sürüm numaraları yazılmadığı için aşağıda dönem boyunca v1.0.89–v1.0.100 girdilerinde hâlâ geçmeyen büyük işler özetlenir:
+
+- **Bar ekranı görsel yeniden tasarımı**: tek üst şerit, GELEN / HAZIRLANAN iki kolon, masa bazlı birleşik kartlar, filigran ve saat üst-ortada; TBL (masa) / RM (oda) etiketli kart kimlikleri.
+- **Symphony KDS/BDS gerçek zamanlı akış (v1.4 sorgu)**: adisyon POS'ta açıldığı an ekranda görünür, ödeme/kapanış beklemez; KDS ve BDS aynı ortak sorguyu kullanır, RVC filtresi yazılımda uygulanır.
+- **Süre Raporu + kitchen_item_logs**: ürün bazlı hazır/onay kayıtları ve aşama süreleri; en geç hazırlanan ürünler, en yavaş hesaplar, 30 günlük trend.
+- **Gece ekran temizliği**: ekran başına temizlik saati (screen_clear_time_*), ScreenCleaner komutu dakikalık zamanlayıcıyla kontrol eder.
+- **Ekran arka plan logoları**: her ekran için ayrı arka plan görseli (Ayarlar > Ekran üzerinden yönetilir).
+- **Saat kaynağı seçimi + NTP senkronu**: sayaçlar sunucu saati / DB saati / tarayıcı saati seçeneklerinden beslenir; bar PC saat kaymalarına dayanıklı.
+- **MBB-20 mutfak klavyesi**: SELECT PREVIOUS/NEXT gezinmesi, DONE 1-4 ürün tamamlama kısayolları, vurgu yönetimi (KPOS + AKDS).
+- **RVC bazlı family/açık sipariş filtreleri**: mutfak (kitchen_fg_hide_{rvc} / kitchen_open_*_{rvc}) ve bar (bar_fg_hide_44 / bar_open_*_44) için ayrı setler.
+- **kitchen_pos_completions.rvc_id + çapraz ekran sızıntısı kapatıldı**: her onay kendi gelir merkeziyle kaydedilir, SON şeridi sorguları ekran kapsamıyla filtrelenir.
+- **Çoklu fiş içerik çözümü**: POS_JOURNAL_LOG fişlerinden açık sipariş satırı içerikleri çözülür; '2x ÜRÜN' adet biçimi; MARS kurs ayırıcıları ekranda gizlenir.
+- **kitchen_item_times kalıcı sayaç**: kartın ekranda ilk görülme zamanı kalıcı tabloda tutulur; tamamlanan kart geri gelse bile sayaç sıfırlanmaz.
 
 ---
 

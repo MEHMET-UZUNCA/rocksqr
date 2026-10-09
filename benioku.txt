@@ -1,9 +1,13 @@
 RocksQR - Sistem Detayları
-Versiyon: v1.0.99 (2026-10-08)
-Güncelleme: 2026-10-08 — Ana Mutfak (AKDS) ekranındaki garson çağrı kartları
-            ve ilgili altyapı kaldırıldı (çağrılar bar ekranında ve QR
-            akışında sürer); admin Ekran sekmesindeki "Garson Çagrilari:
-            Görüntülenecek Adet" ayarı kaldırıldı
+Versiyon: v1.0.100 (2026-10-09)
+Güncelleme: 2026-10-09 — Bar SON şeridi mutfak stiline çevrildi (dokunmatik
+            kayan şerit + mini kart çipleri: SYM/QR/İPT/ÇAĞRI), ürün
+            içerikleri kısaltılmadan kayar yazıyla gösterilir, çağrı
+            çipleri kronolojik sıralandı, mesaj satırları ürün çapasına
+            bağlandı, mutfak kartlarında Chk yanına gelir merkezi adı
+            geldi, KDS çipleri sıkıştı ve kalıcı içerik kazandı, MBB-20
+            gezinmesi hazırlanmamış satırlara bağlandı, gece temizliğinde
+            yanıtsız garson çağrıları otomatik kapanan olarak işaretlenir
 =====================================
 
 Laravel 12, MySQL, Tailwind CSS ile geliştirildi.
@@ -44,7 +48,9 @@ MSSQL otomatik fiyat senkronu).
 1. Garson siparişi doğrudan Symphony POS'a girer.
 2. Bar ekranı 5 sn içinde mavi SYMPHONY kartı olarak gösterir.
    (Adisyon açıldığı anda görünür; ödeme anını beklemez.)
-3. Mutfak ekranında da Symphony rozetli kart belirir.
+3. Mutfak ekranında da Symphony rozetli kart belirler. Kart başlığında
+   Chk numarasının yanında gelir merkezi adı da gösterilir (bilinen
+   merkezler isim, bilinmeyenler ham RVC değeri olarak).
 4. Mutfak ürünleri tek tek "Hazır" işaretler; son ürünle hesap tamamlanır →
    bar yeşil şeride düşer.
 5. Bar "Servis Edildi" der → kart kalkar.
@@ -55,6 +61,9 @@ Mavi kart ek davranışı (bar GELEN kolonu):
     mavi kart bar ekranından tamamen kalkar.
   - Düşme yalnız Mutfak (KPOS) onaylarıyla çalışır; Ana Mutfak (AKDS)
     onayları bar mavi kartını etkilemez.
+  - Mesaj satırları (MESAJ/MARS) POS'ta kendinden önceki en yakın ana
+    ürün satırına bağlanır (çapa); çapa ürün mutfaktan hazır düşünce
+    mesaj da karttan düşer. MODIFIER satırları çapa olamaz.
 
 -- Sipariş Akışı C: Ana Mutfak KDS (AKDS) — çoklu gelir merkezi görüntüleme --
 
@@ -117,6 +126,22 @@ Bar ekranı:
 Mutfak ekranı (KDS):
   - Kapanan adisyonlar mutfakta otomatik düşmez; mutfak kendi manuel
     "Hazır" akışını kullanır.
+
+-- Bar SON şeridi (tamamlananlar) --
+
+  - Tamamlanan hesaplar ve karşılanan garson çağrıları ekranın altındaki
+    dokunmatik kayan şeritte mini kart çipleri olarak gösterilir
+    (mutfak KDS stili): SYM (mavi) / QR (turuncu) / İPT (kırmızı, üstü
+    çizikli) / ÇAĞRI çipleri; çip başlığında Chk # yazar.
+  - Ürün adları ve notlar kayar yazıyla kısaltılmadan gösterilir
+    (çip içi pencere + çift metin döngüsü); genişlik sınırı yoktur.
+  - Çipler kronolojik sıradadır: tamamlanma / "Ilgilendi" onay zamanına
+    göre yeniden eskiye. Odalı garson çağrısı çipleri ROOM numarası
+    gösterir.
+  - Çip içeriği kalıcıdır: tamamlama anındaki ürün listesi veritabanında
+    saklanır (items_list); ekran yenilense de çip içeriği boş kalmaz.
+  - Bar hazırlanan (yeşil) check kartının içeriği mutfak onaylı
+    kayıtlardan çözülür; açık fiş çözümü yalnız yedektir.
 
 -- İade edilen ürünler --
 
@@ -242,7 +267,12 @@ MSSQL Otomatik Fiyat Senkronu (Sistem sekmesi):
   gösterilir; hata durumunda istatistik kutusuna hata mesajı yazılır.
 
 Ekran Temizleme:
-  - clear_time : Ekranda bekleyen kart temizleme saati (HH:MM)
+  - screen_clear_time_bar  : Bar ekranı temizlik saati (HH:MM)
+  - screen_clear_time_kpos : Mutfak (KPOS) ekranı temizlik saati (HH:MM)
+  - screen_clear_time_ana : Ana Mutfak (AKDS) ekranı temizlik saati (HH:MM)
+  - Temizlikte yanıtsız kalan garson çağrıları "otomatik kapanan" olarak
+    işaretlenir (auto_closed_at); raporlardaki çağrı istatistikleri
+    otomatik kapananları dışarıda bırakır.
 
 
 --------------------------------------------------
@@ -260,7 +290,8 @@ Admin Paneli:
   - Kategori CRUD (ana/alt kategori desteği)
   - Ürün CRUD (fotoğraf yükleme, Symphony ProductCode eşleşmesi)
   - Sipariş yönetimi (QR + Symphony birleşik)
-  - Mutfak ekranı (KDS): canlı siparişler, durum güncelleme, ses uyarısı, geri al
+  - Mutfak ekranı (KDS): canlı siparişler, durum güncelleme, ses uyarısı, geri al,
+    tamamlanan siparişler kalıcı içerikli mini çipler
   - Ana Mutfak ekranı (AKDS): ayrı DB'den salt-görüntüleme, {{RVC}} filtre
   - Bar ekranı: QR onay + Symphony canlı takip, sipariş hazır şeridi
   - MSSQL Sync: lokal product code'lu ürünleri Symphony'de arar →
@@ -280,6 +311,11 @@ Teknik:
   - Font Awesome ikonlar
   - Laravel Storage (fotoğraf yükleme)
   - PDO sqlsrv MSSQL sürücüsü
+  - MBB-20 mutfak klavyesi: SELECT PREVIOUS/NEXT ürün gezinme + DONE 1-4
+    tamamlama kısayolları; gezinme yalnız hazırlanmamış ürün satırlarında
+    yapar (hazırlanmış ve iade satırları atlanır) — KPOS + AKDS
+  - Cron: dakikada bir schedule:run (gece ekran temizliği zaman kontrolü
+    + MSSQL otomatik fiyat senkronu tetiklenir)
 
 
 --------------------------------------------------
@@ -287,10 +323,14 @@ VERİTABANI TABLOLARI
 --------------------------------------------------
 
   orders                  QR siparişleri (bar_status, kitchen_status)
-  kitchen_pos_completions Symphony sipariş onay/servis takibi
+  kitchen_pos_completions Symphony sipariş onay/servis takibi (+ items_list
+                          kalıcı çip içeriği, rvc_id)
   kitchen_item_logs       Ürün bazlı hazır/onay kayıtları (süre raporu)
   kitchen_item_times      Ürünlerin ekranda ilk görülme zamanı (kalıcı sayaç)
-  waiter_calls            Masa çağrıları
+  kds_events              Mutfak geri alma işlemlerinin anlık görüntüsü
+  settings_audit_logs     Admin ayar değişiklikleri denetim kaydı
+  waiter_calls            Masa çağrıları (auto_closed_at: gece temizliğinde
+                          yanıtsız kalan çağrı işareti)
   categories              Ana ve alt kategoriler (parent_id)
   products                Ürünler (mssql_id = Symphony product code)
   settings                Tüm ayarlar (key/value)
@@ -321,3 +361,7 @@ KURULUM ADIMLARI
 5. php artisan migrate
 6. php artisan storage:link
 7. MSSQL ayarları Admin > MSSQL Ayarları üzerinden yapılır (.env gerekmez)
+8. Sunucu cron'una dakikada bir zamanlayıcı ekleyin:
+     * * * * * cd /proje/yolu && php artisan schedule:run >> /dev/null 2>&1
+   (Gece ekran temizliği zaman kontrolü + MSSQL otomatik fiyat senkronu
+   bu zamanlayıcı üzerinden çalışır.)
