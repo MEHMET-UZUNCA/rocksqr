@@ -20,10 +20,12 @@ class WaiterCall extends Model
         'status',
         'note',
         'attended_at',
+        'auto_closed_at',
     ];
 
     protected $casts = [
-        'attended_at' => 'datetime',
+        'attended_at'    => 'datetime',
+        'auto_closed_at' => 'datetime',
     ];
 
     public function markAsAttended(): void

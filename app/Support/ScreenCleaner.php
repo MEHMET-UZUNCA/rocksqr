@@ -73,8 +73,9 @@ class ScreenCleaner
             // 3) Yanitsiz garson cagrilarini yanitlandi isaretle
             WaiterCall::where('status', 'pending')
                 ->update([
-                    'status'      => 'attended',
-                    'attended_at' => $now,
+                    'status'         => 'attended',
+                    'attended_at'    => $now,
+                    'auto_closed_at' => $now,
                 ]);
 
             Setting::set("screen_clear_last_run_date_{$screen}", $now->toDateString());

@@ -262,6 +262,7 @@ class AdminReportController extends Controller
         // "Tamamlanmadan kapananlar" — otomatik ekran temizlemesinde kapatılanlar (istatistik dışı)
         $autoClosedQr  = (int) $applyRange(Order::whereNotNull('auto_closed_at'), 'completed_at')->count();
         $autoClosedSym = (int) $applyRange(DB::table('kitchen_pos_completions')->whereNotNull('auto_closed_at'), 'completed_at')->count();
+        $autoClosedCalls = (int) $applyRange(\App\Models\WaiterCall::whereNotNull('auto_closed_at'), 'created_at')->count();
 
         return view('admin.reports.durations', [
             'range'         => $range,
@@ -279,8 +280,9 @@ class AdminReportController extends Controller
             'slowProducts'  => $slowProducts,
             'slowRefs'      => $slowRefs,
             'byLoc'         => $byLoc,
-            'autoClosedQr'  => $autoClosedQr,
-            'autoClosedSym' => $autoClosedSym,
+            'autoClosedQr'    => $autoClosedQr,
+            'autoClosedSym'   => $autoClosedSym,
+            'autoClosedCalls' => $autoClosedCalls,
         ]);
     }
 
@@ -369,11 +371,11 @@ class AdminReportController extends Controller
         }
         usort($byLoc, fn ($a, $b) => $b['revenue'] <=> $a['revenue']);
 
-        // Garson çağrıları
-        $callSummary = $applyRange(\App\Models\WaiterCall::query(), 'created_at')
+        // Garson çağrıları — otomatik kapatılanlar (auto_closed_at) istatistik dışı
+        $callSummary = $applyRange(\App\Models\WaiterCall::whereNull('auto_closed_at'), 'created_at')
             ->selectRaw('COUNT(*) AS total, ROUND(AVG(CASE WHEN attended_at IS NOT NULL THEN TIMESTAMPDIFF(SECOND, created_at, attended_at) END)) AS avg_wait')
             ->first();
-        $topCallTables = $applyRange(\App\Models\WaiterCall::query(), 'created_at')
+        $topCallTables = $applyRange(\App\Models\WaiterCall::whereNull('auto_closed_at'), 'created_at')
             ->whereNotNull('table_no')
             ->selectRaw('table_no, COUNT(*) AS call_count')
             ->groupBy('table_no')
