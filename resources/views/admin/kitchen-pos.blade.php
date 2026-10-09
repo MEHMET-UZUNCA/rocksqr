@@ -167,6 +167,10 @@
         function kbdRows(card) {
             return Array.from(card.querySelectorAll('.kbd-row:not([data-kbd-ret="1"])'));
         }
+        // DONE 1-4 ile aynı evren: gezinme yalnız henüz hazırlanmamış satırlarda
+        function kbdNavRows(card) {
+            return kbdRows(card).filter(r => r.querySelector('[data-item-ready]'));
+        }
         function applyKbdSel() {
             document.querySelectorAll('#orders-grid .kbd-sel').forEach(el => el.classList.remove('kbd-sel'));
             document.querySelectorAll('#orders-grid .kbd-row-sel').forEach(el => el.classList.remove('kbd-row-sel'));
@@ -175,7 +179,7 @@
             if (!card) { kbdSel = { gk: null, mode: 'card', idx: -1 }; return; }
             card.classList.add('kbd-sel');
             if (kbdSel.mode === 'item') {
-                const rows = kbdRows(card);
+                const rows = kbdNavRows(card);
                 if (!rows.length) { kbdSel.mode = 'card'; return; }
                 kbdSel.idx = Math.min(Math.max(kbdSel.idx, 0), rows.length - 1);
                 rows[kbdSel.idx].classList.add('kbd-row-sel');
@@ -202,7 +206,7 @@
             const card = kbdCardEl(kbdSel.gk);
             if (!card) return;
             if (card.dataset.kbdQr) { showToast('QR sipariş: SELECT/DONE ile onaylanır.', 'default'); return; }
-            const rows = kbdRows(card);
+            const rows = kbdNavRows(card);
             if (!rows.length) return;
             if (kbdSel.mode !== 'item') { kbdSel.mode = 'item'; kbdSel.idx = dir > 0 ? 0 : rows.length - 1; }
             else { kbdSel.idx = Math.min(Math.max(kbdSel.idx + dir, 0), rows.length - 1); }
@@ -213,7 +217,7 @@
             const card = kbdCardEl(kbdSel.gk);
             if (!card) return;
             if (card.dataset.kbdQr) { showToast('QR siparişte ürün tek tek hazırlanmaz; SELECT/DONE ile onaylayın.', 'error'); return; }
-            const rows = kbdRows(card).filter(r => r.querySelector('[data-item-ready]'));
+            const rows = kbdNavRows(card);
             const row = rows[n - 1];
             if (!row) { showToast(n + '. sırada hazırlanacak ürün yok.', 'error'); return; }
             serveItem(row.querySelector('[data-item-ready]'));
