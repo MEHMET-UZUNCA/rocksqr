@@ -239,7 +239,12 @@ class BarController extends Controller
             ->orderBy('completed_at', 'desc')
             ->limit($completedLimit)
             ->get()
-            ->map(fn ($order) => $this->mapOrder($order))
+            ->map(function ($order) {
+                $mapped = $this->mapOrder($order);
+                // SON seridi kronolojik birlestirme icin QR siparise de epoch tasi (mapOrder'a dokunulmaz)
+                $mapped['completed_at_ts'] = $order->completed_at?->getTimestamp() ?? 0;
+                return $mapped;
+            })
             ->values()
             ->all();
 
@@ -320,6 +325,7 @@ class BarController extends Controller
                 'room_no'     => $call->room_no,
                 'note'        => $call->note,
                 'attended_at' => $call->attended_at?->format('H:i:s') ?? '',
+                'attended_ts' => (int) ($call->attended_at?->getTimestamp() ?? 0),
                 'seconds_ago' => (int) ($call->attended_at?->diffInSeconds(now()) ?? 0),
             ]);
 

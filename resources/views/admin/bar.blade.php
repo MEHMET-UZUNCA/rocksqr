@@ -808,31 +808,39 @@
                 const contentText = summary || '—';
                 const contentCls  = isCancelled ? 'text-gray-400 line-through' : 'text-gray-300';
 
-                return `<div class="flex-shrink-0 border ${borderCls} rounded-lg overflow-hidden max-w-[240px]">
-                    <div class="${accentCls} px-1.5" style="padding-top:4px;padding-bottom:3px">
-                        <div class="flex items-center gap-1 leading-none flex-wrap" style="margin-bottom:2px">${titleHtml}</div>
-                        <div class="overflow-hidden" style="line-height:0">
-                            <span class="bar-chip-text text-[10px] ${contentCls}" style="line-height:1.2">${escapeHtml(contentText)}</span>
+                // t: tamamlanma epoch'u - SON seridinde cagrilarla kronolojik birlesme icin
+                return {
+                    t: order.completed_at_ts || 0,
+                    html: `<div class="flex-shrink-0 border ${borderCls} rounded-lg overflow-hidden max-w-[240px]">
+                        <div class="${accentCls} px-1.5" style="padding-top:4px;padding-bottom:3px">
+                            <div class="flex items-center gap-1 leading-none flex-wrap" style="margin-bottom:2px">${titleHtml}</div>
+                            <div class="overflow-hidden" style="line-height:0">
+                                <span class="bar-chip-text text-[10px] ${contentCls}" style="line-height:1.2">${escapeHtml(contentText)}</span>
+                            </div>
                         </div>
-                    </div>
-                </div>`;
+                    </div>`
+                };
             });
 
             const callChips = (attendedCalls || []).map(call => {
                 const tableLabel = [call.table_no ? 'M' + call.table_no : '', call.room_no ? 'ROOM' + call.room_no : ''].filter(Boolean).join(' ') || 'Gen';
                 const titleHtml = `<span class="font-bold text-red-200 text-xs">${escapeHtml(tableLabel)}</span><span class="px-1 py-0.5 rounded text-[9px] font-bold bg-red-700 text-red-100">ÇAĞRI</span>`;
-                return `<div class="flex-shrink-0 border border-red-800 rounded-lg overflow-hidden max-w-[240px]">
-                    <div class="bg-red-950/60 px-1.5" style="padding-top:4px;padding-bottom:3px">
-                        <div class="flex items-center gap-1 leading-none flex-wrap" style="margin-bottom:2px">${titleHtml}</div>
-                        <div class="overflow-hidden" style="line-height:0">
-                            <span class="bar-chip-text text-[10px] text-red-300" style="line-height:1.2">${escapeHtml(call.note) || 'Çağrı'}</span>
+                // t: Ilgilendilme (onay) epoch'u - kronolojik birlesme icin
+                return {
+                    t: call.attended_ts || 0,
+                    html: `<div class="flex-shrink-0 border border-red-800 rounded-lg overflow-hidden max-w-[240px]">
+                        <div class="bg-red-950/60 px-1.5" style="padding-top:4px;padding-bottom:3px">
+                            <div class="flex items-center gap-1 leading-none flex-wrap" style="margin-bottom:2px">${titleHtml}</div>
+                            <div class="overflow-hidden" style="line-height:0">
+                                <span class="bar-chip-text text-[10px] text-red-300" style="line-height:1.2">${escapeHtml(call.note) || 'Çağrı'}</span>
+                            </div>
                         </div>
-                    </div>
-                </div>`;
+                    </div>`
+                };
             });
 
-            // Cagri cipleri BASTA - serit 12 ciple dolup tastiginda saga eklenen cip gorunmez alanda kaliyor
-            const chips = [...callChips, ...orderChips].join('');
+            // Cipler onay/tamamlanma zamanina gore yeniden eskiye birlesir - cagri ve siparis ayni kronolojide
+            const chips = [...callChips, ...orderChips].sort((a, b) => b.t - a.t).map(c => c.html).join('');
             if (chips === _lastCompletedKey) return; // icerik ayniysa DOM'a dokunma - kayar yazi bastan baslamasin
             _lastCompletedKey = chips;
 
