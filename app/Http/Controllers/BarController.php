@@ -419,6 +419,9 @@ class BarController extends Controller
                 $fc = ($lineType === 'BAR_MESSAGE' || ($lineType === 'MESAJ' && $objNo === 9001020)) ? 98 : $mg;
                 // FamGrpObjNum AS FamilyGroupID — bar tick/panelleri family gizlemeyi istemci tarafinda uygular
                 $famGrp = (int) $this->mssql->getField($row, ['FamilyGroupID', 'family_group_id', 'FamGrpObjNum', 'fam_grp_obj_num'], 0);
+                // Mesaj çapası: DtlSeq = POS fiş satır sırası, ParentItemID = 0 ise ana satır
+                $dtlSeq = (int) $this->mssql->getField($row, ['DtlSeq', 'dtl_seq', 'DetailIndex', 'detail_index'], 0);
+                $parId  = (int) $this->mssql->getField($row, ['ParentItemID', 'parent_item_id'], 0);
 
                 if (!isset($groups[$key])) {
                     $groups[$key] = [
@@ -438,7 +441,7 @@ class BarController extends Controller
 
                 if ($lineType === 'MESAJ' || $lineType === 'MARS') {
                     // Mesaj satırları birleştirilmez; metin fiş çözümünden gelir
-                    $entry = ['name' => $itemName, 'qty' => max(1, $rowQty), 'note' => $note, 'mg' => $mg, 'fc' => $fc, 'fam' => $famGrp, 'is_returned' => false];
+                    $entry = ['name' => $itemName, 'qty' => max(1, $rowQty), 'note' => $note, 'mg' => $mg, 'fc' => $fc, 'fam' => $famGrp, 'is_returned' => false, '_seq' => $dtlSeq];
                     if ($lineType === 'MESAJ' && $checkGid !== '') {
                         $entry['_gid'] = $checkGid;
                         $journalGuids[$checkGid] = true;
@@ -466,6 +469,8 @@ class BarController extends Controller
                         'qty_returned' => $rowQty < 0 ? abs($rowQty) : 0,
                         'row_count'    => 1,
                         'is_returned'  => (bool) (int) $this->mssql->getField($row, ['IsReturned', 'is_returned'], 0) || $rowQty < 0,
+                        '_seq'         => $dtlSeq,
+                        '_par'         => $parId,
                     ];
                     // Açık satır: gerçek içerik POS_JOURNAL_LOG fişinden çözülür
                     if ($isOpenRow && $checkGid !== '') {
@@ -559,10 +564,40 @@ class BarController extends Controller
             }
             unset($g);
 
+            // Mesaj çapası: her mesaj satırı POS fiş sırasında (DtlSeq) kendisinden önce
+            // gelen en yakın ANA ürün satırına bağlanır. Yan ürün (modifier) satırları çapa
+            // olamaz — isim bazlı servis düşmeye girmediklerinden mesajı asılı bırakırlar.
+            // _seq/_par bu geçişte tüm satırlardan silinir; JSON çıktısına sızamaz.
+            $msgAnchors = [];
+            foreach ($groups as $gKey => &$g) {
+                $prodSeqs = [];
+                foreach ($g['items'] as $idx => &$it) {
+                    $seq = (int) ($it['_seq'] ?? 0);
+                    $par = (int) ($it['_par'] ?? 0);
+                    unset($it['_seq'], $it['_par']);
+                    if ((int) ($it['fc'] ?? 0) === 98 || (int) ($it['fc'] ?? 0) === 99) {
+                        $best = null;
+                        $bestSeq = -1;
+                        foreach ($prodSeqs as $pIdx => $pSeq) {
+                            if ($pSeq < $seq && $pSeq > $bestSeq) {
+                                $bestSeq = $pSeq;
+                                $best = $pIdx;
+                            }
+                        }
+                        if ($best !== null) $msgAnchors[$gKey][$idx] = $best;
+                    } elseif ($par === 0) {
+                        $prodSeqs[$idx] = $seq;
+                    }
+                }
+                unset($it);
+            }
+            unset($g);
+
             // Mavi karttan hazır düşme: mutfak (KPOS) onayları ürün adı+adet eşleşmesiyle
             // canlı feed satırlarından sırayla düşülür. delivered_at filtresi YOKTUR —
             // garsona teslim edilmiş ürün de servis edilmiş sayılır, mavi karta geri dönmez.
-            // Mesaj/MARS ve iade satırları eşleşmeye girmez; tüm ürünleri düşen kart komple kaybolur.
+            // Mesaj/MARS ve iade satırları eşleşmeye girmez; çapa ürünü servis edilen mesaj da
+            // düşer (mutfaktaki batch kart davranışına parite), tüm ürünleri düşen kart komple kaybolur.
             $visibleChecks = [];
             foreach ($groups as $g) {
                 $cn = trim((string) ($g['check_number'] ?? ''));
@@ -592,11 +627,18 @@ class BarController extends Controller
                     $remaining    = $servedTally[$cn];
                     $hadProduct   = false;
                     $keptProduct  = false;
+                    $servedRows   = [];
                     $newItems     = [];
-                    foreach ($gVal['items'] as $it) {
+                    foreach ($gVal['items'] as $idx => $it) {
                         $fc   = (int) ($it['fc'] ?? 0);
                         $nm   = trim((string) ($it['name'] ?? ''));
-                        if (!empty($it['is_returned']) || $fc === 98 || $fc === 99 || $nm === '') {
+                        if (!empty($it['is_returned']) || $nm === '') {
+                            $newItems[] = $it;
+                            continue;
+                        }
+                        if ($fc === 98 || $fc === 99) {
+                            $anchor = $msgAnchors[$gKey][$idx] ?? null;
+                            if ($anchor !== null && isset($servedRows[$anchor])) continue; // çapa ürünü servis edildi → mesaj düşer
                             $newItems[] = $it;
                             continue;
                         }
@@ -607,6 +649,7 @@ class BarController extends Controller
                             $remaining[$nm] = ($remaining[$nm] ?? 0) - $take;
                         }
                         if ($take >= $need) {
+                            $servedRows[$idx] = true;
                             continue; // satır tamamen servis edildi
                         }
                         $it['qty']  = $need - $take;
