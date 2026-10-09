@@ -317,6 +317,7 @@ class BarController extends Controller
             ->map(fn ($call) => [
                 'id'          => $call->id,
                 'table_no'    => $call->table_no,
+                'room_no'     => $call->room_no,
                 'note'        => $call->note,
                 'attended_at' => $call->attended_at?->format('H:i:s') ?? '',
                 'seconds_ago' => (int) ($call->attended_at?->diffInSeconds(now()) ?? 0),

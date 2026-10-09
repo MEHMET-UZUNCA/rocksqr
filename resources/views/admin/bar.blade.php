@@ -831,7 +831,8 @@
                 </div>`;
             });
 
-            const chips = [...orderChips, ...callChips].join('');
+            // Cagri cipleri BASTA - serit 12 ciple dolup tastiginda saga eklenen cip gorunmez alanda kaliyor
+            const chips = [...callChips, ...orderChips].join('');
             if (chips === _lastCompletedKey) return; // icerik ayniysa DOM'a dokunma - kayar yazi bastan baslamasin
             _lastCompletedKey = chips;
 
