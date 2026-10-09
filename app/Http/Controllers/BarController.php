@@ -139,8 +139,8 @@ class BarController extends Controller
         // Symphony KDS onayları — delivered_at IS NULL olanlar bar "servise götür" şeridinde.
         // Kart adisyon bazlı TEK karttır: batch (#2 gibi) grup anahtarları ve kısmi
         // (kind=item) onaylar aynı check altında tek kartta toplanır; içerik en güncel
-        // onaydan gelir. kind=check kartları canlı feed'den çözülür; feed'de yoksa
-        // db_items (onay anında persist edilen ürün listesi) yedek içerik olur.
+        // onaydan gelir. kind=check kartı içeriği mutfak onaylı ürün listesidir
+        // (db_items); canlı feed yalnız onay kaydında isim yoksa yedektir.
         $symphonyRows = DB::table('kitchen_pos_completions')
             ->where($kposScope)
             ->whereNull('delivered_at')

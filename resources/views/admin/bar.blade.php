@@ -220,14 +220,18 @@
         }
 
         // Gizli kategoriler elenmiş ürün listesi; Symphony hazır kartındaki
-        // 'Adisyon #' yer tutucusu lastSymOrders'tan gerçek ürünlerle çözülür.
+        // 'Adisyon #' yer tutucusu mutfak onaylı içerikten (db_items) çözülür, o boşsa feed'den.
         // Mesaj satırları (tick 98/99) yalnızca kartta yiyecek varsa gösterilir.
         function visibleItems(order) {
             let items = parseItems(order);
             if (order.source === 'symphony' && items.length === 1 && String(items[0].name || '').startsWith('Adisyon #')) {
-                const match = findSymOrder(order);
-                if (match && match.items && match.items.length > 0) items = match.items;
-                else if (Array.isArray(order.db_items) && order.db_items.length > 0) items = order.db_items;
+                // Mutfak onaylı içerik (db_items) önceliklidir; onay sonrası feed'de
+                // yalnız kalan içecek göründüğünden feed çözümlemesi yedektir.
+                if (Array.isArray(order.db_items) && order.db_items.length > 0) items = order.db_items;
+                else {
+                    const match = findSymOrder(order);
+                    if (match && match.items && match.items.length > 0) items = match.items;
+                }
             }
             // Gizli family (FamGrp) ürünleri elenir; sonra kategori/mesaj filtreleri uygulanır.
             items = items.filter(i => !(i.fam && BAR_FAM_HIDE.includes(i.fam)));
