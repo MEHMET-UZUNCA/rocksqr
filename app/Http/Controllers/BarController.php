@@ -272,6 +272,7 @@ class BarController extends Controller
                 'id'              => 0,
                 'source'          => 'symphony',
                 'group_key'       => $row->group_key,
+                'check_number'    => $row->check_number !== null ? trim((string) $row->check_number) : null,
                 'table_no'        => $row->table_no,
                 'items'           => $itemsArr,
                 'total_price'     => 0,
