@@ -5,6 +5,7 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\AdminCategoryController;
 use App\Http\Controllers\AdminProductController;
 use App\Http\Controllers\AdminReportController;
+use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\BarController;
 use App\Http\Controllers\SymphonyKdsController;
 use App\Http\Controllers\SettingsController;
@@ -66,6 +67,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     })->name('dashboard');
 
     Route::resource('categories', AdminCategoryController::class)->except(['show']);
+    Route::resource('users', AdminUserController::class)->except(['show']);
     Route::get('products/for-reorder', [AdminProductController::class, 'forReorder'])->name('products.for-reorder');
     Route::post('products/reorder', [AdminProductController::class, 'reorder'])->name('products.reorder');
     Route::resource('products', AdminProductController::class)->except(['show']);

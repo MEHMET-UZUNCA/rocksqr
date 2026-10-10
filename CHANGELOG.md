@@ -1,5 +1,15 @@
 
 
+## v1.0.101 - 2026-10-10
+
+### AdminLTE görünümlü sidebar yerleşimi + Kullanıcılar modülü
+- **Admin paneli sol menülü (sidebar) yerleşime geçti**: Klasik yönetim paneli görünümünde, solda sabit lacivert (marka #1A1A2E) menü çubuğu + üstte ince başlık çubuğu. Tüm mevcut menü öğeleri korundu: Dashboard/Kategoriler/Ürünler üst bölümde; Ekranlar, Entegrasyon, Yönetim başlıklı gruplar altında. Aktif sayfa altın vurgu ile işaretlenir. Mobilde menü hamburger butonuyla açılır (karartma katmanı ve ESC ile kapanır). İçerik sayfalarına dokunulmadı; yalnızca yerleşim çerçevesi (layouts/admin.blade.php) değişti. KDS/QR ekranları bu değişikliğin dışındadır.
+- **Kullanıcılar modülü**: Yeni "Kullanıcılar" sayfası ile yönetim paneli kullanıcıları listelenir, eklenir, düzenlenir ve silinir. E-posta benzersizliği doğrulanır; şifreler en az 8 karakter + tekrar alanı ile bcrypt kullanılarak saklanır (düzenlemede şifre boş bırakılırsa değişmez). Kendi hesabınız ve sistemdeki son kullanıcı silinemez. Mevcut kullanıcılar tablosu kullanıldı; veritabanı değişikliği yoktur.
+- **Oturum hata bildirimleri**: Yerleşim, oturum bazlı hata mesajlarını (ör. "Son kullanıcı silinemez.") artık kırmızı bilgi kutusunda gösterir.
+- **Dağıtım öncesi tam yedek**: v1.0.101 canlıya alınmadan önce tam yedek alındı (veritabanı dump + public/images + .env kopyası; sunucuda /root/rocksqr-backup-2026-10-10 ve geliştirme klasöründe backups/ altında).
+
+---
+
 ## v1.0.100 - 2026-10-09
 
 ### Bar SON şeridi mutfak stili + mesaj çapası + gelir merkezi adı + garson çağrısı otomatik kapanma

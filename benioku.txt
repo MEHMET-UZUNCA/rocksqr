@@ -1,13 +1,12 @@
 RocksQR - Sistem Detayları
-Versiyon: v1.0.100 (2026-10-09)
-Güncelleme: 2026-10-09 — Bar SON şeridi mutfak stiline çevrildi (dokunmatik
-            kayan şerit + mini kart çipleri: SYM/QR/İPT/ÇAĞRI), ürün
-            içerikleri kısaltılmadan kayar yazıyla gösterilir, çağrı
-            çipleri kronolojik sıralandı, mesaj satırları ürün çapasına
-            bağlandı, mutfak kartlarında Chk yanına gelir merkezi adı
-            geldi, KDS çipleri sıkıştı ve kalıcı içerik kazandı, MBB-20
-            gezinmesi hazırlanmamış satırlara bağlandı, gece temizliğinde
-            yanıtsız garson çağrıları otomatik kapanan olarak işaretlenir
+Versiyon: v1.0.101 (2026-10-10)
+Güncelleme: 2026-10-10 — Admin paneli solda sabit lacivert/altın menülü
+            (AdminLTE tarzı) yerleşime geçti; içerik sayfaları korunarak
+            yalnızca çerçeve yenilendi. Yeni Kullanıcılar sayfası ile
+            panel kullanıcıları ekleme/düzenleme/silme yapılabilir
+            (kendi hesabı ve son kullanıcı silinemez, şifre en az 8
+            karakter). Mobilde menü hamburger ile açılır. Veritabanı
+            değişikliği yoktur; güncelleme öncesi tam yedek alındı.
 =====================================
 
 Laravel 12, MySQL, Tailwind CSS ile geliştirildi.

@@ -36,256 +36,195 @@
              style="max-height:{{ $screenBgSize }}vh;max-width:{{ $screenBgSize }}vw;object-fit:contain;opacity:{{ round($screenBgOpacity / 100, 2) }};filter:brightness(0.45)">
     </div>
     @endif
-    <nav class="bg-primary text-white shadow-lg sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6">
-            <div class="flex justify-between items-center h-16">
-                <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2 text-lg font-bold text-gold shrink-0">
-                    @if(\App\Models\Setting::get('logo_svg'))
-                        <div class="h-9 w-auto [&>svg]:max-h-full [&>svg]:w-auto">{!! \App\Models\Setting::get('logo_svg') !!}</div>
-                    @else
-                        <i class="fas fa-utensils"></i><span class="hidden sm:inline">Rocks QR Menü</span><span class="sm:hidden">Rocks</span>
-                    @endif
+
+    <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-black/50 z-40 xl:hidden"></div>
+
+    <aside id="sidebar"
+           class="fixed inset-y-0 left-0 w-64 bg-primary text-white shadow-xl z-50 transform -translate-x-full xl:translate-x-0 transition-transform duration-200 flex flex-col">
+        <div class="h-16 flex items-center gap-2.5 px-5 border-b border-white/10 shrink-0">
+            <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2.5 text-lg font-bold text-gold min-w-0">
+                @if(\App\Models\Setting::get('logo_svg'))
+                    <span class="h-8 w-auto inline-flex items-center [&>svg]:max-h-full [&>svg]:w-auto">{!! \App\Models\Setting::get('logo_svg') !!}</span>
+                @else
+                    <i class="fas fa-utensils"></i>
+                    <span class="truncate">Rocks QR Menü</span>
+                @endif
+            </a>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-5">
+            <div class="space-y-0.5">
+                <a href="{{ route('admin.dashboard') }}"
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('admin.dashboard') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
+                    <i class="fas fa-tachometer-alt w-5 text-center {{ request()->routeIs('admin.dashboard') ? 'text-gold' : 'text-gold/70' }}"></i>Dashboard
                 </a>
+                <a href="{{ route('admin.categories.index') }}"
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('admin.categories.*') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
+                    <i class="fas fa-folder w-5 text-center {{ request()->routeIs('admin.categories.*') ? 'text-gold' : 'text-gold/70' }}"></i>Kategoriler
+                </a>
+                <a href="{{ route('admin.products.index') }}"
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('admin.products.*') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
+                    <i class="fas fa-box w-5 text-center {{ request()->routeIs('admin.products.*') ? 'text-gold' : 'text-gold/70' }}"></i>Ürünler
+                </a>
+            </div>
 
-                <div class="hidden xl:flex items-stretch h-full">
-                    <a href="{{ route('admin.dashboard') }}"
-                       class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition {{ request()->routeIs('admin.dashboard') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
-                        <i class="fas fa-tachometer-alt text-xs text-gold/80"></i>Dashboard
+            <div>
+                <p class="px-3 text-[11px] uppercase tracking-[0.2em] text-gold/70 font-semibold mb-1.5">Ekranlar</p>
+                <div class="space-y-0.5">
+                    <a href="{{ route('bar') }}"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('bar') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
+                        <i class="fas fa-wine-glass w-5 text-center {{ request()->routeIs('bar') ? 'text-gold' : 'text-purple-400' }}"></i>Bar Ekranı
                     </a>
-                    <a href="{{ route('admin.categories.index') }}"
-                       class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition {{ request()->routeIs('admin.categories.*') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
-                        <i class="fas fa-folder text-xs text-gold/80"></i>Kategoriler
+                    <a href="{{ route('kitchen.pos') }}"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('kitchen.pos') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
+                        <i class="fas fa-server w-5 text-center {{ request()->routeIs('kitchen.pos') ? 'text-gold' : 'text-sky-400' }}"></i>Kitchen - Symphony
                     </a>
-                    <a href="{{ route('admin.products.index') }}"
-                       class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition {{ request()->routeIs('admin.products.*') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
-                        <i class="fas fa-box text-xs text-gold/80"></i>Ürünler
+                    <a href="{{ route('kitchen.ana') }}"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('kitchen.ana') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
+                        <i class="fas fa-fire-burner w-5 text-center {{ request()->routeIs('kitchen.ana') ? 'text-gold' : 'text-teal-400' }}"></i>Ana Mutfak (AKDS)
                     </a>
+                </div>
+            </div>
 
-                    <div class="relative flex items-stretch" id="screen-menu-wrap">
-                        <button type="button" id="screen-menu-btn" aria-haspopup="true" aria-expanded="false"
-                                class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition cursor-pointer {{ request()->routeIs('bar', 'kitchen.pos', 'kitchen.ana', 'screen.pin') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
-                            <i class="fas fa-desktop text-xs text-gold/80"></i>Ekran Menüsü
-                            <i id="screen-menu-chevron" class="fas fa-chevron-down text-[10px] transition-transform duration-200"></i>
-                        </button>
-                        <div id="screen-menu" class="hidden absolute right-0 top-full w-60 bg-white text-gray-800 rounded-xl shadow-xl border border-gray-100 py-2 z-50">
-                            <a href="{{ route('bar') }}" class="flex items-center gap-2.5 px-4 py-2.5 hover:bg-gold/10 hover:text-primary transition">
-                                <i class="fas fa-wine-glass w-4 text-center text-purple-600"></i>Bar Ekranı
-                            </a>
-                            <a href="{{ route('kitchen.pos') }}" class="flex items-center gap-2.5 px-4 py-2.5 hover:bg-gold/10 hover:text-primary transition">
-                                <i class="fas fa-server w-4 text-center text-sky-600"></i>Kitchen - Symphony
-                            </a>
-                            <a href="{{ route('kitchen.ana') }}" class="flex items-center gap-2.5 px-4 py-2.5 hover:bg-gold/10 hover:text-primary transition">
-                                <i class="fas fa-fire-burner w-4 text-center text-teal-600"></i>Ana Mutfak (AKDS)
-                            </a>
-                        </div>
-                    </div>
+            <div>
+                <p class="px-3 text-[11px] uppercase tracking-[0.2em] text-gold/70 font-semibold mb-1.5">Entegrasyon</p>
+                <div class="space-y-0.5">
+                    <a href="{{ route('admin.sync') }}"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('admin.sync') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
+                        <i class="fas fa-sync w-5 text-center {{ request()->routeIs('admin.sync') ? 'text-gold' : 'text-gold/70' }}"></i>Sync
+                    </a>
+                    <a href="{{ route('admin.qr-codes.index') }}"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('admin.qr-codes.*') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
+                        <i class="fas fa-qrcode w-5 text-center {{ request()->routeIs('admin.qr-codes.*') ? 'text-gold' : 'text-gold/70' }}"></i>Masa QR
+                    </a>
+                    <a href="{{ route('admin.mssql-settings') }}"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('admin.mssql-settings*') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
+                        <i class="fas fa-server w-5 text-center {{ request()->routeIs('admin.mssql-settings*') ? 'text-gold' : 'text-gold/70' }}"></i>MSSQL
+                    </a>
+                </div>
+            </div>
 
-                    <div class="relative flex items-stretch" id="integration-menu-wrap">
-                        <button type="button" id="integration-menu-btn" aria-haspopup="true" aria-expanded="false"
-                                class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition cursor-pointer {{ request()->routeIs('admin.sync', 'admin.qr-codes.*', 'admin.mssql-settings*') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
-                            <i class="fas fa-plug text-xs text-gold/80"></i>Entegrasyon
-                            <i id="integration-menu-chevron" class="fas fa-chevron-down text-[10px] transition-transform duration-200"></i>
-                        </button>
-                        <div id="integration-menu" class="hidden absolute right-0 top-full w-52 bg-white text-gray-800 rounded-xl shadow-xl border border-gray-100 py-2 z-50">
-                            <a href="{{ route('admin.sync') }}" class="flex items-center gap-2.5 px-4 py-2.5 hover:bg-gold/10 hover:text-primary transition">
-                                <i class="fas fa-sync w-4 text-center text-sky-600"></i>Sync
-                            </a>
-                            <a href="{{ route('admin.qr-codes.index') }}" class="flex items-center gap-2.5 px-4 py-2.5 hover:bg-gold/10 hover:text-primary transition">
-                                <i class="fas fa-qrcode w-4 text-center text-emerald-600"></i>Masa QR
-                            </a>
-                            <a href="{{ route('admin.mssql-settings') }}" class="flex items-center gap-2.5 px-4 py-2.5 hover:bg-gold/10 hover:text-primary transition">
-                                <i class="fas fa-server w-4 text-center text-amber-600"></i>MSSQL
-                            </a>
-                        </div>
-                    </div>
+            <div>
+                <p class="px-3 text-[11px] uppercase tracking-[0.2em] text-gold/70 font-semibold mb-1.5">Yönetim</p>
+                <div class="space-y-0.5">
                     <a href="{{ route('admin.reports.kitchen') }}"
-                       class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition {{ request()->routeIs('admin.reports.*') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
-                        <i class="fas fa-chart-line text-xs text-gold/80"></i>Raporlar
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('admin.reports.*') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
+                        <i class="fas fa-chart-line w-5 text-center {{ request()->routeIs('admin.reports.*') ? 'text-gold' : 'text-gold/70' }}"></i>Raporlar
+                    </a>
+                    <a href="{{ route('admin.users.index') }}"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('admin.users.*') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
+                        <i class="fas fa-users w-5 text-center {{ request()->routeIs('admin.users.*') ? 'text-gold' : 'text-gold/70' }}"></i>Kullanıcılar
                     </a>
                     <a href="{{ route('admin.settings') }}"
-                       class="flex items-center gap-1.5 px-3 text-sm border-b-2 transition {{ request()->routeIs('admin.settings') ? 'border-gold text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gold/60' }}">
-                        <i class="fas fa-cog text-xs text-gold/80"></i>Ayarlar
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('admin.settings') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
+                        <i class="fas fa-cog w-5 text-center {{ request()->routeIs('admin.settings') ? 'text-gold' : 'text-gold/70' }}"></i>Ayarlar
                     </a>
-
-                    <form method="POST" action="{{ route('logout') }}" class="flex items-stretch">
-                        @csrf
-                        <button type="submit"
-                                class="flex items-center gap-1.5 px-3 text-sm border-b-2 border-transparent text-gray-300 hover:text-red-300 hover:border-red-400/60 transition">
-                            <i class="fas fa-sign-out-alt text-xs text-gold/80"></i>Çıkış
-                        </button>
-                    </form>
                 </div>
+            </div>
+        </nav>
 
-                <button type="button" id="nav-toggle" aria-label="Menü" aria-expanded="false"
-                        class="xl:hidden flex items-center justify-center w-11 h-11 rounded-lg text-gray-200 hover:text-gold hover:bg-white/5 transition">
-                    <i id="nav-toggle-icon" class="fas fa-bars text-lg"></i>
+        <div class="border-t border-white/10 p-3 shrink-0">
+            <div class="px-3 pb-2 text-xs text-gray-400 truncate" title="{{ auth()->user()->email ?? '' }}">
+                <i class="fas fa-user-circle mr-1.5"></i>{{ auth()->user()->email ?? '' }}
+            </div>
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-300 hover:bg-red-500/10 hover:text-red-200 transition">
+                    <i class="fas fa-sign-out-alt w-5 text-center"></i>Çıkış Yap
                 </button>
-            </div>
+            </form>
         </div>
+    </aside>
 
-        <div id="mobile-nav" class="hidden xl:hidden border-t border-white/10 bg-light-primary max-h-[calc(100vh-4rem)] overflow-y-auto">
-            <div class="px-4 py-4 space-y-5">
-                <div>
-                    <p class="text-[11px] uppercase tracking-[0.2em] text-gold/70 font-semibold mb-2 px-3">Menü</p>
-                    <div class="space-y-0.5">
-                        <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
-                            <i class="fas fa-tachometer-alt w-5 text-center text-gold/80"></i>Dashboard
-                        </a>
-                        <a href="{{ route('admin.categories.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
-                            <i class="fas fa-folder w-5 text-center text-gold/80"></i>Kategoriler
-                        </a>
-                        <a href="{{ route('admin.products.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
-                            <i class="fas fa-box w-5 text-center text-gold/80"></i>Ürünler
-                        </a>
-                    </div>
-                </div>
+    <div class="xl:pl-64 flex flex-col min-h-screen">
+        <header class="h-16 bg-primary text-white shadow-lg sticky top-0 z-30 flex items-center gap-3 px-4">
+            <button type="button" id="sidebar-toggle" aria-label="Menü" aria-expanded="false"
+                    class="xl:hidden flex items-center justify-center w-11 h-11 rounded-lg text-gray-200 hover:text-gold hover:bg-white/5 transition">
+                <i id="sidebar-toggle-icon" class="fas fa-bars text-lg"></i>
+            </button>
+            <h1 class="text-sm sm:text-base font-semibold text-gray-100 truncate">
+                @yield('title', 'Admin Panel - Rocks QR Menü')
+            </h1>
+        </header>
 
-                <div>
-                    <p class="text-[11px] uppercase tracking-[0.2em] text-gold/70 font-semibold mb-2 px-3">Ekranlar</p>
-                    <div class="space-y-0.5">
-                        <a href="{{ route('bar') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
-                            <i class="fas fa-wine-glass w-5 text-center text-purple-400"></i>Bar Ekranı
-                        </a>
-                        <a href="{{ route('kitchen.pos') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
-                            <i class="fas fa-server w-5 text-center text-sky-400"></i>Kitchen - Symphony
-                        </a>
-                        <a href="{{ route('kitchen.ana') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
-                            <i class="fas fa-fire-burner w-5 text-center text-teal-400"></i>Ana Mutfak (AKDS)
-                        </a>
-                    </div>
-                </div>
-
-                <div>
-                    <p class="text-[11px] uppercase tracking-[0.2em] text-gold/70 font-semibold mb-2 px-3">Entegrasyon</p>
-                    <div class="space-y-0.5">
-                        <a href="{{ route('admin.sync') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
-                            <i class="fas fa-sync w-5 text-center text-gold/80"></i>Sync
-                        </a>
-                        <a href="{{ route('admin.qr-codes.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
-                            <i class="fas fa-qrcode w-5 text-center text-gold/80"></i>Masa QR
-                        </a>
-                        <a href="{{ route('admin.mssql-settings') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
-                            <i class="fas fa-server w-5 text-center text-gold/80"></i>MSSQL
-                        </a>
-                    </div>
-                </div>
-
-                <div>
-                    <p class="text-[11px] uppercase tracking-[0.2em] text-gold/70 font-semibold mb-2 px-3">Yönetim</p>
-                    <div class="space-y-0.5">
-                        <a href="{{ route('admin.reports.kitchen') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
-                            <i class="fas fa-chart-line w-5 text-center text-gold/80"></i>Raporlar
-                        </a>
-                        <a href="{{ route('admin.settings') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-200 hover:bg-white/5 hover:text-white transition">
-                            <i class="fas fa-cog w-5 text-center text-gold/80"></i>Ayarlar
-                        </a>
-                    </div>
-                </div>
-
-                <div class="pt-3 border-t border-white/10">
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-300 hover:bg-red-500/10 hover:text-red-200 transition">
-                            <i class="fas fa-sign-out-alt w-5 text-center"></i>Çıkış Yap
-                        </button>
-                    </form>
+        @if($errors->any())
+            <div class="max-w-7xl mx-auto mt-4 px-4 w-full">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <ul class="list-disc list-inside space-y-1 text-red-900">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
                 </div>
             </div>
-        </div>
-    </nav>
+        @endif
 
-    @if($errors->any())
-        <div class="max-w-7xl mx-auto mt-4 px-4">
-            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                <ul class="list-disc list-inside space-y-1 text-red-900">
-                    @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
+        @if(session('success'))
+            <div class="max-w-7xl mx-auto mt-4 px-4 w-full">
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-green-900">
+                    <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
+                </div>
             </div>
-        </div>
-    @endif
+        @endif
 
-    @if(session('success'))
-        <div class="max-w-7xl mx-auto mt-4 px-4">
-            <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-green-900">
-                <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
+        @if(session('error'))
+            <div class="max-w-7xl mx-auto mt-4 px-4 w-full">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-900">
+                    <i class="fas fa-exclamation-circle mr-1"></i> {{ session('error') }}
+                </div>
             </div>
-        </div>
-    @endif
+        @endif
 
-    <main>
-        @yield('content')
-    </main>
+        <main class="flex-1">
+            @yield('content')
+        </main>
 
-    <footer class="bg-gray-100 border-t mt-12 py-6">
-        <div class="max-w-7xl mx-auto px-4 text-center text-gray-600 text-sm">
-            <p>&copy; {{ date('Y') }} Rocks Hotel QR Menü Sistemi</p>
-        </div>
-    </footer>
+        <footer class="bg-gray-100 border-t mt-12 py-6">
+            <div class="max-w-7xl mx-auto px-4 text-center text-gray-600 text-sm">
+                <p>&copy; {{ date('Y') }} Rocks Hotel QR Menü Sistemi</p>
+            </div>
+        </footer>
+    </div>
 
     <script>
         (function () {
-            function setupMenu(base) {
-                var wrap = document.getElementById(base + '-wrap');
-                var btn = document.getElementById(base + '-btn');
-                var menu = document.getElementById(base);
-                var chevron = document.getElementById(base + '-chevron');
-                if (!wrap || !btn || !menu || !chevron) return null;
-                return {
-                    wrap: wrap,
-                    close: function () {
-                        menu.classList.add('hidden');
-                        chevron.classList.remove('rotate-180');
-                        btn.setAttribute('aria-expanded', 'false');
-                    },
-                    toggle: function (e) {
-                        e.stopPropagation();
-                        var willOpen = menu.classList.contains('hidden');
-                        document.dispatchEvent(new CustomEvent('nav-dropdown-close'));
-                        if (willOpen) {
-                            menu.classList.remove('hidden');
-                            chevron.classList.add('rotate-180');
-                            btn.setAttribute('aria-expanded', 'true');
-                        }
-                    }
-                };
+            var sidebar = document.getElementById('sidebar');
+            var toggle = document.getElementById('sidebar-toggle');
+            var backdrop = document.getElementById('sidebar-backdrop');
+            var icon = document.getElementById('sidebar-toggle-icon');
+            if (!sidebar || !toggle || !backdrop || !icon) return;
+
+            function isOpen() {
+                return !sidebar.classList.contains('-translate-x-full') || window.innerWidth >= 1280;
             }
 
-            var menus = [];
-            ['screen-menu', 'integration-menu'].forEach(function (base) {
-                var m = setupMenu(base);
-                if (m) {
-                    menus.push(m);
-                    document.getElementById(base + '-btn').addEventListener('click', m.toggle);
-                }
+            function syncIcon() {
+                var open = isOpen();
+                icon.classList.toggle('fa-bars', !open);
+                icon.classList.toggle('fa-xmark', open);
+                toggle.setAttribute('aria-expanded', String(open));
+            }
+
+            toggle.addEventListener('click', function () {
+                if (window.innerWidth >= 1280) return;
+                sidebar.classList.toggle('-translate-x-full');
+                backdrop.classList.toggle('hidden');
+                syncIcon();
             });
 
-            if (menus.length) {
-                document.addEventListener('nav-dropdown-close', function () {
-                    menus.forEach(function (m) { m.close(); });
-                });
-                document.addEventListener('click', function (e) {
-                    menus.forEach(function (m) { if (!m.wrap.contains(e.target)) m.close(); });
-                });
-                document.addEventListener('keydown', function (e) {
-                    if (e.key === 'Escape') menus.forEach(function (m) { m.close(); });
-                });
-            }
+            backdrop.addEventListener('click', function () {
+                sidebar.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+                syncIcon();
+            });
 
-            var toggle = document.getElementById('nav-toggle');
-            var panel = document.getElementById('mobile-nav');
-            var icon = document.getElementById('nav-toggle-icon');
-
-            if (toggle && panel && icon) {
-                toggle.addEventListener('click', function () {
-                    var open = !panel.classList.contains('hidden');
-                    panel.classList.toggle('hidden', open);
-                    icon.classList.toggle('fa-bars', open);
-                    icon.classList.toggle('fa-xmark', !open);
-                    toggle.setAttribute('aria-expanded', String(!open));
-                });
-            }
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && window.innerWidth < 1280) {
+                    sidebar.classList.add('-translate-x-full');
+                    backdrop.classList.add('hidden');
+                    syncIcon();
+                }
+            });
         })();
     </script>
 </body>
