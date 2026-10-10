@@ -39,7 +39,14 @@ function prepBadge(?int $s): string {
                 <a href="{{ route('admin.reports.sales') }}" class="px-3 py-1.5 bg-white text-gray-600 hover:bg-gray-50 transition">Satış Raporu</a>
             </div>
             <form method="GET" action="{{ route('admin.reports.kitchen') }}" class="flex items-center gap-2">
-                <label class="text-sm text-gray-600 font-medium">Dönem:</label>
+                <label class="text-sm text-gray-600 font-medium">Ekran:</label>
+                <select name="ekran" onchange="this.form.submit()"
+                        class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-300 outline-none">
+                    <option value="tumu" {{ $ekran === 'tumu' ? 'selected' : '' }}>Tümü</option>
+                    <option value="kpos" {{ $ekran === 'kpos' ? 'selected' : '' }}>Mutfak (KPOS)</option>
+                    <option value="akds" {{ $ekran === 'akds' ? 'selected' : '' }}>Ana Mutfak (AKDS)</option>
+                </select>
+                <label class="text-sm text-gray-600 font-medium ml-2">Dönem:</label>
                 <select name="range" onchange="this.form.submit()"
                         class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-300 outline-none">
                     @foreach(['1'=>'Bugün','7'=>'Son 7 gün','30'=>'Son 30 gün','90'=>'Son 90 gün','all'=>'Tüm zamanlar'] as $val=>$label)

@@ -1,5 +1,16 @@
 
 
+## v1.0.103 - 2026-10-10
+
+### Grafikli Dashboard v2 + raporlarda ekran filtresi (KPOS / AKDS)
+- **Dashboard yenilendi (grafikli)**: 8 istatistik kartı korundu; altına iki yeni grafik eklendi — "Son 14 Gün" (günlük sipariş adedi sütun + ciro çizgisi, çift eksen) ve "Saatlik Yoğunluk" (son 30 gün, saat bazlı sipariş dağılımı). Grafikler Chart.js ile sayfaya özel yüklenir; veriler mevcut sipariş tablosundan türetilir, yeni veri kaynağı yoktur. Başlık çubuğuna bugünün tarihi eklendi; Hızlı Erişim, En Çok Satılan Ürünler, En Çok Garson Çağrılan Masalar ve Son Ayar Hareketleri panelleri aynen korundu (çağrılan masalar + ayar hareketleri artık yan yana).
+- **Raporlarda ekran filtresi**: Mutfak Hazırlık ve Süre Raporu sayfalarına "Ekran" seçici eklendi — Tümü / Mutfak (KPOS: RVC 44+81) / Ana Mutfak (AKDS: RVC 43,45,46,63). Gelir merkezi sınırları ekran sabitlerinden (KitchenFilter) okunur.
+- **Ürün geçmişinde gelir merkezi**: kitchen_item_logs tablosuna rvc_id kolonu eklendi (Symphony onaylarında hangi gelir merkezinden geldiği yazılır; QR satırları 0). Böylece "Ürüne Göre Hazırlık", "En Geç Hazırlanan Ürünler" ve "Masaya Göre" panelleri de ekran filtresine uyar. KPOS filtresi QR onaylarını da içerir (QR yalnız mutfak ekranında onaylanır); AKDS filtresi yalnız kendi gelir merkezlerinin satırlarını gösterir.
+- **Süre Raporu'nda AKDS görünümü**: Ana Mutfak seçildiğinde yalnız Symphony'e ait bölümler (aşamalar, ürün/masa panelleri, son teslimler) gösterilir; QR'ya özel paneller gizlenir. Satış Raporu bu değişiklikten etkilenmez.
+- **Veri temizliğine hazır**: Test dönemi verilerinin (siparişler, çağrılar, mutfak kayıtları) canlıya açılış öncesi sıfırlanması bu sürümle birlikte yapılır; ürünler, kategoriler, kullanıcılar ve ayarlar korunur.
+
+---
+
 ## v1.0.102 - 2026-10-10
 
 ### Roller, profil, ad soyad + panel geneli cila

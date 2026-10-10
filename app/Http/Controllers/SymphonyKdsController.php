@@ -218,6 +218,7 @@ class SymphonyKdsController extends Controller
                 'name'          => $name,
                 'qty'           => $qty,
                 'source'        => 'sym',
+                'rvc_id'        => (int) ($validated['rvc_id'] ?? 0),
                 'table_no'      => $validated['table_no'] ?? null,
                 'room_no'       => null,
                 'check_number'  => $validated['check_number'] ?? null,

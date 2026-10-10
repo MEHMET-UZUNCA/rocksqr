@@ -12,8 +12,23 @@ class AdminReportController extends Controller
     {
         $range = $request->get('range', '7');  // gün sayısı veya 'all'
 
-        $query = DB::table('kitchen_pos_completions')
-            ->whereNotNull('prep_seconds');
+        $ekran = $request->get('ekran', 'tumu'); // tumu | kpos | akds
+        if (!in_array($ekran, ['tumu', 'kpos', 'akds'], true)) {
+            $ekran = 'tumu';
+        }
+        $kposIds  = array_keys(\App\Support\KitchenFilter::RVCS);
+        $akdsIds  = array_keys(\App\Support\KitchenFilter::ANA_RVCS);
+        $ekranIds = $ekran === 'kpos' ? $kposIds : ($ekran === 'akds' ? $akdsIds : null);
+        $applyEkran = function ($query) use ($ekranIds) {
+            if ($ekranIds !== null) {
+                $query->whereIn('rvc_id', $ekranIds);
+            }
+            return $query;
+        };
+
+        $query = $applyEkran(
+            DB::table('kitchen_pos_completions')->whereNotNull('prep_seconds')
+        );
 
         if ($range !== 'all') {
             $days = max(1, min(365, (int) $range));
@@ -29,15 +44,13 @@ class AdminReportController extends Controller
         ')->first();
 
         // Bugün özeti
-        $today = DB::table('kitchen_pos_completions')
-            ->whereNotNull('prep_seconds')
+        $today = $applyEkran(DB::table('kitchen_pos_completions')->whereNotNull('prep_seconds'))
             ->whereDate('completed_at', today())
             ->selectRaw('COUNT(*) AS total, ROUND(AVG(prep_seconds)) AS avg_seconds, MAX(prep_seconds) AS max_seconds')
             ->first();
 
         // Günlük ortalama (son 30 gün) — grafik için
-        $daily = DB::table('kitchen_pos_completions')
-            ->whereNotNull('prep_seconds')
+        $daily = $applyEkran(DB::table('kitchen_pos_completions')->whereNotNull('prep_seconds'))
             ->where('completed_at', '>=', now()->subDays(30)->startOfDay())
             ->selectRaw('DATE(completed_at) AS day, COUNT(*) AS total, ROUND(AVG(prep_seconds)) AS avg_seconds, MAX(prep_seconds) AS max_seconds')
             ->groupBy('day')
@@ -67,12 +80,22 @@ class AdminReportController extends Controller
             ->limit(100)
             ->get();
 
-        return view('admin.reports.kitchen', compact('stats', 'today', 'daily', 'slowest', 'slowContents', 'recent', 'range'));
+        return view('admin.reports.kitchen', compact('stats', 'today', 'daily', 'slowest', 'slowContents', 'recent', 'range', 'ekran'));
     }
 
     public function durations(Request $request)
     {
         $range = $request->get('range', '7');
+
+        $ekran = $request->get('ekran', 'tumu'); // tumu | kpos | akds
+        if (!in_array($ekran, ['tumu', 'kpos', 'akds'], true)) {
+            $ekran = 'tumu';
+        }
+        $kposIds  = array_keys(\App\Support\KitchenFilter::RVCS);
+        $akdsIds  = array_keys(\App\Support\KitchenFilter::ANA_RVCS);
+        $ekranIds = $ekran === 'kpos' ? $kposIds : ($ekran === 'akds' ? $akdsIds : null);
+        // QR siparişleri yalnız mutfak (KPOS) ekranında işlenir; AKDS filtresinde QR bölümleri gizlenir
+        $showQr = $ekran !== 'akds';
 
         $applyRange = function ($query, string $column) use ($range) {
             if ($range !== 'all') {
@@ -97,12 +120,12 @@ class AdminReportController extends Controller
         // ---- QR siparişleri: created_at → (bar_approved_at) → kitchen_started_at → kitchen_ready_at → completed_at ----
         // bar_approved_at QR akışında dolmayabilir (Onayla butonu kaldırıldı) — opsiyonel aşama.
         // Otomatik ekran temizlemesinde kapatılanlar (auto_closed_at) istatistik dışıdır.
-        $qrOrders = $applyRange(
+        $qrOrders = $showQr ? $applyRange(
             Order::where('kitchen_status', 'completed')
                 ->whereNotNull('completed_at')
                 ->whereNull('auto_closed_at'),
             'completed_at'
-        )->orderByDesc('completed_at')->limit(100)->get();
+        )->orderByDesc('completed_at')->limit(100)->get() : collect();
 
         $qrRows = [];
         $qrBarWait = $qrStartWait = $qrPrep = $qrReadyWait = $qrTotal = [];
@@ -141,6 +164,9 @@ class AdminReportController extends Controller
             ->whereNotNull('delivered_at')
             ->whereNotNull('prep_seconds')
             ->whereNull('auto_closed_at');
+        if ($ekranIds !== null) {
+            $symQuery->whereIn('rvc_id', $ekranIds);
+        }
         $applyRange($symQuery, 'completed_at');
 
         $symOrders = (clone $symQuery)->orderByDesc('delivered_at')->limit(100)->get();
@@ -166,7 +192,7 @@ class AdminReportController extends Controller
         }
 
         // ---- Günlük ortalama teslim süresi (QR, son 30 gün) ----
-        $daily = $applyRange(
+        $daily = $showQr ? $applyRange(
             Order::where('kitchen_status', 'completed')
                 ->whereNotNull('completed_at')
                 ->whereNull('auto_closed_at'),
@@ -174,10 +200,20 @@ class AdminReportController extends Controller
         )->selectRaw('DATE(completed_at) AS day, COUNT(*) AS total, ROUND(AVG(TIMESTAMPDIFF(SECOND, created_at, completed_at))) AS avg_seconds')
             ->groupBy('day')
             ->orderBy('day')
-            ->get();
+            ->get() : collect();
 
         // ---- Ürüne göre hazırlık (kitchen_item_logs — mutfak onay geçmişi) ----
+        // KPOS filtresi QR onaylarını da içerir (QR yalnız mutfak ekranında onaylanır);
+        // AKDS filtresi yalnız kendi RVC'lerinin satırlarını alır.
         $itemQuery = DB::table('kitchen_item_logs');
+        if ($ekranIds !== null) {
+            $itemQuery->where(function ($q) use ($ekranIds, $ekran) {
+                $q->whereIn('rvc_id', $ekranIds);
+                if ($ekran === 'kpos') {
+                    $q->orWhere('source', 'qr');
+                }
+            });
+        }
         $applyRange($itemQuery, 'completed_at');
 
         $itemByProduct = (clone $itemQuery)
@@ -219,14 +255,14 @@ class AdminReportController extends Controller
             ->orderByDesc('total')
             ->get();
 
-        $qrByLoc = $applyRange(
+        $qrByLoc = $showQr ? $applyRange(
             Order::where('kitchen_status', 'completed')
                 ->whereNotNull('completed_at')
                 ->whereNull('auto_closed_at'),
             'completed_at'
         )->selectRaw("CONCAT('M:', IFNULL(table_no, CONCAT('O:', room_no))) AS loc_key, COUNT(*) AS total, ROUND(AVG(TIMESTAMPDIFF(SECOND, created_at, completed_at))) AS avg_total")
             ->groupBy('loc_key')
-            ->get();
+            ->get() : collect();
 
         $byLoc = [];
         foreach ($symByTable as $r) {
@@ -260,12 +296,17 @@ class AdminReportController extends Controller
         usort($byLoc, fn ($a, $b) => ($b['sym_n'] + $b['qr_n']) <=> ($a['sym_n'] + $a['qr_n']));
 
         // "Tamamlanmadan kapananlar" — otomatik ekran temizlemesinde kapatılanlar (istatistik dışı)
-        $autoClosedQr  = (int) $applyRange(Order::whereNotNull('auto_closed_at'), 'completed_at')->count();
-        $autoClosedSym = (int) $applyRange(DB::table('kitchen_pos_completions')->whereNotNull('auto_closed_at'), 'completed_at')->count();
-        $autoClosedCalls = (int) $applyRange(\App\Models\WaiterCall::whereNotNull('auto_closed_at'), 'created_at')->count();
+        $autoClosedQr  = $showQr ? (int) $applyRange(Order::whereNotNull('auto_closed_at'), 'completed_at')->count() : 0;
+        $autoClosedSymQ = DB::table('kitchen_pos_completions')->whereNotNull('auto_closed_at');
+        if ($ekranIds !== null) {
+            $autoClosedSymQ->whereIn('rvc_id', $ekranIds);
+        }
+        $autoClosedSym = (int) $applyRange($autoClosedSymQ, 'completed_at')->count();
+        $autoClosedCalls = $showQr ? (int) $applyRange(\App\Models\WaiterCall::whereNotNull('auto_closed_at'), 'created_at')->count() : 0;
 
         return view('admin.reports.durations', [
             'range'         => $range,
+            'ekran'         => $ekran,
             'qrRows'        => $qrRows,
             'qrBarWait'     => $agg($qrBarWait),
             'qrStartWait'   => $agg($qrStartWait),

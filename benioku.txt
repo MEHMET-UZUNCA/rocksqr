@@ -1,16 +1,14 @@
 RocksQR - Sistem Detayları
-Versiyon: v1.0.102 (2026-10-10)
-Güncelleme: 2026-10-10 — Panele roller geldi: personel yalnız Dashboard,
-            Ekranlar ve Raporlar'ı görür; pasif kullanıcı oturum açamaz;
-            son yönetici koruması var. Kullanıcılarda Ad/Soyad ayrı
-            alanlara geçildi. Yeni Profilim sayfası ile her kullanıcı
-            kendi ad/soyad/e-posta/şifresini günceller (şifre değişiminde
-            mevcut şifre sorulur). /register açık kaydı kapatıldı —
-            hesaplar yalnız yönetici tarafından açılır. Dashboard'a
-            Son Ayar Hareketleri listesi eklendi; tüm yönetim sayfaları
-            tek tip başlık düzenine alındı. Veritabanı değişikliği var
-            (users: surname, role, is_active); güncelleme öncesi tam
-            yedek alındı.
+Versiyon: v1.0.103 (2026-10-10)
+Güncelleme: 2026-10-10 — Dashboard grafiklendi: 8 istatistik kartının
+            altına "Son 14 Gün" (sipariş + ciro) ve "Saatlik Yoğunluk"
+            (son 30 gün) grafikleri eklendi (Chart.js, sayfaya özel).
+            Mutfak Hazırlık ve Süre Raporu'na Ekran filtresi geldi:
+            Tümü / Mutfak (KPOS: RVC 44+81) / Ana Mutfak (AKDS:
+            RVC 43,45,46,63) — ürün ve masa panelleri de filtre uyar.
+            Ürün geçmişine gelir merkezi kolonu eklendi
+            (kitchen_item_logs: rvc_id). Veritabanı değişikliği var;
+            güncelleme öncesi tam yedek alındı.
 =====================================
 
 Laravel 12, MySQL, Tailwind CSS ile geliştirildi.

@@ -53,7 +53,14 @@ function locLabel($tableNo, $roomNo): string {
                 <a href="{{ route('admin.reports.sales') }}" class="px-3 py-1.5 bg-white text-gray-600 hover:bg-gray-50 transition">Satış Raporu</a>
             </div>
             <form method="GET" action="{{ route('admin.reports.durations') }}" class="flex items-center gap-2">
-                <label class="text-sm text-gray-600 font-medium">Dönem:</label>
+                <label class="text-sm text-gray-600 font-medium">Ekran:</label>
+                <select name="ekran" onchange="this.form.submit()"
+                        class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-300 outline-none">
+                    <option value="tumu" {{ $ekran === 'tumu' ? 'selected' : '' }}>Tümü</option>
+                    <option value="kpos" {{ $ekran === 'kpos' ? 'selected' : '' }}>Mutfak (KPOS)</option>
+                    <option value="akds" {{ $ekran === 'akds' ? 'selected' : '' }}>Ana Mutfak (AKDS)</option>
+                </select>
+                <label class="text-sm text-gray-600 font-medium ml-2">Dönem:</label>
                 <select name="range" onchange="this.form.submit()"
                         class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-300 outline-none">
                     @foreach(['1'=>'Bugün','7'=>'Son 7 gün','30'=>'Son 30 gün','90'=>'Son 90 gün','all'=>'Tüm zamanlar'] as $val=>$label)
@@ -68,11 +75,12 @@ function locLabel($tableNo, $roomNo): string {
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         @php
         $cards = [
-            ['label' => 'Dönem QR Teslimi',      'value' => $qrTotal['count'], 'icon' => 'fa-mobile-screen', 'color' => 'text-purple-600'],
-            ['label' => 'QR Ort. Toplam Süre',   'value' => fmtSecs($qrTotal['avg']), 'icon' => 'fa-stopwatch', 'color' => 'text-blue-600'],
-            ['label' => 'Dönem Symphony Teslimi', 'value' => $symPrep->total ?? 0, 'icon' => 'fa-receipt', 'color' => 'text-emerald-600'],
-            ['label' => 'Symphony Ort. Bar Bekleme', 'value' => fmtSecs($symBarWait['avg']), 'icon' => 'fa-bell-concierge', 'color' => 'text-amber-600'],
+            ['label' => 'Dönem QR Teslimi',      'value' => $qrTotal['count'], 'icon' => 'fa-mobile-screen', 'color' => 'text-purple-600', 'qr' => true],
+            ['label' => 'QR Ort. Toplam Süre',   'value' => fmtSecs($qrTotal['avg']), 'icon' => 'fa-stopwatch', 'color' => 'text-blue-600', 'qr' => true],
+            ['label' => 'Dönem Symphony Teslimi', 'value' => $symPrep->total ?? 0, 'icon' => 'fa-receipt', 'color' => 'text-emerald-600', 'qr' => false],
+            ['label' => 'Symphony Ort. Bar Bekleme', 'value' => fmtSecs($symBarWait['avg']), 'icon' => 'fa-bell-concierge', 'color' => 'text-amber-600', 'qr' => false],
         ];
+        $cards = array_values(array_filter($cards, fn ($c) => $ekran !== 'akds' || !$c['qr']));
         @endphp
         @foreach($cards as $card)
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex items-center gap-4">
@@ -88,15 +96,22 @@ function locLabel($tableNo, $roomNo): string {
     </div>
 
     {{-- Tamamlanmadan kapananlar --}}
-    @if(($autoClosedQr ?? 0) + ($autoClosedSym ?? 0) + ($autoClosedCalls ?? 0) > 0)
+    @php
+    $acParts = [];
+    if ($ekran !== 'akds' && ($autoClosedQr ?? 0) > 0) { $acParts[] = '<strong>' . $autoClosedQr . '</strong> QR sipariş'; }
+    if (($autoClosedSym ?? 0) > 0) { $acParts[] = '<strong>' . $autoClosedSym . '</strong> Symphony hesap'; }
+    if ($ekran !== 'akds' && ($autoClosedCalls ?? 0) > 0) { $acParts[] = '<strong>' . $autoClosedCalls . '</strong> garson çağrısı'; }
+    @endphp
+    @if($acParts !== [])
     <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 text-xs text-amber-800">
         <i class="fas fa-broom mr-1"></i>
-        Tamamlanmadan kapanan: <strong>{{ $autoClosedQr }}</strong> QR sipariş, <strong>{{ $autoClosedSym }}</strong> Symphony hesap, <strong>{{ $autoClosedCalls }}</strong> garson çağrısı — otomatik ekran temizlemesinde kapatıldı, toplam/ortalama sürelere dahil edilmez.
+        Tamamlanmadan kapanan: {!! implode(', ', $acParts) !!} — otomatik ekran temizlemesinde kapatıldı, toplam/ortalama sürelere dahil edilmez.
     </div>
     @endif
 
     {{-- Aşama ortalamaları --}}
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 {{ $ekran === 'akds' ? '' : 'lg:grid-cols-2' }} gap-6">
+        @if($ekran !== 'akds')
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
             <h3 class="font-bold text-gray-800 mb-2"><i class="fas fa-mobile-screen mr-2 text-purple-500"></i>QR Sipariş Aşamaları</h3>
             <p class="text-xs text-gray-400 mb-2">Sipariş girişinden bara teslime kadar ortalama süreler</p>
@@ -109,6 +124,7 @@ function locLabel($tableNo, $roomNo): string {
                 <span class="ml-auto">{!! durBadge($qrTotal['avg']) !!}</span>
             </div>
         </div>
+        @endif
 
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
             <h3 class="font-bold text-gray-800 mb-2"><i class="fas fa-receipt mr-2 text-sky-500"></i>Symphony POS Aşamaları</h3>
@@ -171,8 +187,10 @@ function locLabel($tableNo, $roomNo): string {
                                 <th class="px-3 py-2 text-right" title="Symphony ürün onayı">SYM</th>
                                 <th class="px-3 py-2 text-right">Ort. Hazırlık</th>
                                 <th class="px-3 py-2 text-right">Ort. Bar Bekleme</th>
+                                @if($ekran !== 'akds')
                                 <th class="px-3 py-2 text-right" title="QR siparişi">QR</th>
                                 <th class="px-3 py-2 text-right">Ort. Toplam</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
@@ -182,8 +200,10 @@ function locLabel($tableNo, $roomNo): string {
                                 <td class="px-3 py-1.5 text-right text-xs text-gray-500">{{ $loc['sym_n'] > 0 ? $loc['sym_n'].'x' : '—' }}</td>
                                 <td class="px-3 py-1.5 text-right">{!! durBadge($loc['sym_prep']) !!}</td>
                                 <td class="px-3 py-1.5 text-right text-xs text-gray-500 whitespace-nowrap">{{ fmtSecs($loc['sym_bar_wait']) }}</td>
+                                @if($ekran !== 'akds')
                                 <td class="px-3 py-1.5 text-right text-xs text-gray-500">{{ $loc['qr_n'] > 0 ? $loc['qr_n'].'x' : '—' }}</td>
                                 <td class="px-3 py-1.5 text-right text-xs text-gray-500 whitespace-nowrap">{{ fmtSecs($loc['qr_total']) }}</td>
+                                @endif
                             </tr>
                         @endforeach
                         </tbody>
@@ -241,6 +261,7 @@ function locLabel($tableNo, $roomNo): string {
     </div>
 
     {{-- Günlük ortalama QR teslim süresi --}}
+    @if($ekran !== 'akds')
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
         <h3 class="font-bold text-gray-800 mb-4"><i class="fas fa-bar-chart mr-2 text-amber-500"></i>QR — Günlük Ortalama Teslim Süresi</h3>
         @if($daily->isEmpty())
@@ -265,8 +286,10 @@ function locLabel($tableNo, $roomNo): string {
             </div>
         @endif
     </div>
+    @endif
 
     {{-- Son QR siparişleri --}}
+    @if($ekran !== 'akds')
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
         <h3 class="font-bold text-gray-800 mb-4">
             <i class="fas fa-clock-rotate-left mr-2 text-gray-500"></i>Son {{ count($qrRows) }} QR Siparişi — Aşama Zaman Damgaları
@@ -304,6 +327,7 @@ function locLabel($tableNo, $roomNo): string {
             </div>
         @endif
     </div>
+    @endif
 
     {{-- Son Symphony teslimleri --}}
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
