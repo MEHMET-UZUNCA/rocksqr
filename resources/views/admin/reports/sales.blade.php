@@ -1,5 +1,7 @@
 @extends('layouts.admin')
 
+@section('title', 'Satış Raporu')
+
 @section('content')
 @php
 function fmtSecs(?int $s): string {
@@ -22,8 +24,11 @@ function tl($v): string {
     {{-- Başlık + sekmeler + filtre --}}
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex flex-wrap items-center justify-between gap-4">
         <div>
-            <h2 class="text-2xl font-bold text-gray-900"><i class="fas fa-chart-line mr-2 text-amber-500"></i>Satış Raporu</h2>
-            <p class="text-sm text-gray-500 mt-0.5">QR menü siparişleri — ciro, yoğunluk ve garson çağrıları</p>
+            <h2 class="text-xl font-bold text-gray-900 flex items-center gap-3">
+                <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-gold/15 text-gold shrink-0"><i class="fas fa-chart-line"></i></span>
+                Satış Raporu
+            </h2>
+            <p class="text-sm text-gray-500 mt-1 ml-[3.25rem]">QR menü siparişleri — ciro, yoğunluk ve garson çağrıları</p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
             <div class="flex rounded-lg overflow-hidden border border-gray-200 text-sm">

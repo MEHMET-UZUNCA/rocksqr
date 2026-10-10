@@ -1,5 +1,7 @@
 ﻿@extends('layouts.admin')
 
+@section('title', 'Sync')
+
 @section('content')
 @php
     $total      = $products->count();

@@ -1,12 +1,16 @@
 RocksQR - Sistem Detayları
-Versiyon: v1.0.101 (2026-10-10)
-Güncelleme: 2026-10-10 — Admin paneli solda sabit lacivert/altın menülü
-            (AdminLTE tarzı) yerleşime geçti; içerik sayfaları korunarak
-            yalnızca çerçeve yenilendi. Yeni Kullanıcılar sayfası ile
-            panel kullanıcıları ekleme/düzenleme/silme yapılabilir
-            (kendi hesabı ve son kullanıcı silinemez, şifre en az 8
-            karakter). Mobilde menü hamburger ile açılır. Veritabanı
-            değişikliği yoktur; güncelleme öncesi tam yedek alındı.
+Versiyon: v1.0.102 (2026-10-10)
+Güncelleme: 2026-10-10 — Panele roller geldi: personel yalnız Dashboard,
+            Ekranlar ve Raporlar'ı görür; pasif kullanıcı oturum açamaz;
+            son yönetici koruması var. Kullanıcılarda Ad/Soyad ayrı
+            alanlara geçildi. Yeni Profilim sayfası ile her kullanıcı
+            kendi ad/soyad/e-posta/şifresini günceller (şifre değişiminde
+            mevcut şifre sorulur). /register açık kaydı kapatıldı —
+            hesaplar yalnız yönetici tarafından açılır. Dashboard'a
+            Son Ayar Hareketleri listesi eklendi; tüm yönetim sayfaları
+            tek tip başlık düzenine alındı. Veritabanı değişikliği var
+            (users: surname, role, is_active); güncelleme öncesi tam
+            yedek alındı.
 =====================================
 
 Laravel 12, MySQL, Tailwind CSS ile geliştirildi.

@@ -1,5 +1,7 @@
 @extends('layouts.admin')
 
+@section('title', 'Dashboard')
+
 @section('content')
 @php
     $todayStr = now()->toDateString();
@@ -40,11 +42,14 @@
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-            <div class="p-6 bg-white border-b border-gray-200">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">
-                    <i class="fas fa-tachometer-alt mr-2 text-gold"></i>Admin Dashboard
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-bold text-gray-900 flex items-center gap-3">
+                    <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-gold/15 text-gold"><i class="fas fa-tachometer-alt"></i></span>
+                    Admin Dashboard
                 </h2>
+            </div>
 
+            <div class="p-6">
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                     <div class="bg-white border border-gray-200 rounded-xl p-5 flex items-center gap-4">
                         <div class="shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100">
@@ -136,6 +141,10 @@
                             <a href="{{ route('admin.reports.kitchen') }}" class="flex items-center px-4 py-3 bg-primary text-white rounded-lg hover:bg-light-primary transition text-sm font-semibold">
                                 <i class="fas fa-chart-line mr-2 w-4 text-center text-gold"></i> Raporlar
                             </a>
+                            <a href="{{ route('admin.profile') }}" class="flex items-center px-4 py-3 bg-primary text-white rounded-lg hover:bg-light-primary transition text-sm font-semibold">
+                                <i class="fas fa-id-badge mr-2 w-4 text-center text-gold"></i> Profilim
+                            </a>
+                            @if(auth()->user()->isAdmin())
                             <a href="{{ route('admin.categories.index') }}" class="flex items-center px-4 py-3 bg-primary text-white rounded-lg hover:bg-light-primary transition text-sm font-semibold">
                                 <i class="fas fa-folder mr-2 w-4 text-center text-gold"></i> Kategorileri Yönet
                             </a>
@@ -148,6 +157,7 @@
                             <a href="{{ route('admin.settings') }}" class="flex items-center px-4 py-3 bg-primary text-white rounded-lg hover:bg-light-primary transition text-sm font-semibold">
                                 <i class="fas fa-gear mr-2 w-4 text-center text-gold"></i> Ayarlar
                             </a>
+                            @endif
                         </div>
                     </div>
 
@@ -226,6 +236,38 @@
                             </div>
                             <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-bold">{{ $table->call_count }} çağrı</span>
                         </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+
+            <!-- Recent Settings Audit Log -->
+            <div class="mt-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-clock-rotate-left mr-2 text-gold"></i>Son Ayar Hareketleri
+                    <span class="text-xs font-normal text-gray-400 ml-2">(son 8 değişiklik)</span>
+                </h3>
+                @php
+                    $recentLogs = \Illuminate\Support\Facades\DB::table('settings_audit_logs')
+                        ->orderByDesc('created_at')
+                        ->orderByDesc('id')
+                        ->limit(8)
+                        ->get();
+                @endphp
+                @if($recentLogs->isEmpty())
+                    <p class="text-gray-400 text-sm">Hareket kaydı yok.</p>
+                @else
+                    <div class="space-y-2">
+                        @foreach($recentLogs as $log)
+                            <div class="flex items-center justify-between gap-4 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5">
+                                <div class="min-w-0">
+                                    <span class="font-mono text-xs font-semibold text-gray-700">{{ $log->key_name }}</span>
+                                    <span class="text-xs text-gray-500 ml-2">{{ \Illuminate\Support\Str::limit((string) $log->new_value, 60) }}</span>
+                                </div>
+                                <div class="shrink-0 text-xs text-gray-400">
+                                    {{ $log->user_email ?? '—' }} · {{ \Carbon\Carbon::parse($log->created_at)->format('d.m.Y H:i') }}
+                                </div>
+                            </div>
                         @endforeach
                     </div>
                 @endif

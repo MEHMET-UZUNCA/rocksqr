@@ -1,13 +1,15 @@
 ﻿@extends('layouts.admin')
 
+@section('title', 'Ayarlar')
+
 @section('content')
 @php $activeTab = request('tab', 'genel'); @endphp
 <div class="py-8">
     <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
 
         <div class="mb-4 flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center">
-                <i class="fas fa-cog text-yellow-600 text-lg"></i>
+            <div class="w-10 h-10 rounded-xl bg-gold/15 flex items-center justify-center">
+                <i class="fas fa-cog text-gold text-lg"></i>
             </div>
             <div>
                 <h1 class="text-2xl font-bold text-gray-900">Ayarlar</h1>

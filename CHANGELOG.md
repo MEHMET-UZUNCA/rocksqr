@@ -1,5 +1,21 @@
 
 
+## v1.0.102 - 2026-10-10
+
+### Roller, profil, ad soyad + panel geneli cila
+- **Ad Soyad ayrı alanlar**: users tablosuna surname (Soyad) kolonu eklendi; Ad ve Soyad artık ayrı ayrı girilir. Panelde ad soyad birleşik gösterilir (sadece ad girilmişse ad, hiçbiri yoksa e-posta görünür). Mevcut kullanıcılar etkilenmez.
+- **Rol ve aktiflik alanları**: users tablosuna role (admin/personel, varsayılan personel) ve is_active (aktif/pasif) kolonları eklendi. Kurulumda var olan kullanıcılar yönetici (admin) olarak işlendi.
+- **Personel rolü kısıtı**: Personel rolündeki kullanıcılar panelde yalnızca Dashboard, Ekranlar ve Raporlar bölümlerini görür; Kategoriler, Ürünler, Masa QR, Entegrasyon, Kullanıcılar ve Ayarlar bölümlerine girişi engellenir (yönlendirme + Türkçe uyarı). Menüde de yalnızca erişebildiği bağlantılar görünür.
+- **Pasif kullanıcı giremez**: Pasif işaretlenen kullanıcı oturum açamaz; açık oturumu bir sonraki istekte güvenle kapatılır ve "Hesabınız devre dışı bırakılmış." uyarısı gösterilir.
+- **Son yönetici koruması**: Son admin'in rolü düşürülemez, hesabı pasif yapılamaz ve silinemez. Kullanıcı kendi rolünü ve aktiflik durumunu değiştiremez (formda alanlar kilitli, sunucu tarafında da zorunlu).
+- **Profilim sayfası**: Her kullanıcı (personel dahil) ad, soyad, e-posta ve şifresini Profilim sayfasından güncelleyebilir. Şifre değişimi isteğe bağlıdır; değiştirilecekse mevcut şifre zorunludur. Üst çubuktaki profil düğmesi ve sol menü altındaki kullanıcı kutusu bu sayfaya gider.
+- **Açık kayıt kaldırıldı**: /register sayfası ve kayıt yolu kapatıldı — panel hesapları artık yalnızca yönetici tarafından Kullanıcılar sayfasından açılır. Eski Breeze profil sayfası ve içindeki kendi hesabını silme formu da kaldırıldı (yerine korumalı Profilim geçti); e-posta doğrulama ve şifre sıfırlama sayfaları durur.
+- **Dashboard'a Son Ayar Hareketleri**: Ayar denetim kaydındaki (settings_audit_logs) son 8 değişiklik Dashboard'da listelenir (anahtar, yeni değer, kullanıcı, zaman).
+- **İçerik sayfalarına cila**: Tüm yönetim sayfaları (Kategoriler, Ürünler, Masa QR, MSSQL Ayarları, Ayarlar, Raporlar, Kullanıcılar, Sync) tek tip başlık düzenine alındı: altın ikon rozetli başlık çubuğu + sayfa adı. Üst çubuk başlığı ve tarayıcı sekmesi artık sayfa adını gösterir.
+- **Dağıtım öncesi tam yedek**: v1.0.102 canlıya alınmadan önce tam yedek alındı (veritabanı dump + public/images + .env kopyası; sunucuda /root/rocksqr-backup-2026-10-10-2 ve geliştirme klasöründe backups/ altında).
+
+---
+
 ## v1.0.101 - 2026-10-10
 
 ### AdminLTE görünümlü sidebar yerleşimi + Kullanıcılar modülü

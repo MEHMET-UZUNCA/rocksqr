@@ -1,5 +1,7 @@
 @extends('layouts.admin')
 
+@section('title', 'Süre Raporu')
+
 @section('content')
 @php
 function fmtSecs(?int $s): string {
@@ -38,8 +40,11 @@ function locLabel($tableNo, $roomNo): string {
     {{-- Başlık + sekmeler + filtre --}}
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex flex-wrap items-center justify-between gap-4">
         <div>
-            <h2 class="text-2xl font-bold text-gray-900"><i class="fas fa-hourglass-half mr-2 text-amber-500"></i>Süre Raporu</h2>
-            <p class="text-sm text-gray-500 mt-0.5">QR siparişler + Symphony POS — aşama aşama süreler ve ortalamalar</p>
+            <h2 class="text-xl font-bold text-gray-900 flex items-center gap-3">
+                <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-gold/15 text-gold shrink-0"><i class="fas fa-hourglass-half"></i></span>
+                Süre Raporu
+            </h2>
+            <p class="text-sm text-gray-500 mt-1 ml-[3.25rem]">QR siparişler + Symphony POS — aşama aşama süreler ve ortalamalar</p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
             <div class="flex rounded-lg overflow-hidden border border-gray-200 text-sm">

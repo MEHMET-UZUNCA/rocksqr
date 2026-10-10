@@ -1,16 +1,20 @@
 @extends('layouts.admin')
 
+@section('title', isset($product) ? 'Ürün Düzenle' : 'Yeni Ürün')
+
 @section('content')
 <div class="py-12">
     <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-            <div class="p-6 bg-white border-b border-gray-200">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">
-                    <i class="fas fa-box mr-2 text-gold"></i>
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-bold text-gray-900 flex items-center gap-3">
+                    <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-gold/15 text-gold"><i class="fas fa-box"></i></span>
                     {{ isset($product) ? 'Ürün Düzenle' : 'Yeni Ürün' }}
                 </h2>
+            </div>
 
-                <form method="POST" 
+            <div class="p-6">
+                <form method="POST"
                       action="{{ isset($product) ? route('admin.products.update', $product) : route('admin.products.store') }}"
                       enctype="multipart/form-data"
                       class="space-y-6">

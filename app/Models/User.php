@@ -12,8 +12,11 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
+        'surname',
         'email',
         'password',
+        'role',
+        'is_active',
     ];
 
     protected $hidden = [
@@ -26,6 +29,19 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        $full = trim(($this->name ?? '') . ' ' . ($this->surname ?? ''));
+
+        return $full !== '' ? $full : ($this->email ?? '');
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
     }
 }

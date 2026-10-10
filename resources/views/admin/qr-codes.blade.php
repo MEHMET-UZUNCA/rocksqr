@@ -1,5 +1,7 @@
 @extends('layouts.admin')
 
+@section('title', 'Masa QR')
+
 @section('content')
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
@@ -7,8 +9,9 @@
             <div class="p-6 md:p-8 bg-white border-b border-gray-200">
                 <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-8">
                     <div>
-                        <h2 class="text-2xl font-bold text-gray-900">
-                            <i class="fas fa-qrcode mr-2 text-gold"></i>Masa QR Oluştur
+                        <h2 class="text-xl font-bold text-gray-900 flex items-center gap-3">
+                            <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-gold/15 text-gold shrink-0"><i class="fas fa-qrcode"></i></span>
+                            Masa QR Oluştur
                         </h2>
                         <p class="text-sm text-gray-500 mt-2">Masa numarasına göre toplu QR üretin, önizleyin, A4 baskıya hazırlayın ve arşivleyin.</p>
                     </div>

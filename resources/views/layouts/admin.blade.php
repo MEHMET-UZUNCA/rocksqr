@@ -58,6 +58,7 @@
                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('admin.dashboard') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
                     <i class="fas fa-tachometer-alt w-5 text-center {{ request()->routeIs('admin.dashboard') ? 'text-gold' : 'text-gold/70' }}"></i>Dashboard
                 </a>
+                @if(auth()->user()->isAdmin())
                 <a href="{{ route('admin.categories.index') }}"
                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('admin.categories.*') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
                     <i class="fas fa-folder w-5 text-center {{ request()->routeIs('admin.categories.*') ? 'text-gold' : 'text-gold/70' }}"></i>Kategoriler
@@ -66,6 +67,7 @@
                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('admin.products.*') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
                     <i class="fas fa-box w-5 text-center {{ request()->routeIs('admin.products.*') ? 'text-gold' : 'text-gold/70' }}"></i>Ürünler
                 </a>
+                @endif
             </div>
 
             <div>
@@ -86,6 +88,7 @@
                 </div>
             </div>
 
+            @if(auth()->user()->isAdmin())
             <div>
                 <p class="px-3 text-[11px] uppercase tracking-[0.2em] text-gold/70 font-semibold mb-1.5">Entegrasyon</p>
                 <div class="space-y-0.5">
@@ -103,6 +106,7 @@
                     </a>
                 </div>
             </div>
+            @endif
 
             <div>
                 <p class="px-3 text-[11px] uppercase tracking-[0.2em] text-gold/70 font-semibold mb-1.5">Yönetim</p>
@@ -111,6 +115,7 @@
                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('admin.reports.*') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
                         <i class="fas fa-chart-line w-5 text-center {{ request()->routeIs('admin.reports.*') ? 'text-gold' : 'text-gold/70' }}"></i>Raporlar
                     </a>
+                    @if(auth()->user()->isAdmin())
                     <a href="{{ route('admin.users.index') }}"
                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('admin.users.*') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
                         <i class="fas fa-users w-5 text-center {{ request()->routeIs('admin.users.*') ? 'text-gold' : 'text-gold/70' }}"></i>Kullanıcılar
@@ -119,14 +124,24 @@
                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('admin.settings') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
                         <i class="fas fa-cog w-5 text-center {{ request()->routeIs('admin.settings') ? 'text-gold' : 'text-gold/70' }}"></i>Ayarlar
                     </a>
+                    @endif
+                    <a href="{{ route('admin.profile') }}"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition {{ request()->routeIs('admin.profile') ? 'bg-gold/15 text-gold font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
+                        <i class="fas fa-id-badge w-5 text-center {{ request()->routeIs('admin.profile') ? 'text-gold' : 'text-gold/70' }}"></i>Profilim
+                    </a>
                 </div>
             </div>
         </nav>
 
         <div class="border-t border-white/10 p-3 shrink-0">
-            <div class="px-3 pb-2 text-xs text-gray-400 truncate" title="{{ auth()->user()->email ?? '' }}">
-                <i class="fas fa-user-circle mr-1.5"></i>{{ auth()->user()->email ?? '' }}
-            </div>
+            <a href="{{ route('admin.profile') }}" class="block px-3 py-2 rounded-lg hover:bg-white/5 transition mb-1">
+                <div class="text-sm font-medium text-white truncate" title="{{ auth()->user()->full_name ?? '' }}">
+                    <i class="fas fa-user-circle mr-1.5 text-gold/70"></i>{{ auth()->user()->full_name ?? '' }}
+                </div>
+                <div class="px-5 text-xs text-gray-400 truncate" title="{{ auth()->user()->email ?? '' }}">
+                    {{ auth()->user()->email ?? '' }} · {{ (auth()->user()->isAdmin() ?? false) ? 'Yönetici' : 'Personel' }}
+                </div>
+            </a>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-300 hover:bg-red-500/10 hover:text-red-200 transition">
@@ -145,6 +160,15 @@
             <h1 class="text-sm sm:text-base font-semibold text-gray-100 truncate">
                 @yield('title', 'Admin Panel - Rocks QR Menü')
             </h1>
+            <div class="ml-auto flex items-center gap-3 shrink-0">
+                <span class="hidden sm:flex flex-col items-end leading-tight">
+                    <span class="text-sm font-medium text-white">{{ auth()->user()->full_name ?? '' }}</span>
+                    <span class="text-[10px] uppercase tracking-wider {{ (auth()->user()->isAdmin() ?? false) ? 'text-gold' : 'text-gray-400' }}">{{ (auth()->user()->isAdmin() ?? false) ? 'Yönetici' : 'Personel' }}</span>
+                </span>
+                <a href="{{ route('admin.profile') }}" class="flex items-center justify-center w-9 h-9 rounded-full bg-gold/15 text-gold hover:bg-gold/25 transition" title="Profilim">
+                    <i class="fas fa-user text-sm"></i>
+                </a>
+            </div>
         </header>
 
         @if($errors->any())

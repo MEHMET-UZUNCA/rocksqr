@@ -1,14 +1,17 @@
 @extends('layouts.admin')
 
+@section('title', 'Kategoriler')
+
 @section('content')
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-            <div class="p-6 bg-white border-b border-gray-200 flex justify-between items-center">
-                <h2 class="text-2xl font-bold text-gray-900">
-                    <i class="fas fa-folder mr-2 text-gold"></i>Kategoriler
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between gap-4">
+                <h2 class="text-xl font-bold text-gray-900 flex items-center gap-3">
+                    <span class="flex items-center justify-center w-10 h-10 rounded-lg bg-gold/15 text-gold"><i class="fas fa-folder"></i></span>
+                    Kategoriler
                 </h2>
-                <a href="{{ route('admin.categories.create') }}" class="px-4 py-2 bg-primary text-white rounded hover:bg-light-primary transition">
+                <a href="{{ route('admin.categories.create') }}" class="px-4 py-2 bg-primary text-white rounded hover:bg-light-primary transition text-sm font-medium shrink-0">
                     <i class="fas fa-plus mr-1"></i> Yeni Kategori
                 </a>
             </div>
