@@ -22,13 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SubdomainRedirect::class,
         ]);
 
-        $middleware->auth(append: [
-            \App\Http\Middleware\EnsureUserActive::class,
-        ]);
-
         $middleware->alias([
             'screen-pin' => \App\Http\Middleware\EnsureScreenPin::class,
             'admin.role' => \App\Http\Middleware\EnsureAdminRole::class,
+            'active' => \App\Http\Middleware\EnsureUserActive::class,
         ]);
         // Bar ve Kitchen display ekranları — uzun süre açık kalır, CSRF token expire olur
         $middleware->validateCsrfTokens(except: [
